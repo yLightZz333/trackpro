@@ -872,10 +872,13 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"logs": [dict(l) for l in logs]})
             return
 
-        # Serve static demo web application
-        demo_html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo', 'index.html')
-        if path in ['/', '/index.html'] and os.path.exists(demo_html_path):
-            with open(demo_html_path, 'r', encoding='utf-8') as f:
+        # Serve static web application (raiz ou pasta demo)
+        root_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
+        demo_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo', 'index.html')
+        html_to_serve = root_html if os.path.exists(root_html) else demo_html
+
+        if path in ['/', '/index.html'] and os.path.exists(html_to_serve):
+            with open(html_to_serve, 'r', encoding='utf-8') as f:
                 content = f.read()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')

@@ -3,6 +3,9 @@
   "version": "2.0.0",
   "description": "UTM Tracking, Multi-Platform Webhooks and Meta Conversions API (CAPI)",
   "main": "api/index.js",
+  "scripts": {
+    "build": "node -e \"const fs=require('fs'); if(!fs.existsSync('dist')){fs.mkdirSync('dist');} fs.copyFileSync('index.html','dist/index.html'); try{fs.copyFileSync('sw.js','dist/sw.js');fs.copyFileSync('manifest.webmanifest','dist/manifest.webmanifest');}catch(e){}\""
+  },
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5"

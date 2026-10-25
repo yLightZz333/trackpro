@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const https = require('https');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -298,6 +300,148 @@ app.post('/api/meta/test', async (req, res) => {
   res.json(result);
 });
 
+// Tracking Pixel JS com Injeção Automática de UTMs para Kiwify, Hotmart, Greenn, Cakto, Wiapy
+app.get(['/tracking/pixel.js', '/tracking/pixel'], (req, res) => {
+  const token = req.query.token || '';
+  const script = `(function(){
+  'use strict';
+  var TOKEN = '${token}';
+  var API = window.location.origin;
+
+  function getQueryParam(name) {
+    var search = window.location.search.substring(1);
+    var vars = search.split('&');
+    for (var i = 0; i < vars.length; i++) {
+      var pair = vars[i].split('=');
+      if (decodeURIComponent(pair[0]) === name) return decodeURIComponent(pair[1] || '');
+    }
+    return null;
+  }
+
+  var currentUtms = {
+    utm_source: getQueryParam('utm_source'),
+    utm_medium: getQueryParam('utm_medium'),
+    utm_campaign: getQueryParam('utm_campaign'),
+    utm_content: getQueryParam('utm_content'),
+    utm_term: getQueryParam('utm_term'),
+    src: getQueryParam('src'),
+    sck: getQueryParam('sck')
+  };
+
+  var fbclid = getQueryParam('fbclid');
+
+  function getCookie(n) {
+    var v = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
+    return v ? decodeURIComponent(v[2]) : null;
+  }
+  function setCookie(n, v, days) {
+    var d = new Date();
+    d.setTime(d.getTime() + (days * 86400000));
+    document.cookie = n + '=' + encodeURIComponent(v) + '; path=/; expires=' + d.toUTCString();
+  }
+
+  var fbp = getCookie('_fbp');
+  if (!fbp) {
+    fbp = 'fb.1.' + (+new Date()) + '.' + Math.floor(Math.random() * 1000000000);
+    setCookie('_fbp', fbp, 90);
+  }
+
+  var fbc = getCookie('_fbc');
+  if (fbclid) {
+    fbc = 'fb.1.' + (+new Date()) + '.' + fbclid;
+    setCookie('_fbc', fbc, 90);
+  }
+
+  var hasUtm = false;
+  for (var k in currentUtms) {
+    if (currentUtms[k]) { hasUtm = true; break; }
+  }
+
+  if (hasUtm) {
+    currentUtms.fbp = fbp;
+    if (fbc) currentUtms.fbc = fbc;
+    try {
+      localStorage.setItem('_trackpro_utms', JSON.stringify(currentUtms));
+      setCookie('_trackpro_utms', JSON.stringify(currentUtms), 30);
+    } catch(e){}
+  }
+
+  var stored = {};
+  try {
+    stored = JSON.parse(localStorage.getItem('_trackpro_utms') || '{}');
+  } catch(e){}
+  if (!stored.fbp) stored.fbp = fbp;
+  if (fbc && !stored.fbc) stored.fbc = fbc;
+
+  fetch(API + '/api/tracking/event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-token': TOKEN },
+    body: JSON.stringify({
+      event_type: 'pageview',
+      utm_source: stored.utm_source,
+      utm_medium: stored.utm_medium,
+      utm_campaign: stored.utm_campaign,
+      utm_content: stored.utm_content,
+      utm_term: stored.utm_term,
+      src: stored.src,
+      sck: stored.sck,
+      fbc: stored.fbc,
+      fbp: stored.fbp,
+      page_url: window.location.href,
+      referrer: document.referrer
+    })
+  }).catch(function(){});
+
+  function decorateCheckoutLinks() {
+    var links = document.querySelectorAll('a[href]');
+    var checkouts = ['kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com'];
+    
+    links.forEach(function(link) {
+      var href = link.getAttribute('href');
+      if (!href) return;
+      var isCheckout = checkouts.some(function(domain) { return href.indexOf(domain) !== -1; });
+      if (isCheckout) {
+        var separator = href.indexOf('?') !== -1 ? '&' : '?';
+        var params = [];
+        if (stored.utm_source) params.push('utm_source=' + encodeURIComponent(stored.utm_source));
+        if (stored.utm_medium) params.push('utm_medium=' + encodeURIComponent(stored.utm_medium));
+        if (stored.utm_campaign) params.push('utm_campaign=' + encodeURIComponent(stored.utm_campaign));
+        if (stored.utm_content) params.push('utm_content=' + encodeURIComponent(stored.utm_content));
+        if (stored.utm_term) params.push('utm_term=' + encodeURIComponent(stored.utm_term));
+        if (stored.src) params.push('src=' + encodeURIComponent(stored.src));
+        if (stored.sck) params.push('sck=' + encodeURIComponent(stored.sck));
+        if (stored.fbc) params.push('fbc=' + encodeURIComponent(stored.fbc));
+        if (stored.fbp) params.push('fbp=' + encodeURIComponent(stored.fbp));
+
+        if (params.length > 0) {
+          link.setAttribute('href', href + separator + params.join('&'));
+        }
+      }
+    });
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    decorateCheckoutLinks();
+  } else {
+    document.addEventListener('DOMContentLoaded', decorateCheckoutLinks);
+  }
+
+  window.TrackPro = {
+    getUtms: function() { return stored; },
+    getFbp: function() { return fbp; },
+    getFbc: function() { return fbc; }
+  };
+})();`;
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.send(script);
+});
+
+// Evento de Pageview / Tracking
+app.post('/api/tracking/event', (req, res) => {
+  res.status(200).json({ success: true });
+});
+
 // Rotas de Webhook para as plataformas
 const webhookHandler = async (req, res) => {
   const parsed = parseWebhook(req.headers, req.body);
@@ -343,5 +487,22 @@ app.post('/api/webhook/greenn', webhookHandler);
 app.post('/api/webhook/cakto', webhookHandler);
 app.post('/api/webhook/wiapy', webhookHandler);
 app.post('/api/webhook/orders', webhookHandler);
+
+// Fallback para servir o Frontend HTML em qualquer rota (quando roteado pelo Vercel)
+app.get('*', (req, res) => {
+  const candidates = [
+    path.join(__dirname, '..', 'public', 'index.html'),
+    path.join(__dirname, '..', 'index.html'),
+    path.join(process.cwd(), 'public', 'index.html'),
+    path.join(process.cwd(), 'index.html')
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.sendFile(p);
+    }
+  }
+  res.status(404).send('TrackPro Dashboard HTML not found');
+});
 
 module.exports = app;

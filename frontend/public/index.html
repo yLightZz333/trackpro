@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>TrackPro — Atribuição & Meta CAPI</title>
+  <title>TrackPro — Atribuição, Meta Ads & Automações</title>
   
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="/manifest.webmanifest">
@@ -43,56 +43,65 @@
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes toastSlide {
+      from { transform: translateY(100%) scale(0.9); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .toast-animate { animation: toastSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   </style>
 </head>
 <body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased pb-20 md:pb-0">
 
   <!-- DESKTOP SIDEBAR -->
   <aside class="hidden md:flex w-64 bg-dark-900 border-r border-slate-800/80 flex-col flex-shrink-0 z-30">
-    <div class="h-16 px-6 border-b border-slate-800/80 flex items-center gap-3">
-      <div class="w-9 h-9 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
-        <i data-lucide="crosshair" class="w-5 h-5 text-white"></i>
-      </div>
-      <div>
-        <span class="font-extrabold text-lg text-white">Track<span class="text-brand-400">Pro</span></span>
-        <span class="block text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Meta CAPI Active</span>
+    <div class="h-16 px-6 border-b border-slate-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i data-lucide="crosshair" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-lg text-white">Track<span class="text-brand-400">Pro</span></span>
+          <span class="block text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Suite v2.5</span>
+        </div>
       </div>
     </div>
 
-    <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-500/10 text-brand-400 border border-brand-500/20">
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-500/10 text-brand-400 border border-brand-500/20">
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Visão Geral (KPIs)
       </button>
-      <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="shopping-bag" class="w-4 h-4"></i> Pedidos com UTM
+      <button onclick="switchTab('campaigns')" id="nav-campaigns" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="target" class="w-4 h-4 text-blue-400"></i> Campanhas & Anúncios
       </button>
-      <button onclick="switchTab('meta')" id="nav-meta" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="share-2" class="w-4 h-4 text-blue-400"></i> Meta Ads (CAPI)
+      <button onclick="switchTab('rules')" id="nav-rules" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="cpu" class="w-4 h-4 text-amber-400"></i> Regras de Automação
       </button>
-      <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+      <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-400"></i> Pedidos com UTM
+      </button>
+      <button onclick="switchTab('pixels')" id="nav-pixels" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="share-2" class="w-4 h-4 text-indigo-400"></i> Multi-Pixels & CAPI
+      </button>
+      <button onclick="switchTab('accounts')" id="nav-accounts" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="key-round" class="w-4 h-4 text-sky-400"></i> Contas de Anúncio
+      </button>
+      <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
-      </button>
-      <button onclick="switchTab('campaigns')" id="nav-campaigns" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="target" class="w-4 h-4"></i> Campanhas & ROAS
-      </button>
-      <button onclick="switchTab('simulator')" id="nav-simulator" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> Testador de Venda
       </button>
     </nav>
 
-    <div class="p-4 border-t border-slate-800/80 bg-dark-950/50">
-      <div class="flex items-center gap-2 text-xs text-slate-400">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>Pronto para Receber Vendas</span>
+    <!-- Rodapé Sidebar -->
+    <div class="p-4 border-t border-slate-800/80 bg-dark-950/50 space-y-2">
+      <div class="flex items-center justify-between text-xs text-slate-400">
+        <span class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Automações Ativas</span>
+        </span>
+        <button onclick="resetSystemData()" title="Zerar Dados de Teste" class="text-[11px] text-rose-400 hover:text-rose-300 transition-colors">Zerar Dados</button>
       </div>
     </div>
   </aside>
@@ -104,11 +113,15 @@
       <span class="font-bold text-sm text-white">Track<span class="text-brand-400">Pro</span></span>
     </div>
     <div class="flex items-center gap-2">
-      <button onclick="promptInstallPWA()" id="pwa-install-btn" class="hidden px-2.5 py-1 bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-lg text-xs font-semibold flex items-center gap-1">
-        <i data-lucide="download" class="w-3.5 h-3.5"></i> Instalar App
+      <!-- Seletor Rápido de Dashboard Mobile -->
+      <select id="mobile-dash-select" onchange="changeDashboard(this.value)" class="bg-dark-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none">
+        <option value="">Geral</option>
+      </select>
+      <button onclick="toggleSound()" id="sound-btn-mobile" class="p-1.5 bg-dark-800 text-emerald-400 rounded-lg" title="Som de Venda">
+        <i data-lucide="volume-2" class="w-4 h-4"></i>
       </button>
-      <button onclick="refreshData()" class="p-1.5 bg-dark-800 text-slate-300 rounded-lg">
-        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <button onclick="promptInstallPWA()" id="pwa-install-btn" class="hidden px-2 py-1 bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-lg text-xs font-semibold">
+        App
       </button>
     </div>
   </div>
@@ -117,15 +130,40 @@
   <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
     <!-- Desktop Header -->
     <header class="hidden md:flex h-16 px-6 border-b border-slate-800/80 bg-dark-900/60 backdrop-blur-md items-center justify-between sticky top-0 z-20">
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-brand-500/10 text-brand-400 border border-brand-500/20">
-          ● Servidor de Atribuição Ativo
+      <div class="flex items-center gap-4">
+        <!-- Dashboard Workspace Selector -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-400 font-medium">Dashboard:</label>
+          <div class="relative">
+            <select id="dashboard-select" onchange="changeDashboard(this.value)" class="bg-dark-800 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs font-semibold rounded-xl px-3 py-1.5 pr-8 focus:outline-none appearance-none cursor-pointer transition-colors">
+              <option value="">📊 Geral (Todas as Vendas)</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
+          <button onclick="openModal('modal-new-dashboard')" class="p-1.5 bg-dark-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded-lg text-xs transition-colors" title="Criar Nova Dashboard">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <span class="h-4 w-px bg-slate-800"></span>
+
+        <span class="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          Greenn • Hotmart • Cakto • Kiwify • Wiapy
         </span>
-        <span class="text-xs text-slate-400">Greenn • Hotmart • Cakto • Kiwify • Wiapy</span>
       </div>
+
       <div class="flex items-center gap-3">
-        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-lg text-slate-300 text-xs flex items-center gap-1.5 transition-colors">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Atualizar Dados
+        <!-- Som de Venda Ka-ching Toggle -->
+        <button onclick="toggleSound()" id="sound-btn-desktop" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
+          <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+          <span>Som de Venda Ativo</span>
+        </button>
+        <button onclick="testKachingSound()" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors" title="Testar Som da Caixa Registradora">
+          <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Testar Som
+        </button>
+        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
         </button>
       </div>
     </header>
@@ -134,213 +172,335 @@
 
       <!-- ==================== TAB 1: DASHBOARD ==================== -->
       <section id="tab-dashboard" class="tab-pane space-y-4 md:space-y-6">
-        <!-- 4 KPI Cards (Limpos) -->
+        <!-- 4 KPI Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
             <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Faturamento</span>
-            <p id="kpi-faturamento" class="text-xl md:text-2xl font-bold text-white tracking-tight">R$ 0,00</p>
-            <span class="text-[11px] text-slate-500 mt-1 block">Aguardando vendas</span>
+            <div id="kpi-faturamento" class="text-xl md:text-3xl font-extrabold text-white tracking-tight">R$ 0,00</div>
+            <span class="text-[11px] text-emerald-400 font-medium mt-1 inline-block">100% Vendas Aprovadas</span>
+            <div class="absolute -right-2 -bottom-2 opacity-5 text-emerald-400"><i data-lucide="dollar-sign" class="w-20 h-20"></i></div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
             <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Gasto em Ads</span>
-            <p id="kpi-gasto" class="text-xl md:text-2xl font-bold text-white tracking-tight">R$ 0,00</p>
-            <span class="text-[11px] text-blue-400 mt-1 block">Meta Ads</span>
+            <div id="kpi-gastoads" class="text-xl md:text-3xl font-extrabold text-white tracking-tight">R$ 0,00</div>
+            <span class="text-[11px] text-slate-400 mt-1 inline-block">Sincronizado Meta Ads</span>
+            <div class="absolute -right-2 -bottom-2 opacity-5 text-blue-400"><i data-lucide="trending-up" class="w-20 h-20"></i></div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
             <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">ROAS Real</span>
-            <p id="kpi-roas" class="text-xl md:text-2xl font-bold text-purple-400 tracking-tight">0.00x</p>
-            <span class="text-[11px] text-slate-500 mt-1 block">Retorno sobre investimento</span>
+            <div id="kpi-roas" class="text-xl md:text-3xl font-extrabold text-brand-400 tracking-tight">0.00x</div>
+            <span class="text-[11px] text-slate-400 mt-1 inline-block">Retorno sobre Anúncio</span>
+            <div class="absolute -right-2 -bottom-2 opacity-5 text-purple-400"><i data-lucide="zap" class="w-20 h-20"></i></div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
-            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Lucro Real Líquido</span>
-            <p id="kpi-lucro" class="text-xl md:text-2xl font-bold text-emerald-400 tracking-tight">R$ 0,00</p>
-            <span class="text-[11px] text-slate-500 mt-1 block">Pós-Taxas & Ads</span>
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
+            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">CPA Médio</span>
+            <div id="kpi-cpa" class="text-xl md:text-3xl font-extrabold text-white tracking-tight">R$ 0,00</div>
+            <span id="kpi-vendas" class="text-[11px] text-slate-400 mt-1 inline-block">0 Vendas Hoje</span>
+            <div class="absolute -right-2 -bottom-2 opacity-5 text-emerald-400"><i data-lucide="shopping-cart" class="w-20 h-20"></i></div>
           </div>
         </div>
 
-        <!-- Charts -->
+        <!-- Gráfico e Fontes de Tráfego -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          <div class="lg:col-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6">
-            <h3 class="text-xs md:text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
-              <i data-lucide="line-chart" class="w-4 h-4 text-brand-400"></i> Faturamento vs Investimento em Tráfego
-            </h3>
-            <div class="h-56 md:h-64">
+          <div class="lg:col-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-sm text-white">Vendas por Horário (Hoje)</h3>
+                <span class="text-xs text-slate-400">Atualizado em tempo real</span>
+              </div>
+            </div>
+            <div class="h-60 flex items-center justify-center">
               <canvas id="revenueChart"></canvas>
             </div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6">
-            <h3 class="text-xs md:text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
-              <i data-lucide="pie-chart" class="w-4 h-4 text-blue-400"></i> Origem de Vendas (UTMs)
-            </h3>
-            <div class="h-56 md:h-64 flex items-center justify-center">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col">
+            <h3 class="font-bold text-sm text-white mb-1">Canais & Fontes (UTM)</h3>
+            <span class="text-xs text-slate-400 mb-4">Origem do tráfego das compras</span>
+            <div class="flex-1 flex items-center justify-center min-h-[180px]">
               <canvas id="sourcesChart"></canvas>
             </div>
+            <div id="sources-legend" class="mt-4 space-y-1.5 text-xs text-slate-300"></div>
           </div>
         </div>
 
-        <!-- Recent Sales -->
-        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs md:text-sm font-bold text-slate-100 flex items-center gap-2">
-              <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Vendas Atribuídas
-            </h3>
-            <button onclick="switchTab('orders')" class="text-xs font-semibold text-brand-400">Ver todas →</button>
+        <!-- Últimos Pedidos no Dashboard -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-sm text-white">Últimas Conversões Recebidas</h3>
+              <span class="text-xs text-slate-400">Atribuídas com UTM e disparadas para o Meta CAPI</span>
+            </div>
+            <button onclick="switchTab('orders')" class="text-xs font-semibold text-brand-400 hover:text-brand-300">Ver todas →</button>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
+              <thead class="text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th class="pb-2.5">Plataforma</th>
-                  <th class="pb-2.5">Cliente</th>
-                  <th class="pb-2.5">Valor</th>
-                  <th class="pb-2.5">utm_source</th>
-                  <th class="pb-2.5">utm_campaign</th>
-                  <th class="pb-2.5">Status</th>
+                  <th class="py-2.5 px-3">Pedido / Cliente</th>
+                  <th class="py-2.5 px-3">Plataforma</th>
+                  <th class="py-2.5 px-3">Campanha (UTM)</th>
+                  <th class="py-2.5 px-3">Valor</th>
+                  <th class="py-2.5 px-3">Status</th>
+                  <th class="py-2.5 px-3">Data</th>
                 </tr>
               </thead>
-              <tbody id="preview-orders-body" class="divide-y divide-slate-800/60 text-slate-300">
-                <tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Aguardando webhooks dos checkouts...</td></tr>
+              <tbody id="overview-orders-tbody" class="divide-y divide-slate-800/60 font-medium">
+                <tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Pronto para receber webhooks!</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- ==================== TAB 2: PEDIDOS COM UTM ==================== -->
-      <section id="tab-orders" class="tab-pane hidden space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <!-- ==================== TAB 2: CAMPANHAS & GESTÃO FACEBOOK ADS ==================== -->
+      <section id="tab-campaigns" class="tab-pane hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 class="text-base md:text-lg font-bold text-white">Vendas & Atribuição de Tráfego</h2>
-            <p class="text-xs text-slate-400">Origem exata (campanha, criativo e plataforma) de cada venda</p>
+            <h2 class="text-lg font-bold text-white">Campanhas & Gestão de Anúncios</h2>
+            <p class="text-xs text-slate-400">Gerencie status, orçamento diário e duplique conjuntos de anúncio em 1 clique</p>
           </div>
-          <input type="text" onkeyup="filterOrders(this.value)" placeholder="Buscar cliente, UTM ou checkout..." class="px-3.5 py-2 bg-dark-800 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 w-full sm:w-64">
+          <div class="flex items-center gap-2">
+            <button onclick="openModal('modal-new-campaign')" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-brand-500/20">
+              <i data-lucide="plus" class="w-4 h-4"></i> Nova Campanha
+            </button>
+          </div>
         </div>
 
         <div class="bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="bg-dark-950/70 text-slate-400 border-b border-slate-800 uppercase font-semibold">
+              <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th class="px-4 py-3">Código</th>
-                  <th class="px-4 py-3">Plataforma</th>
-                  <th class="px-4 py-3">Cliente</th>
-                  <th class="px-4 py-3">Valor</th>
-                  <th class="px-4 py-3">utm_source</th>
-                  <th class="px-4 py-3">utm_campaign</th>
-                  <th class="px-4 py-3">utm_content</th>
-                  <th class="px-4 py-3">Status</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4">Nome da Campanha</th>
+                  <th class="py-3 px-4">Orçamento Diário</th>
+                  <th class="py-3 px-4">Gasto Total</th>
+                  <th class="py-3 px-4">Vendas</th>
+                  <th class="py-3 px-4">Faturamento</th>
+                  <th class="py-3 px-4">ROAS Real</th>
+                  <th class="py-3 px-4">CPA</th>
+                  <th class="py-3 px-4 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody id="full-orders-body" class="divide-y divide-slate-800/60 text-slate-300">
-                <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Nenhuma venda registrada ainda. Cadastre o Webhook nas suas plataformas.</td></tr>
+              <tbody id="campaigns-tbody" class="divide-y divide-slate-800 font-medium">
+                <tr><td colspan="9" class="py-8 text-center text-slate-500">Nenhuma campanha cadastrada. Clique em "+ Nova Campanha" para criar ou vincular sua conta do Facebook.</td></tr>
               </tbody>
             </table>
           </div>
         </div>
-      </section>
 
-      <!-- ==================== TAB 3: META ADS (CAPI) ==================== -->
-      <section id="tab-meta" class="tab-pane hidden space-y-4 md:space-y-6">
-        <div class="bg-gradient-to-r from-blue-900/30 via-dark-900 to-dark-900 border border-blue-500/30 rounded-2xl p-4 md:p-6">
-          <div class="flex items-start gap-3">
-            <div class="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl">
-              <i data-lucide="share-2" class="w-5 h-5"></i>
-            </div>
+        <!-- Seção de Conjuntos de Anúncio com Botão de Duplicação -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-4">
+          <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-sm md:text-base font-bold text-white">Meta Conversions API (CAPI) — Server-Side</h2>
-              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                Quando uma venda for aprovada na Greenn, Hotmart, Cakto, Kiwify ou Wiapy, o TrackPro envia o evento <strong>Purchase</strong> automaticamente para a API da Meta com hash SHA-256 de e-mail e telefone, blindado contra ad blockers e iOS.
-              </p>
+              <h3 class="font-bold text-sm text-white">Conjuntos de Anúncio (Ad Sets)</h3>
+              <p class="text-xs text-slate-400">Duplique conjuntos para testar novos públicos e criativos instantaneamente</p>
             </div>
           </div>
-        </div>
-
-        <!-- Meta CAPI Configuration Card -->
-        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-4">
-          <h3 class="text-xs md:text-sm font-bold text-white flex items-center gap-2">
-            <i data-lucide="settings" class="w-4 h-4 text-blue-400"></i> Credenciais do Pixel Meta
-          </h3>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label class="block text-slate-300 font-semibold mb-1">ID do Pixel do Facebook</label>
-              <input id="meta-pixel-id" type="text" placeholder="Ex: 123456789012345" class="w-full px-3 py-2.5 bg-dark-800 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500">
-              <span class="text-[11px] text-slate-500 mt-1 block">Gerenciador de Eventos da Meta → Configurações</span>
-            </div>
-
-            <div>
-              <label class="block text-slate-300 font-semibold mb-1">Código de Evento de Teste (Opcional)</label>
-              <input id="meta-test-code" type="text" placeholder="Ex: TEST12345" class="w-full px-3 py-2.5 bg-dark-800 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500">
-              <span class="text-[11px] text-slate-500 mt-1 block">Aba 'Testar Eventos' no Meta Events Manager</span>
-            </div>
-
-            <div class="md:col-span-2">
-              <label class="block text-slate-300 font-semibold mb-1">Token de Acesso da API de Conversões (CAPI Token)</label>
-              <input id="meta-access-token" type="password" placeholder="EAABw..." class="w-full px-3 py-2.5 bg-dark-800 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500">
-              <span class="text-[11px] text-slate-500 mt-1 block">Gerenciador de Eventos → Configurações → Gerar Token de Acesso</span>
-            </div>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-3 pt-2">
-            <button onclick="saveMetaSettings()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
-              <i data-lucide="save" class="w-4 h-4"></i> Salvar Credenciais Meta
-            </button>
-            <button onclick="testMetaCapi()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
-              <i data-lucide="play" class="w-4 h-4 text-emerald-400"></i> Disparar Compra de Teste para o Meta
-            </button>
-          </div>
-
-          <div id="meta-feedback" class="hidden p-3 rounded-xl text-xs flex items-center gap-2"></div>
-        </div>
-
-        <!-- Live CAPI Logs -->
-        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-3">
-          <h3 class="text-xs md:text-sm font-bold text-white flex items-center gap-2">
-            <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i> Registro de Disparos CAPI em Tempo Real
-          </h3>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
+              <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th class="pb-2">Data/Hora</th>
-                  <th class="pb-2">Pedido</th>
-                  <th class="pb-2">Evento</th>
-                  <th class="pb-2">Status</th>
-                  <th class="pb-2">Resposta Meta</th>
+                  <th class="py-2.5 px-3">Nome do Conjunto</th>
+                  <th class="py-2.5 px-3">Campanha</th>
+                  <th class="py-2.5 px-3">Orçamento</th>
+                  <th class="py-2.5 px-3">Status</th>
+                  <th class="py-2.5 px-3 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody id="capi-logs-body" class="divide-y divide-slate-800/60 text-slate-300">
-                <tr><td colspan="5" class="py-4 text-center text-slate-500">Nenhum evento disparado ainda. Suas vendas reais aparecerão aqui.</td></tr>
+              <tbody id="adsets-tbody" class="divide-y divide-slate-800">
+                <tr><td colspan="5" class="py-4 text-center text-slate-500">Nenhum conjunto de anúncio registrado.</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- ==================== TAB 4: PLATAFORMAS & WEBHOOKS ==================== -->
-      <section id="tab-webhooks" class="tab-pane hidden space-y-4 md:space-y-6">
+      <!-- ==================== TAB 3: REGRAS DE AUTOMAÇÃO ==================== -->
+      <section id="tab-rules" class="tab-pane hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-white">Motor de Regras e Automações</h2>
+            <p class="text-xs text-slate-400">Crie regras automáticas estilo LowTrack/UTMify (Stop Loss, Escala de ROAS, Desligar em horários)</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="runRulesEvaluation()" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <i data-lucide="play" class="w-3.5 h-3.5 text-emerald-400"></i> Executar Regras Agora
+            </button>
+            <button onclick="openModal('modal-new-rule')" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-amber-500/20">
+              <i data-lucide="plus" class="w-4 h-4"></i> Criar Nova Regra
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid de Regras Ativas -->
+        <div id="rules-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Regras injetadas via JS -->
+        </div>
+
+        <!-- Histórico de Execuções -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-sm text-white">Histórico de Ações Executadas pelas Regras</h3>
+            <span class="text-xs text-slate-400">Últimas ativações automáticas</span>
+          </div>
+          <div class="overflow-x-auto max-h-60 overflow-y-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-2 px-3">Data / Hora</th>
+                  <th class="py-2 px-3">Regra</th>
+                  <th class="py-2 px-3">Campanha Afetada</th>
+                  <th class="py-2 px-3">Ação</th>
+                  <th class="py-2 px-3">Motivo / Condição</th>
+                </tr>
+              </thead>
+              <tbody id="rule-logs-tbody" class="divide-y divide-slate-800 text-slate-300">
+                <tr><td colspan="5" class="py-6 text-center text-slate-500">Nenhuma ação disparada ainda. Suas regras monitoram o desempenho 24 horas por dia.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: PEDIDOS COM UTM ==================== -->
+      <section id="tab-orders" class="tab-pane hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-white">Vendas & Atribuição de UTM</h2>
+            <p class="text-xs text-slate-400">Rastreamento completo do comprador, canal, campanha, criativo e IDs de clique</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="orders-search" oninput="filterOrdersTable()" placeholder="Buscar cliente, email ou ID..." class="bg-dark-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <button onclick="resetSystemData()" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold transition-colors">
+              Zerar Pedidos
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-3 px-4">ID Pedido</th>
+                  <th class="py-3 px-4">Comprador</th>
+                  <th class="py-3 px-4">Plataforma</th>
+                  <th class="py-3 px-4">Valor</th>
+                  <th class="py-3 px-4">utm_source</th>
+                  <th class="py-3 px-4">utm_campaign</th>
+                  <th class="py-3 px-4">utm_content</th>
+                  <th class="py-3 px-4">Data</th>
+                  <th class="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody id="orders-full-tbody" class="divide-y divide-slate-800 font-medium">
+                <tr><td colspan="9" class="py-8 text-center text-slate-500">Nenhum pedido encontrado.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: MULTI-PIXELS & META CAPI ==================== -->
+      <section id="tab-pixels" class="tab-pane hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-white">Gerenciador Multi-Pixels & Meta CAPI</h2>
+            <p class="text-xs text-slate-400">Cadastre múltiplos Pixels do Facebook para contingência e produtos diferentes</p>
+          </div>
+          <button onclick="openModal('modal-new-pixel')" class="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-indigo-500/20">
+            <i data-lucide="plus" class="w-4 h-4"></i> Adicionar Pixel Meta
+          </button>
+        </div>
+
+        <!-- Lista de Pixels Cadastrados -->
+        <div id="pixels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Injetado via JS -->
+        </div>
+
+        <!-- Disparo de Teste CAPI -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="flask-conical" class="w-4 h-4 text-brand-400"></i>
+              <h3 class="font-bold text-sm text-white">Testador de Disparo CAPI (Facebook Events Manager)</h3>
+            </div>
+            <span class="text-xs text-slate-400">Dispara evento de compra simulado</span>
+          </div>
+          <p class="text-xs text-slate-400">Envie um evento teste para a ferramenta "Testar Eventos" do Gerenciador de Eventos da Meta para conferir o recebimento via Servidor:</p>
+          <div class="flex items-center gap-3">
+            <button onclick="testMetaCapi()" id="btn-test-capi" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i> Disparar Compra de Teste CAPI
+            </button>
+            <div id="test-capi-result" class="text-xs font-mono"></div>
+          </div>
+        </div>
+
+        <!-- Logs de Envio CAPI -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+          <h3 class="font-bold text-sm text-white">Logs Recentes de Disparos CAPI</h3>
+          <div class="overflow-x-auto max-h-60 overflow-y-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-2 px-3">Data</th>
+                  <th class="py-2 px-3">Pedido</th>
+                  <th class="py-2 px-3">Pixel ID</th>
+                  <th class="py-2 px-3">Evento</th>
+                  <th class="py-2 px-3">Status</th>
+                  <th class="py-2 px-3">Resposta Meta</th>
+                </tr>
+              </thead>
+              <tbody id="capi-logs-tbody" class="divide-y divide-slate-800 text-slate-300">
+                <tr><td colspan="6" class="py-4 text-center text-slate-500">Nenhum disparo registrado ainda.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 6: CONTAS DE ANÚNCIO FACEBOOK ==================== -->
+      <section id="tab-accounts" class="tab-pane hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-white">Contas de Anúncio Conectadas</h2>
+            <p class="text-xs text-slate-400">Vincule suas contas do Facebook Ads com Token para gerenciar status e orçamentos</p>
+          </div>
+          <button onclick="openModal('modal-new-account')" class="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-sky-500/20">
+            <i data-lucide="plus" class="w-4 h-4"></i> Conectar Nova Conta
+          </button>
+        </div>
+
+        <div id="accounts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Injetado via JS -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 7: WEBHOOKS & INTEGRAÇÕES ==================== -->
+      <section id="tab-webhooks" class="tab-pane hidden space-y-4">
         <div>
-          <h2 class="text-base md:text-lg font-bold text-white">Integrações de Checkout</h2>
-          <p class="text-xs text-slate-400">Copie as URLs abaixo e cadastre nos Webhooks de cada plataforma</p>
+          <h2 class="text-lg font-bold text-white">Webhooks & Script do Pixel</h2>
+          <p class="text-xs text-slate-400">Copie o link da sua plataforma de vendas e cole no painel correspondente</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- GREENN -->
+          <!-- KIWIFY -->
           <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <h3 class="font-bold text-sm text-white">Greenn</h3>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <h3 class="font-bold text-sm text-white">Kiwify</h3>
               </div>
-              <span class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Suportado</span>
+              <span class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Ativo</span>
             </div>
-            <p class="text-xs text-slate-400">Cadastre em: <strong>Produtos → Editar Produto → Entrega / Integrações</strong></p>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Apps → Webhooks → Criar Webhook</strong></p>
             <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
-              <input readonly value="https://SEU-DOMINIO/api/webhook/greenn" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-emerald-400 focus:outline-none">
+              <input readonly value="" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-emerald-400 focus:outline-none" data-path="/api/webhook/kiwify">
               <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
             </div>
           </div>
@@ -349,14 +509,30 @@
           <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                 <h3 class="font-bold text-sm text-white">Hotmart</h3>
               </div>
-              <span class="text-[10px] uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">Suportado</span>
+              <span class="text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Ativo</span>
             </div>
-            <p class="text-xs text-slate-400">Cadastre em: <strong>Ferramentas → Webhook (Webhook 2.0)</strong></p>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Ferramentas → Webhook (HotConnect)</strong></p>
             <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
-              <input readonly value="https://SEU-DOMINIO/api/webhook/hotmart" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-orange-400 focus:outline-none">
+              <input readonly value="" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-amber-400 focus:outline-none" data-path="/api/webhook/hotmart">
+              <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+            </div>
+          </div>
+
+          <!-- GREENN -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-400"></span>
+                <h3 class="font-bold text-sm text-white">Greenn</h3>
+              </div>
+              <span class="text-[10px] uppercase font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">Ativo</span>
+            </div>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Configurações → Webhooks</strong></p>
+            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+              <input readonly value="" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-green-400 focus:outline-none" data-path="/api/webhook/greenn">
               <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
             </div>
           </div>
@@ -368,27 +544,11 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
                 <h3 class="font-bold text-sm text-white">Cakto</h3>
               </div>
-              <span class="text-[10px] uppercase font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Suportado</span>
+              <span class="text-[10px] uppercase font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Ativo</span>
             </div>
-            <p class="text-xs text-slate-400">Cadastre em: <strong>Configurações → Webhooks → Adicionar URL</strong></p>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Configurações → Webhooks</strong></p>
             <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
-              <input readonly value="https://SEU-DOMINIO/api/webhook/cakto" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-purple-400 focus:outline-none">
-              <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
-            </div>
-          </div>
-
-          <!-- KIWIFY -->
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <h3 class="font-bold text-sm text-white">Kiwify</h3>
-              </div>
-              <span class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Suportado</span>
-            </div>
-            <p class="text-xs text-slate-400">Cadastre em: <strong>Apps → Webhooks → Criar Webhook</strong></p>
-            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
-              <input readonly value="https://SEU-DOMINIO/api/webhook/kiwify" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-emerald-400 focus:outline-none">
+              <input readonly value="" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-purple-400 focus:outline-none" data-path="/api/webhook/cakto">
               <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
             </div>
           </div>
@@ -400,11 +560,11 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
                 <h3 class="font-bold text-sm text-white">Wiapy</h3>
               </div>
-              <span class="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">Suportado</span>
+              <span class="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">Ativo</span>
             </div>
-            <p class="text-xs text-slate-400">Cadastre em: <strong>Integrações → Webhook → Adicionar Endpoint</strong></p>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Integrações → Webhook</strong></p>
             <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
-              <input readonly value="https://SEU-DOMINIO/api/webhook/wiapy" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-cyan-400 focus:outline-none">
+              <input readonly value="" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-cyan-400 focus:outline-none" data-path="/api/webhook/wiapy">
               <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
             </div>
           </div>
@@ -414,118 +574,1093 @@
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <i data-lucide="code" class="w-4 h-4 text-brand-400"></i>
-                <h3 class="font-bold text-sm text-white">Pixel & Link Forwarder</h3>
+                <h3 class="font-bold text-sm text-white">Script do Pixel & Link Forwarder</h3>
               </div>
               <span class="text-[10px] uppercase font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">Cole no Head</span>
             </div>
-            <p class="text-xs text-slate-400">Injeta UTMs automaticamente nos botões de compra da página:</p>
-            <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 text-[11px] font-mono text-brand-400 select-all overflow-x-auto">
-&lt;script src="https://SEU-DOMINIO/tracking/pixel.js?token=a8b3c4d5-e6f7-4a1b-9c8d-123456789abc"&gt;&lt;/script&gt;
+            <p class="text-xs text-slate-400">Injeta UTMs automaticamente nos botões de compra da sua página:</p>
+            <div id="pixel-script-box" class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 text-[11px] font-mono text-brand-400 select-all overflow-x-auto">
+              Carregando script...
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- ==================== TAB 5: CAMPANHAS ==================== -->
-      <section id="tab-campaigns" class="tab-pane hidden space-y-4">
-        <div>
-          <h2 class="text-base md:text-lg font-bold text-white">Campanhas & ROAS Real</h2>
-          <p class="text-xs text-slate-400">Cruze o gasto de tráfego pago com a receita aprovada</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="campaigns-grid">
-          <div class="col-span-2 py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">
-            Nenhuma campanha cadastrada ainda.
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================== TAB 6: SIMULADOR ==================== -->
-      <section id="tab-simulator" class="tab-pane hidden space-y-4 md:space-y-6">
-        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-4">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <i data-lucide="play-circle" class="w-4 h-4 text-amber-400"></i> Testar Venda de Qualquer Plataforma
-          </h3>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            Selecione uma plataforma e dispare uma compra para testar o rastreamento de UTMs e verificar o disparo para o Meta CAPI.
-          </p>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div>
-              <label class="block text-slate-400 mb-1">Plataforma</label>
-              <select id="sim-platform" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
-                <option value="greenn">Greenn</option>
-                <option value="hotmart">Hotmart</option>
-                <option value="cakto">Cakto</option>
-                <option value="kiwify">Kiwify</option>
-                <option value="wiapy">Wiapy</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">utm_source (Origem)</label>
-              <input id="sim-src" type="text" value="facebook" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100 font-mono">
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">utm_campaign (Campanha)</label>
-              <input id="sim-cmp" type="text" value="escala_meta_vsl01" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100 font-mono">
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">Valor da Venda (R$)</label>
-              <input id="sim-val" type="number" value="197.00" step="0.01" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">Nome do Cliente</label>
-              <input id="sim-name" type="text" value="Cliente Teste" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">E-mail do Cliente</label>
-              <input id="sim-email" type="email" value="cliente@exemplo.com" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
-            </div>
-          </div>
-
-          <button onclick="triggerSimulation()" class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
-            <i data-lucide="zap" class="w-4 h-4"></i> Disparar Compra & Atribuir Venda
-          </button>
-
-          <div id="sim-feedback" class="hidden p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs"></div>
         </div>
       </section>
 
     </div>
   </main>
 
-  <!-- MOBILE BOTTOM NAVIGATION (PWA APP BAR) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-lg border-t border-slate-800/80 px-2 flex items-center justify-around z-40">
-    <button onclick="switchTab('dashboard')" id="mob-dashboard" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-brand-400">
+  <!-- MOBILE BOTTOM NAVIGATION -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around z-30 px-2">
+    <button onclick="switchTab('dashboard')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-dashboard">
       <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-1 font-medium">Resumo</span>
+      <span class="text-[10px] font-medium">Dashboard</span>
     </button>
-    <button onclick="switchTab('orders')" id="mob-orders" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
+    <button onclick="switchTab('campaigns')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-campaigns">
+      <i data-lucide="target" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Campanhas</span>
+    </button>
+    <button onclick="switchTab('rules')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-rules">
+      <i data-lucide="cpu" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Regras</span>
+    </button>
+    <button onclick="switchTab('orders')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-orders">
       <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-1 font-medium">Vendas</span>
+      <span class="text-[10px] font-medium">Vendas</span>
     </button>
-    <button onclick="switchTab('meta')" id="mob-meta" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
-      <i data-lucide="share-2" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-1 font-medium">Meta Ads</span>
-    </button>
-    <button onclick="switchTab('webhooks')" id="mob-webhooks" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
+    <button onclick="switchTab('webhooks')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-webhooks">
       <i data-lucide="webhook" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-1 font-medium">Webhooks</span>
-    </button>
-    <button onclick="switchTab('simulator')" id="mob-simulator" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
-      <i data-lucide="zap" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-1 font-medium">Testar</span>
+      <span class="text-[10px] font-medium">Webhooks</span>
     </button>
   </nav>
 
-  <script>
-    // State Inicial 100% Limpo
-    const state = {
-      faturamento: 0.00,
-      gasto: 0.00,
-      orders: [],
-      campaigns: []
-    };
+  <!-- ==================== MODAIS ==================== -->
 
+  <!-- Modal Nova Regra de Automação -->
+  <div id="modal-new-rule" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white flex items-center gap-2">
+          <i data-lucide="cpu" class="w-5 h-5 text-amber-400"></i> Criar Regra de Automação
+        </h3>
+        <button onclick="closeModal('modal-new-rule')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Nome da Regra:</label>
+          <input type="text" id="rule-name" placeholder="Ex: Stop Loss (Gasto > R$ 50 e 0 Vendas)" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="bg-dark-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <span class="font-semibold text-slate-300 block">Condição de Métrica:</span>
+          <div class="grid grid-cols-3 gap-2">
+            <select id="rule-metric" class="bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200">
+              <option value="spent">Gasto em Ads (R$)</option>
+              <option value="cpa">CPA (R$)</option>
+              <option value="roas">ROAS Real</option>
+              <option value="sales">Vendas Aprovadas</option>
+            </select>
+            <select id="rule-operator" class="bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200">
+              <option value=">=">&gt;= (Maior ou igual)</option>
+              <option value="<=">&lt;= (Menor ou igual)</option>
+              <option value=">">&gt; (Maior que)</option>
+              <option value="<">&lt; (Menor que)</option>
+              <option value="=">= (Igual a)</option>
+            </select>
+            <input type="number" id="rule-value" placeholder="Valor (ex: 50)" step="0.1" class="bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-white">
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80">
+            <span class="text-[11px] text-slate-400 block mb-1">E Condição Secundária (Opcional):</span>
+            <div class="grid grid-cols-3 gap-2">
+              <select id="rule-sec-metric" class="bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200">
+                <option value="">(Nenhuma)</option>
+                <option value="sales">Vendas Aprovadas</option>
+                <option value="roas">ROAS</option>
+              </select>
+              <select id="rule-sec-operator" class="bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200">
+                <option value="=">= (Igual a)</option>
+                <option value="<=">&lt;= (Menor ou igual)</option>
+              </select>
+              <input type="number" id="rule-sec-value" placeholder="0" class="bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-white">
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-dark-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <span class="font-semibold text-slate-300 block">Automação de Horário (Dayparting - Opcional):</span>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 block">Pausar no Horário:</label>
+              <input type="time" id="rule-pause-time" class="w-full bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-white">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block">Reativar no Horário:</label>
+              <input type="time" id="rule-resume-time" class="w-full bg-dark-900 border border-slate-800 rounded-lg px-2 py-1.5 text-white">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Ação a Executar:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="rule-action" class="bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+              <option value="PAUSE_CAMPAIGN">Pausar Campanha</option>
+              <option value="RESUME_CAMPAIGN">Ativar Campanha</option>
+              <option value="INCREASE_BUDGET">Aumentar Orçamento Diário (%)</option>
+              <option value="DECREASE_BUDGET">Diminuir Orçamento Diário (%)</option>
+            </select>
+            <input type="number" id="rule-action-val" placeholder="Porcentagem (ex: 20%)" value="20" class="bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="closeModal('modal-new-rule')" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs">Cancelar</button>
+        <button onclick="submitNewRule()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold">Salvar Regra</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nova Campanha -->
+  <div id="modal-new-campaign" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white">Criar Nova Campanha</h3>
+        <button onclick="closeModal('modal-new-campaign')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Nome da Campanha:</label>
+          <input type="text" id="camp-name" placeholder="Ex: [CBO] Escala Video 01" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Orçamento Diário (R$):</label>
+          <input type="number" id="camp-budget" value="50" step="5" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Conta de Anúncio:</label>
+          <select id="camp-account-select" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+            <option value="">Conta Principal</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="closeModal('modal-new-campaign')" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs">Cancelar</button>
+        <button onclick="submitNewCampaign()" class="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold">Criar Campanha</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Novo Pixel Meta -->
+  <div id="modal-new-pixel" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white">Adicionar Pixel Meta</h3>
+        <button onclick="closeModal('modal-new-pixel')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Apelido do Pixel:</label>
+          <input type="text" id="pixel-name-input" placeholder="Ex: Pixel Principal / Produto A" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Pixel ID (15-16 dígitos):</label>
+          <input type="text" id="pixel-id-input" placeholder="Ex: 123456789012345" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Token de Acesso da API de Conversões (CAPI):</label>
+          <textarea id="pixel-token-input" rows="3" placeholder="EAAB..." class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white text-[11px]"></textarea>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Código de Evento de Teste (Opcional):</label>
+          <input type="text" id="pixel-test-code" placeholder="Ex: TEST12345" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white">
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="closeModal('modal-new-pixel')" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs">Cancelar</button>
+        <button onclick="submitNewPixel()" class="px-4 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold">Salvar Pixel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nova Conta de Anúncio -->
+  <div id="modal-new-account" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white">Conectar Conta de Anúncios</h3>
+        <button onclick="closeModal('modal-new-account')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Nome de Identificação:</label>
+          <input type="text" id="acc-name-input" placeholder="Ex: BM 01 - Conta Principal" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Account ID do Facebook:</label>
+          <input type="text" id="acc-id-input" placeholder="Ex: act_1234567890123" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Token de Acesso do Facebook (Marketing API):</label>
+          <textarea id="acc-token-input" rows="3" placeholder="EAAB..." class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white text-[11px]"></textarea>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="closeModal('modal-new-account')" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs">Cancelar</button>
+        <button onclick="submitNewAccount()" class="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-semibold">Conectar Conta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nova Dashboard / Workspace -->
+  <div id="modal-new-dashboard" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white">Nova Dashboard</h3>
+        <button onclick="closeModal('modal-new-dashboard')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Nome da Dashboard:</label>
+          <input type="text" id="dash-name-input" placeholder="Ex: Produto X / Nicho Black / Drop" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Filtrar por Plataforma:</label>
+          <select id="dash-platform-input" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+            <option value="all">Todas as Plataformas</option>
+            <option value="Kiwify">Apenas Kiwify</option>
+            <option value="Hotmart">Apenas Hotmart</option>
+            <option value="Greenn">Apenas Greenn</option>
+            <option value="Cakto">Apenas Cakto</option>
+            <option value="Wiapy">Apenas Wiapy</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="closeModal('modal-new-dashboard')" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs">Cancelar</button>
+        <button onclick="submitNewDashboard()" class="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold">Criar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ==================== LOGICA JAVASCRIPT ==================== -->
+  <script>
+    let currentTab = 'dashboard';
+    let currentDashboardId = '';
+    let soundEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+    let lastOrderCount = -1;
+    let revenueChartInstance = null;
+    let sourcesChartInstance = null;
+
+    // ==================== SOM DE VENDA KA-CHING (WEB AUDIO API NATIVO) ====================
+    function playKachingSound() {
+      if (!soundEnabled) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+
+        // 1. Claque mecânico inicial
+        const oscClack = ctx.createOscillator();
+        const gainClack = ctx.createGain();
+        oscClack.type = 'triangle';
+        oscClack.frequency.setValueAtTime(320, now);
+        oscClack.frequency.exponentialRampToValueAtTime(40, now + 0.05);
+        gainClack.gain.setValueAtTime(0.4, now);
+        gainClack.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        oscClack.connect(gainClack);
+        gainClack.connect(ctx.destination);
+        oscClack.start(now);
+        oscClack.stop(now + 0.05);
+
+        // 2. Sino brilhante 1 (E7)
+        const oscBell1 = ctx.createOscillator();
+        const gainBell1 = ctx.createGain();
+        oscBell1.type = 'sine';
+        oscBell1.frequency.setValueAtTime(2637, now + 0.04);
+        gainBell1.gain.setValueAtTime(0.5, now + 0.04);
+        gainBell1.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+        oscBell1.connect(gainBell1);
+        gainBell1.connect(ctx.destination);
+        oscBell1.start(now + 0.04);
+        oscBell1.stop(now + 1.2);
+
+        // 3. Harmônico de sino 2 (E8)
+        const oscBell2 = ctx.createOscillator();
+        const gainBell2 = ctx.createGain();
+        oscBell2.type = 'sine';
+        oscBell2.frequency.setValueAtTime(5274, now + 0.04);
+        gainBell2.gain.setValueAtTime(0.28, now + 0.04);
+        gainBell2.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+        oscBell2.connect(gainBell2);
+        gainBell2.connect(ctx.destination);
+        oscBell2.start(now + 0.04);
+        oscBell2.stop(now + 0.9);
+
+        // 4. Moedas tinindo (B7)
+        const oscCoin = ctx.createOscillator();
+        const gainCoin = ctx.createGain();
+        oscCoin.type = 'sine';
+        oscCoin.frequency.setValueAtTime(3951, now + 0.08);
+        gainCoin.gain.setValueAtTime(0.35, now + 0.08);
+        gainCoin.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+        oscCoin.connect(gainCoin);
+        gainCoin.connect(ctx.destination);
+        oscCoin.start(now + 0.08);
+        oscCoin.stop(now + 0.8);
+      } catch (e) {
+        console.error('Audio error:', e);
+      }
+    }
+
+    function testKachingSound() {
+      playKachingSound();
+      showSaleToast({
+        customer: 'Cliente Demonstração',
+        amount: 97.00,
+        platform: 'Kiwify',
+        source: 'facebook'
+      });
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem('trackpro_sound_enabled', soundEnabled);
+      updateSoundUI();
+      if (soundEnabled) playKachingSound();
+    }
+
+    function updateSoundUI() {
+      const desktopBtn = document.getElementById('sound-btn-desktop');
+      const mobileBtn = document.getElementById('sound-btn-mobile');
+      if (desktopBtn) {
+        if (soundEnabled) {
+          desktopBtn.className = 'px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all';
+          desktopBtn.innerHTML = '<i data-lucide="volume-2" class="w-3.5 h-3.5"></i><span>Som de Venda Ativo</span>';
+        } else {
+          desktopBtn.className = 'px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all';
+          desktopBtn.innerHTML = '<i data-lucide="volume-x" class="w-3.5 h-3.5"></i><span>Som Desativado</span>';
+        }
+      }
+      if (mobileBtn) {
+        mobileBtn.innerHTML = soundEnabled ? '<i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>' : '<i data-lucide="volume-x" class="w-4 h-4 text-slate-400"></i>';
+      }
+      lucide.createIcons();
+    }
+
+    // ==================== TOAST & PUSH NOTIFICATIONS ====================
+    function showSaleToast(order) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto bg-dark-900 border border-emerald-500/30 p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 toast-animate max-w-sm';
+      toast.innerHTML = `
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+          <i data-lucide="bell-ring" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">Venda Aprovada!</span>
+            <span class="text-xs font-extrabold text-emerald-400">R$ ${Number(order.amount).toFixed(2).replace('.', ',')}</span>
+          </div>
+          <p class="text-[11px] text-slate-400 truncate">${order.customer || 'Comprador'} • ${order.platform || 'Universal'}</p>
+        </div>
+      `;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      // Notificação nativa do sistema se permitido
+      if ("Notification" in window && Notification.permission === "granted") {
+        try {
+          new Notification("🎉 Venda Aprovada na TrackPro!", {
+            body: `R$ ${Number(order.amount).toFixed(2)} - ${order.customer} (${order.platform})`,
+            icon: '/manifest.webmanifest'
+          });
+        } catch(e){}
+      }
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    }
+
+    // Pedir permissão de notificação push
+    if ("Notification" in window && Notification.permission === "default") {
+      setTimeout(() => { Notification.requestPermission(); }, 3000);
+    }
+
+    // ==================== NAVEGAÇÃO DE ABAS ====================
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50';
+      });
+      document.querySelectorAll('.mob-nav').forEach(el => {
+        el.className = 'mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white';
+      });
+
+      const activePane = document.getElementById('tab-' + tabId);
+      if (activePane) activePane.classList.remove('hidden');
+
+      const activeNav = document.getElementById('nav-' + tabId);
+      if (activeNav) activeNav.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-500/10 text-brand-400 border border-brand-500/20';
+
+      const activeMob = document.getElementById('mob-' + tabId);
+      if (activeMob) activeMob.className = 'mob-nav flex flex-col items-center gap-1 text-brand-400 font-semibold';
+
+      refreshData();
+    }
+
+    // ==================== MODAIS ====================
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    }
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    // ==================== ATUALIZAÇÃO DE DADOS & REQUISIÇÕES ====================
+    async function refreshData() {
+      try {
+        const query = currentDashboardId ? `?dashboard_id=${currentDashboardId}` : '';
+        const res = await fetch('/api/dashboard/overview' + query);
+        const data = await res.json();
+
+        // Atualiza KPIs
+        document.getElementById('kpi-faturamento').textContent = 'R$ ' + (data.kpis?.faturamento || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        document.getElementById('kpi-gastoads').textContent = 'R$ ' + (data.kpis?.gastoAds || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        document.getElementById('kpi-roas').textContent = (data.kpis?.roas || 0).toFixed(2) + 'x';
+        document.getElementById('kpi-cpa').textContent = 'R$ ' + (data.kpis?.cpa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        document.getElementById('kpi-vendas').textContent = (data.kpis?.vendasHoje || 0) + ' Vendas Hoje';
+
+        // Tabela de Pedidos no Overview
+        const overviewTbody = document.getElementById('overview-orders-tbody');
+        if (overviewTbody && data.recentOrders) {
+          if (data.recentOrders.length === 0) {
+            overviewTbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Pronto para receber webhooks!</td></tr>';
+          } else {
+            overviewTbody.innerHTML = data.recentOrders.map(o => `
+              <tr class="hover:bg-slate-800/30 transition-colors">
+                <td class="py-2.5 px-3">
+                  <div class="font-bold text-white text-xs">${o.id}</div>
+                  <div class="text-[11px] text-slate-400">${o.customer}</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">${o.platform}</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono text-[11px] text-purple-400">${o.utm_campaign || '-'}</td>
+                <td class="py-2.5 px-3 font-bold text-emerald-400 text-xs">R$ ${Number(o.amount).toFixed(2).replace('.', ',')}</td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${o.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">
+                    ${o.status === 'paid' ? 'Aprovado' : 'Pendente'}
+                  </span>
+                </td>
+                <td class="py-2.5 px-3 text-[11px] text-slate-400">${o.date ? o.date.substring(11, 16) : '-'}</td>
+              </tr>
+            `).join('');
+          }
+
+          // Checa se chegou nova venda para tocar som e disparar toast
+          const totalOrders = data.recentOrders.length;
+          if (lastOrderCount !== -1 && totalOrders > lastOrderCount) {
+            const latest = data.recentOrders[0];
+            playKachingSound();
+            showSaleToast(latest);
+          }
+          lastOrderCount = totalOrders;
+        }
+
+        renderSourcesChart(data.sourcesChart || []);
+
+        // Atualizações específicas de cada aba ativa
+        if (currentTab === 'campaigns') loadCampaignsData();
+        if (currentTab === 'rules') loadRulesData();
+        if (currentTab === 'orders') loadFullOrdersData();
+        if (currentTab === 'pixels') loadPixelsData();
+        if (currentTab === 'accounts') loadAccountsData();
+
+      } catch (e) {
+        console.error('Erro ao atualizar dashboard:', e);
+      }
+    }
+
+    // ==================== GRÁFICO DE CANAIS ====================
+    function renderSourcesChart(sources) {
+      const canvas = document.getElementById('sourcesChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (sourcesChartInstance) sourcesChartInstance.destroy();
+
+      const labels = sources.length > 0 ? sources.map(s => s.name) : ['Nenhum'];
+      const dataVals = sources.length > 0 ? sources.map(s => s.value) : [1];
+      const colors = sources.length > 0 ? sources.map(s => s.color) : ['#334155'];
+
+      sourcesChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{ data: dataVals, backgroundColor: colors, borderWidth: 0 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      const leg = document.getElementById('sources-legend');
+      if (leg) {
+        leg.innerHTML = sources.map(s => `
+          <div class="flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:${s.color}"></span>${s.name}</span>
+            <span class="font-bold text-white">R$ ${Number(s.value).toFixed(2).replace('.', ',')}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ==================== GESTÃO DE CAMPANHAS & CONJUNTOS ====================
+    async function loadCampaignsData() {
+      try {
+        const res = await fetch('/api/campaigns');
+        const data = await res.json();
+        const tbody = document.getElementById('campaigns-tbody');
+        if (!tbody) return;
+
+        if (!data.campaigns || data.campaigns.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-slate-500">Nenhuma campanha cadastrada. Clique em "+ Nova Campanha" para criar.</td></tr>';
+        } else {
+          tbody.innerHTML = data.campaigns.map(c => `
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="py-3 px-4">
+                <button onclick="toggleCampaignStatus(${c.id}, '${c.status}')" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase transition-all ${c.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
+                  ${c.status === 'active' ? '● Ativo' : '○ Pausado'}
+                </button>
+              </td>
+              <td class="py-3 px-4 font-bold text-white">${c.name}</td>
+              <td class="py-3 px-4">
+                <button onclick="editCampaignBudget(${c.id}, ${c.daily_budget})" class="font-mono text-xs text-brand-400 hover:underline flex items-center gap-1">
+                  R$ ${Number(c.daily_budget).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
+                </button>
+              </td>
+              <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent).toFixed(2)}</td>
+              <td class="py-3 px-4 font-bold text-white">${c.sales}</td>
+              <td class="py-3 px-4 font-bold text-emerald-400">R$ ${Number(c.revenue).toFixed(2)}</td>
+              <td class="py-3 px-4 font-extrabold ${c.roas >= 2.0 ? 'text-emerald-400' : (c.roas >= 1.0 ? 'text-amber-400' : 'text-rose-400')}">${c.roas.toFixed(2)}x</td>
+              <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.cpa).toFixed(2)}</td>
+              <td class="py-3 px-4 text-right space-x-2">
+                <button onclick="duplicateCampaign(${c.id})" class="px-2.5 py-1 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold" title="Duplicar Campanha">
+                  Duplicar
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        // Carrega conjuntos
+        const resAdsets = await fetch('/api/facebook/adsets');
+        const dataAdsets = await resAdsets.json();
+        const adsetsTbody = document.getElementById('adsets-tbody');
+        if (adsetsTbody && dataAdsets.adsets) {
+          if (dataAdsets.adsets.length === 0) {
+            adsetsTbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-500">Nenhum conjunto de anúncio.</td></tr>';
+          } else {
+            adsetsTbody.innerHTML = dataAdsets.adsets.map(a => `
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-2.5 px-3 font-semibold text-white">${a.name}</td>
+                <td class="py-2.5 px-3 text-slate-400">${a.campaign_name || 'Campanha'}</td>
+                <td class="py-2.5 px-3 font-mono text-brand-400">R$ ${(a.daily_budget_cents / 100).toFixed(2)}/dia</td>
+                <td class="py-2.5 px-3">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${a.status}</span>
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <button onclick="duplicateAdSet(${a.id})" class="px-2 py-1 bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 rounded-lg text-xs font-semibold flex items-center gap-1 inline-flex">
+                    <i data-lucide="copy" class="w-3 h-3"></i> Duplicar Conjunto
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          }
+        }
+
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Erro campanhas:', e);
+      }
+    }
+
+    async function toggleCampaignStatus(id, currentStatus) {
+      const nextStatus = currentStatus === 'active' ? 'paused' : 'active';
+      await fetch('/api/facebook/campaigns/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: nextStatus })
+      });
+      loadCampaignsData();
+    }
+
+    async function editCampaignBudget(id, currentBudget) {
+      const newBudget = prompt('Novo Orçamento Diário (R$):', currentBudget);
+      if (newBudget !== null && !isNaN(newBudget) && Number(newBudget) > 0) {
+        await fetch('/api/facebook/campaigns/budget', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, daily_budget: Number(newBudget) })
+        });
+        loadCampaignsData();
+      }
+    }
+
+    async function duplicateAdSet(adsetId) {
+      const res = await fetch('/api/facebook/adsets/duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adset_id: adsetId })
+      });
+      const data = await res.json();
+      alert(data.message || 'Conjunto duplicado!');
+      loadCampaignsData();
+    }
+
+    async function duplicateCampaign(campId) {
+      const res = await fetch('/api/facebook/campaigns/duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_id: campId })
+      });
+      const data = await res.json();
+      alert(data.message || 'Campanha duplicada!');
+      loadCampaignsData();
+    }
+
+    async function submitNewCampaign() {
+      const name = document.getElementById('camp-name').value;
+      const budget = document.getElementById('camp-budget').value;
+      const account_id = document.getElementById('camp-account-select').value;
+      if (!name) return alert('Insira o nome da campanha');
+
+      await fetch('/api/facebook/campaigns/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, daily_budget: budget, ad_account_id: account_id })
+      });
+      closeModal('modal-new-campaign');
+      loadCampaignsData();
+    }
+
+    // ==================== REGRAS DE AUTOMAÇÃO ====================
+    async function loadRulesData() {
+      try {
+        const res = await fetch('/api/rules');
+        const data = await res.json();
+        const grid = document.getElementById('rules-grid');
+        if (!grid) return;
+
+        if (!data.rules || data.rules.length === 0) {
+          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhuma regra de automação criada. Clique em "+ Criar Nova Regra" para adicionar Stop Loss ou Escala de ROAS.</div>';
+        } else {
+          grid.innerHTML = data.rules.map(r => `
+            <div class="bg-dark-900 border ${r.active ? 'border-amber-500/30' : 'border-slate-800'} rounded-2xl p-4 md:p-5 space-y-3 relative">
+              <div class="flex items-center justify-between">
+                <h4 class="font-bold text-sm text-white">${r.name}</h4>
+                <button onclick="toggleRuleActive(${r.id})" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${r.active ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'}">
+                  ${r.active ? 'Ativa' : 'Pausada'}
+                </button>
+              </div>
+
+              <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800/80 text-xs text-slate-300 space-y-1">
+                <div><strong>Se:</strong> <span class="font-mono text-amber-400">${r.condition_metric.toUpperCase()} ${r.condition_operator} ${r.condition_value}</span></div>
+                ${r.condition_secondary_metric ? `<div><strong>E:</strong> <span class="font-mono text-amber-400">${r.condition_secondary_metric} ${r.condition_secondary_operator} ${r.condition_secondary_value}</span></div>` : ''}
+                ${r.schedule_pause_time ? `<div><strong>Horário:</strong> Desligar às ${r.schedule_pause_time} • Ligar às ${r.schedule_resume_time}</div>` : ''}
+                <div><strong>Ação:</strong> <span class="font-bold text-emerald-400">${r.action_type}</span> ${r.action_value ? `(${r.action_value}%)` : ''}</div>
+              </div>
+
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                <span class="text-slate-500 text-[11px]">Verifica a cada 60 min</span>
+                <button onclick="deleteRule(${r.id})" class="text-rose-400 hover:text-rose-300 text-[11px] font-semibold">Excluir</button>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // Logs das regras
+        const resLogs = await fetch('/api/rules/logs');
+        const dataLogs = await resLogs.json();
+        const logsTbody = document.getElementById('rule-logs-tbody');
+        if (logsTbody && dataLogs.logs) {
+          if (dataLogs.logs.length === 0) {
+            logsTbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-500">Nenhuma ação disparada ainda. O motor monitora suas campanhas continuamente.</td></tr>';
+          } else {
+            logsTbody.innerHTML = dataLogs.logs.map(l => `
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${l.executed_at ? l.executed_at.substring(0, 16) : '-'}</td>
+                <td class="py-2 px-3 font-semibold text-white">${l.rule_name}</td>
+                <td class="py-2 px-3 font-mono text-purple-400">${l.target_name}</td>
+                <td class="py-2 px-3 font-bold text-amber-400">${l.action}</td>
+                <td class="py-2 px-3 text-slate-400 text-[11px]">${l.details}</td>
+              </tr>
+            `).join('');
+          }
+        }
+
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Erro regras:', e);
+      }
+    }
+
+    async function submitNewRule() {
+      const name = document.getElementById('rule-name').value;
+      const metric = document.getElementById('rule-metric').value;
+      const operator = document.getElementById('rule-operator').value;
+      const value = document.getElementById('rule-value').value;
+      const secMetric = document.getElementById('rule-sec-metric').value;
+      const secOperator = document.getElementById('rule-sec-operator').value;
+      const secValue = document.getElementById('rule-sec-value').value;
+      const pauseTime = document.getElementById('rule-pause-time').value;
+      const resumeTime = document.getElementById('rule-resume-time').value;
+      const action = document.getElementById('rule-action').value;
+      const actionVal = document.getElementById('rule-action-val').value;
+
+      if (!name) return alert('Digite o nome da regra');
+
+      await fetch('/api/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          condition_metric: metric,
+          condition_operator: operator,
+          condition_value: value || 0,
+          condition_secondary_metric: secMetric || null,
+          condition_secondary_operator: secOperator,
+          condition_secondary_value: secValue || 0,
+          schedule_pause_time: pauseTime || null,
+          schedule_resume_time: resumeTime || null,
+          action_type: action,
+          action_value: actionVal || 20
+        })
+      });
+      closeModal('modal-new-rule');
+      loadRulesData();
+    }
+
+    async function toggleRuleActive(id) {
+      await fetch('/api/rules/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      loadRulesData();
+    }
+
+    async function deleteRule(id) {
+      if (confirm('Deseja excluir esta regra de automação?')) {
+        await fetch('/api/rules/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        loadRulesData();
+      }
+    }
+
+    async function runRulesEvaluation() {
+      const res = await fetch('/api/rules/evaluate', { method: 'POST' });
+      const data = await res.json();
+      alert(data.message || 'Avaliação de regras concluída!');
+      loadRulesData();
+    }
+
+    // ==================== MULTI-PIXELS & CAPI ====================
+    async function loadPixelsData() {
+      try {
+        const res = await fetch('/api/pixels');
+        const data = await res.json();
+        const grid = document.getElementById('pixels-grid');
+        if (!grid) return;
+
+        if (!data.pixels || data.pixels.length === 0) {
+          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhum Pixel adicional cadastrado. Clique em "+ Adicionar Pixel Meta" para configurar contingência ou multi-produtos.</div>';
+        } else {
+          grid.innerHTML = data.pixels.map(p => `
+            <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                  <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                </div>
+                <button onclick="deletePixel(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </div>
+              <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-indigo-400 select-all">
+                ID: ${p.pixel_id}
+              </div>
+              <div class="flex items-center justify-between text-xs text-slate-400">
+                <span class="flex items-center gap-1 text-emerald-400 font-semibold"><i data-lucide="check" class="w-3.5 h-3.5"></i> CAPI Conectado</span>
+                ${p.test_event_code ? `<span class="font-mono text-[11px] text-amber-400">Teste: ${p.test_event_code}</span>` : ''}
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // Logs CAPI
+        const resLogs = await fetch('/api/meta/logs');
+        const dataLogs = await resLogs.json();
+        const tbody = document.getElementById('capi-logs-tbody');
+        if (tbody && dataLogs.logs) {
+          tbody.innerHTML = dataLogs.logs.map(l => `
+            <tr class="hover:bg-slate-800/30">
+              <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${l.created_at ? l.created_at.substring(11, 19) : '-'}</td>
+              <td class="py-2 px-3 font-semibold text-white">${l.order_id}</td>
+              <td class="py-2 px-3 font-mono text-slate-300">${l.pixel_id || '-'}</td>
+              <td class="py-2 px-3 font-bold text-blue-400">${l.event_name}</td>
+              <td class="py-2 px-3">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">${l.status} (${l.response_code})</span>
+              </td>
+              <td class="py-2 px-3 font-mono text-[10px] text-slate-400 truncate max-w-xs">${l.response_body || '-'}</td>
+            </tr>
+          `).join('');
+        }
+
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Erro pixels:', e);
+      }
+    }
+
+    async function submitNewPixel() {
+      const name = document.getElementById('pixel-name-input').value;
+      const pixel_id = document.getElementById('pixel-id-input').value;
+      const access_token = document.getElementById('pixel-token-input').value;
+      const test_event_code = document.getElementById('pixel-test-code').value;
+
+      if (!pixel_id) return alert('Insira o Pixel ID');
+
+      await fetch('/api/pixels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, pixel_id, access_token, test_event_code })
+      });
+      closeModal('modal-new-pixel');
+      loadPixelsData();
+    }
+
+    async function deletePixel(id) {
+      if (confirm('Excluir este Pixel?')) {
+        await fetch('/api/pixels/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        loadPixelsData();
+      }
+    }
+
+    async function testMetaCapi() {
+      const btn = document.getElementById('btn-test-capi');
+      const resBox = document.getElementById('test-capi-result');
+      btn.disabled = true;
+      btn.innerHTML = 'Enviando...';
+      resBox.textContent = '';
+
+      try {
+        const res = await fetch('/api/meta/test', { method: 'POST' });
+        const data = await res.json();
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="send" class="w-3.5 h-3.5"></i> Disparar Compra de Teste CAPI';
+        resBox.textContent = JSON.stringify(data);
+        resBox.className = 'text-xs font-mono text-emerald-400';
+        loadPixelsData();
+      } catch (e) {
+        btn.disabled = false;
+        btn.innerHTML = 'Erro no envio';
+        resBox.textContent = e.message;
+        resBox.className = 'text-xs font-mono text-rose-400';
+      }
+      lucide.createIcons();
+    }
+
+    // ==================== CONTAS DE ANÚNCIO ====================
+    async function loadAccountsData() {
+      try {
+        const res = await fetch('/api/facebook/accounts');
+        const data = await res.json();
+        const grid = document.getElementById('accounts-grid');
+        const select = document.getElementById('camp-account-select');
+        if (!grid) return;
+
+        if (!data.accounts || data.accounts.length === 0) {
+          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhuma conta de anúncio vinculada. Clique em "+ Conectar Nova Conta" para inserir seu Account ID (act_...) e Token da Marketing API.</div>';
+        } else {
+          grid.innerHTML = data.accounts.map(a => `
+            <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                  <h4 class="font-bold text-sm text-white">${a.name}</h4>
+                </div>
+                <button onclick="deleteAccount(${a.id})" class="text-rose-400 hover:text-rose-300 text-xs"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </div>
+              <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-sky-400 select-all">
+                ${a.account_id}
+              </div>
+              <div class="flex items-center justify-between text-xs text-slate-400">
+                <span>Moeda: <strong>${a.currency}</strong></span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">${a.status}</span>
+              </div>
+            </div>
+          `).join('');
+
+          if (select) {
+            select.innerHTML = '<option value="">Conta Padrão</option>' + data.accounts.map(a => `<option value="${a.account_id}">${a.name} (${a.account_id})</option>`).join('');
+          }
+        }
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Erro contas:', e);
+      }
+    }
+
+    async function submitNewAccount() {
+      const name = document.getElementById('acc-name-input').value;
+      const account_id = document.getElementById('acc-id-input').value;
+      const access_token = document.getElementById('acc-token-input').value;
+
+      if (!account_id) return alert('Insira o Account ID (act_...)');
+
+      await fetch('/api/facebook/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, account_id, access_token })
+      });
+      closeModal('modal-new-account');
+      loadAccountsData();
+    }
+
+    async function deleteAccount(id) {
+      if (confirm('Remover esta conta de anúncios?')) {
+        await fetch('/api/facebook/accounts/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        loadAccountsData();
+      }
+    }
+
+    // ==================== MULTI-DASHBOARDS / WORKSPACES ====================
+    async function loadDashboardsList() {
+      try {
+        const res = await fetch('/api/dashboards');
+        const data = await res.json();
+        const select = document.getElementById('dashboard-select');
+        const mobileSelect = document.getElementById('mobile-dash-select');
+
+        const options = (data.dashboards || []).map(d => `<option value="${d.id}">📊 ${d.name} ${d.platform_filter !== 'all' ? `(${d.platform_filter})` : ''}</option>`).join('');
+        if (select) select.innerHTML = options;
+        if (mobileSelect) mobileSelect.innerHTML = options;
+      } catch (e) {
+        console.error('Erro dashboards:', e);
+      }
+    }
+
+    function changeDashboard(dashId) {
+      currentDashboardId = dashId;
+      refreshData();
+    }
+
+    async function submitNewDashboard() {
+      const name = document.getElementById('dash-name-input').value;
+      const platform_filter = document.getElementById('dash-platform-input').value;
+      if (!name) return alert('Digite o nome da dashboard');
+
+      await fetch('/api/dashboards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, platform_filter })
+      });
+      closeModal('modal-new-dashboard');
+      loadDashboardsList();
+    }
+
+    // ==================== PEDIDOS COMPLETOS & FILTRO ====================
+    let allOrdersCache = [];
+    async function loadFullOrdersData() {
+      try {
+        const res = await fetch('/api/orders');
+        const data = await res.json();
+        allOrdersCache = data.orders || [];
+        renderFullOrders(allOrdersCache);
+      } catch (e) {
+        console.error('Erro pedidos:', e);
+      }
+    }
+
+    function renderFullOrders(orders) {
+      const tbody = document.getElementById('orders-full-tbody');
+      if (!tbody) return;
+      if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-slate-500">Nenhum pedido encontrado.</td></tr>';
+      } else {
+        tbody.innerHTML = orders.map(o => `
+          <tr class="hover:bg-slate-800/30 transition-colors">
+            <td class="py-3 px-4 font-bold text-white font-mono">${o.id}</td>
+            <td class="py-3 px-4">
+              <div class="text-white font-semibold">${o.customer}</div>
+              <div class="text-[11px] text-slate-500">${o.email || '-'}</div>
+            </td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">${o.platform}</span>
+            </td>
+            <td class="py-3 px-4 font-bold text-emerald-400">R$ ${Number(o.amount).toFixed(2).replace('.', ',')}</td>
+            <td class="py-3 px-4 font-mono text-purple-400">${o.utm_source || '-'}</td>
+            <td class="py-3 px-4 font-mono text-blue-400">${o.utm_campaign || '-'}</td>
+            <td class="py-3 px-4 font-mono text-slate-400">${o.utm_content || '-'}</td>
+            <td class="py-3 px-4 text-slate-400 text-[11px]">${o.date ? o.date.substring(0, 16) : '-'}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${o.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${o.status}</span>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function filterOrdersTable() {
+      const query = document.getElementById('orders-search').value.toLowerCase();
+      const filtered = allOrdersCache.filter(o => 
+        (o.customer && o.customer.toLowerCase().includes(query)) ||
+        (o.id && o.id.toLowerCase().includes(query)) ||
+        (o.email && o.email.toLowerCase().includes(query)) ||
+        (o.utm_campaign && o.utm_campaign.toLowerCase().includes(query))
+      );
+      renderFullOrders(filtered);
+    }
+
+    // ==================== ZERAR DADOS DO SISTEMA ====================
+    async function resetSystemData() {
+      if (confirm('Tem certeza que deseja zerar todos os pedidos, eventos de teste e gastos de campanha para começar sua operação 100% limpa?')) {
+        await fetch('/api/system/reset', { method: 'POST' });
+        alert('Todos os dados foram zerados com sucesso!');
+        refreshData();
+      }
+    }
+
+    // ==================== COPIAR WEBHOOKS & DINÂMICOS ====================
+    function copyWebhook(btn) {
+      const input = btn.parentElement.querySelector('input');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>';
+      lucide.createIcons();
+      setTimeout(() => { btn.innerHTML = originalHtml; lucide.createIcons(); }, 1500);
+    }
+
+    function initWebhooksAndScript() {
+      const origin = window.location.origin;
+      document.querySelectorAll('.webhook-url').forEach(input => {
+        const path = input.getAttribute('data-path') || '/api/webhook/orders';
+        input.value = origin + path;
+      });
+
+      const scriptBox = document.getElementById('pixel-script-box');
+      if (scriptBox) {
+        scriptBox.textContent = `<script src="${origin}/tracking/pixel.js?token=a8b3c4d5-e6f7-4a1b-9c8d-123456789abc"><\/script>`;
+      }
+    }
+
+    // ==================== PWA INSTALL ====================
     let deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -537,322 +1672,25 @@
     function promptInstallPWA() {
       if (deferredPrompt) {
         deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-          deferredPrompt = null;
-        });
+        deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
       }
     }
 
-    function formatBRL(val) {
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-item').forEach(el => {
-        el.classList.remove('bg-brand-500/10', 'text-brand-400', 'border', 'border-brand-500/20');
-        el.classList.add('text-slate-400');
-      });
-      document.querySelectorAll('.mob-nav').forEach(el => {
-        el.classList.remove('text-brand-400');
-        el.classList.add('text-slate-400');
-      });
-
-      const targetTab = document.getElementById('tab-' + tabId);
-      const targetNav = document.getElementById('nav-' + tabId);
-      const targetMob = document.getElementById('mob-' + tabId);
-
-      if (targetTab) targetTab.classList.remove('hidden');
-      if (targetNav) {
-        targetNav.classList.add('bg-brand-500/10', 'text-brand-400', 'border', 'border-brand-500/20');
-        targetNav.classList.remove('text-slate-400');
-      }
-      if (targetMob) {
-        targetMob.classList.add('text-brand-400');
-        targetMob.classList.remove('text-slate-400');
-      }
-    }
-
-    function renderOrders(orders) {
-      const previewTbody = document.getElementById('preview-orders-body');
-      const fullTbody = document.getElementById('full-orders-body');
-      
-      if (!orders || orders.length === 0) {
-        if (previewTbody) previewTbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Aguardando webhooks dos checkouts...</td></tr>';
-        if (fullTbody) fullTbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Nenhuma venda registrada ainda. Cadastre o Webhook nas suas plataformas.</td></tr>';
-        return;
-      }
-
-      const badgeClass = {
-        paid: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-        waiting_payment: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-        refunded: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-      };
-      const badgeText = { paid: 'Aprovado', waiting_payment: 'Pendente', refunded: 'Reembolsado' };
-
-      let previewHtml = '';
-      let fullHtml = '';
-
-      orders.forEach(o => {
-        const row = `
-          <tr class="hover:bg-slate-800/40 transition-colors">
-            <td class="py-2.5 px-2 font-medium text-slate-300"><span class="px-2 py-0.5 rounded bg-slate-800 text-[11px]">${o.platform || 'Checkout'}</span></td>
-            <td class="py-2.5 px-2 font-medium text-slate-100">${o.customer}</td>
-            <td class="py-2.5 px-2 font-semibold text-slate-200">${formatBRL(o.amount)}</td>
-            <td class="py-2.5 px-2"><span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono text-[11px]">${o.utm_source}</span></td>
-            <td class="py-2.5 px-2 text-slate-400">${o.utm_campaign}</td>
-            <td class="py-2.5 px-2"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeClass[o.status] || badgeClass.paid}">${badgeText[o.status] || o.status}</span></td>
-          </tr>
-        `;
-        previewHtml += row;
-
-        fullHtml += `
-          <tr class="hover:bg-slate-800/40 transition-colors">
-            <td class="px-4 py-3 font-mono text-slate-400">${o.id}</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] font-medium">${o.platform || 'Checkout'}</span></td>
-            <td class="px-4 py-3 font-medium text-slate-100">${o.customer}</td>
-            <td class="px-4 py-3 font-semibold text-slate-200">${formatBRL(o.amount)}</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono text-[11px]">${o.utm_source}</span></td>
-            <td class="px-4 py-3 text-slate-300">${o.utm_campaign}</td>
-            <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">${o.utm_content || '-'}</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeClass[o.status] || badgeClass.paid}">${badgeText[o.status] || o.status}</span></td>
-          </tr>
-        `;
-      });
-
-      if (previewTbody) previewTbody.innerHTML = previewHtml;
-      if (fullTbody) fullTbody.innerHTML = fullHtml;
-    }
-
-    let revChartInstance = null;
-    let srcChartInstance = null;
-
-    function initCharts() {
-      const ctxRev = document.getElementById('revenueChart');
-      if (ctxRev) {
-        revChartInstance = new Chart(ctxRev, {
-          type: 'line',
-          data: {
-            labels: ['Hoje'],
-            datasets: [
-              {
-                label: 'Receita (R$)',
-                data: [0],
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                tension: 0.35,
-                fill: true
-              },
-              {
-                label: 'Gasto em Ads (R$)',
-                data: [0],
-                borderColor: '#3b82f6',
-                borderDash: [5, 5],
-                tension: 0.35
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
-            scales: {
-              x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 9 } } },
-              y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 9 } } }
-            }
-          }
-        });
-      }
-
-      const ctxSrc = document.getElementById('sourcesChart');
-      if (ctxSrc) {
-        srcChartInstance = new Chart(ctxSrc, {
-          type: 'doughnut',
-          data: {
-            labels: ['Nenhum tráfego ainda'],
-            datasets: [{
-              data: [1],
-              backgroundColor: ['#1e293b'],
-              borderWidth: 0
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 } } } }
-          }
-        });
-      }
-    }
-
-    function loadMetaSettings() {
-      fetch('/api/meta/settings')
-        .then(r => r.json())
-        .then(data => {
-          if (data) {
-            document.getElementById('meta-pixel-id').value = data.pixel_id || '';
-            document.getElementById('meta-access-token').value = data.access_token || '';
-            document.getElementById('meta-test-code').value = data.test_event_code || '';
-          }
-        }).catch(()=>{});
-
-      fetch('/api/meta/logs')
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.logs && data.logs.length > 0) {
-            const tbody = document.getElementById('capi-logs-body');
-            tbody.innerHTML = data.logs.map(l => `
-              <tr class="hover:bg-slate-800/40">
-                <td class="py-2 text-slate-400">${l.created_at}</td>
-                <td class="py-2 font-mono text-slate-200">${l.order_id}</td>
-                <td class="py-2">${l.event_name}</td>
-                <td class="py-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">${l.status.toUpperCase()} (${l.response_code})</span></td>
-                <td class="py-2 text-slate-400 truncate max-w-xs font-mono text-[10px]">${l.response_body || '-'}</td>
-              </tr>
-            `).join('');
-          }
-        }).catch(()=>{});
-    }
-
-    function saveMetaSettings() {
-      const pixel_id = document.getElementById('meta-pixel-id').value;
-      const access_token = document.getElementById('meta-access-token').value;
-      const test_event_code = document.getElementById('meta-test-code').value;
-
-      fetch('/api/meta/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pixel_id, access_token, test_event_code })
-      })
-      .then(r => r.json())
-      .then(() => {
-        const fb = document.getElementById('meta-feedback');
-        fb.className = 'p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs';
-        fb.innerHTML = 'Credenciais Meta CAPI salvas com sucesso!';
-        fb.classList.remove('hidden');
-        setTimeout(() => fb.classList.add('hidden'), 4000);
-      });
-    }
-
-    function testMetaCapi() {
-      const fb = document.getElementById('meta-feedback');
-      fb.className = 'p-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs';
-      fb.innerHTML = 'Disparando evento de teste para o Meta...';
-      fb.classList.remove('hidden');
-
-      fetch('/api/meta/test', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === 'success') {
-            fb.className = 'p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs';
-            fb.innerHTML = 'Sucesso! Evento Purchase recebido e validado pela Meta Graph API. Veja o log abaixo.';
-          } else {
-            fb.className = 'p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs';
-            fb.innerHTML = 'Resposta da Meta: ' + (typeof data.response === 'string' ? data.response : JSON.stringify(data.response));
-          }
-          loadMetaSettings();
-        });
-    }
-
-    function triggerSimulation() {
-      const platform = document.getElementById('sim-platform').value;
-      const src = document.getElementById('sim-src').value;
-      const cmp = document.getElementById('sim-cmp').value;
-      const val = parseFloat(document.getElementById('sim-val').value) || 197.00;
-      const name = document.getElementById('sim-name').value;
-      const email = document.getElementById('sim-email').value;
-
-      const payload = {
-        orderId: 'SIM-' + Math.floor(1000 + Math.random() * 9000),
-        platform: platform.charAt(0).toUpperCase() + platform.slice(1),
-        status: 'paid',
-        customer: { name, email },
-        priceInCents: Math.round(val * 100),
-        trackingParameters: {
-          utm_source: src,
-          utm_medium: 'cpc',
-          utm_campaign: cmp,
-          utm_content: 'criativo_simulado'
-        }
-      };
-
-      fetch('/api/webhook/' + platform, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(r => r.json())
-      .then(() => {
-        const fb = document.getElementById('sim-feedback');
-        fb.innerHTML = 'Venda simulada via webhook da ' + platform.toUpperCase() + ' atribuída com sucesso!';
-        fb.classList.remove('hidden');
-        setTimeout(() => fb.classList.add('hidden'), 4000);
-        refreshData();
-      });
-    }
-
-    function copyWebhook(btn) {
-      const input = btn.parentElement.querySelector('input');
-      const origin = window.location.origin;
-      const fullUrl = input.value.replace('https://SEU-DOMINIO', origin);
-      navigator.clipboard.writeText(fullUrl);
-      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>';
-      lucide.createIcons();
-      setTimeout(() => {
-        btn.innerHTML = '<i data-lucide="copy" class="w-3.5 h-3.5"></i>';
-        lucide.createIcons();
-      }, 2000);
-    }
-
-    function filterOrders(query) {
-      query = query.toLowerCase();
-      document.querySelectorAll('#full-orders-body tr').forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none';
-      });
-    }
-
-    function refreshData() {
-      fetch('/api/dashboard/overview')
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.kpis) {
-            document.getElementById('kpi-faturamento').innerText = formatBRL(data.kpis.faturamento);
-            document.getElementById('kpi-gasto').innerText = formatBRL(data.kpis.gastoAds);
-            document.getElementById('kpi-roas').innerText = (data.kpis.roas || 0) + 'x';
-            const lucro = (data.kpis.faturamento || 0) - (data.kpis.gastoAds || 0) - ((data.kpis.faturamento || 0) * 0.05);
-            document.getElementById('kpi-lucro').innerText = formatBRL(lucro > 0 ? lucro : 0);
-          }
-          if (data && data.recentOrders) {
-            renderOrders(data.recentOrders);
-          }
-        }).catch(()=>{});
-
-      fetch('/api/orders')
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.orders) {
-            renderOrders(data.orders);
-          }
-        }).catch(()=>{});
-    }
-
-    function updateHostnames() {
-      const origin = window.location.origin;
-      document.querySelectorAll('.webhook-url').forEach(input => {
-        input.value = input.value.replace('https://SEU-DOMINIO', origin);
-      });
-    }
-
+    // Inicialização ao carregar
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      initCharts();
+      updateSoundUI();
+      initWebhooksAndScript();
+      loadDashboardsList();
       refreshData();
-      loadMetaSettings();
-      updateHostnames();
 
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(()=>{});
-      }
+      // Polling de vendas e métricas em tempo real a cada 10 segundos
+      setInterval(refreshData, 10000);
     });
   </script>
 </body>

@@ -1,46 +1,49 @@
-#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-TrackPro - Servidor Backend & Motor de Atribuição Server-Side (Clone UTMify)
-- Webhooks Nativos: Greenn, Hotmart, Cakto, Kiwify, Wiapy e Universal
-- Disparo Server-Side Meta Ads CAPI (Conversions API) com hash SHA-256
-- PWA (Progressive Web App) para acesso mobile como App nativo
-- Rastreamento First-Party com Preservação de Links de Checkout (Link Forwarder)
+TrackPro Engine v2.5
+- Rastreamento Universal UTM (Kiwify, Hotmart, Greenn, Cakto, Wiapy)
+- Meta Ads CAPI (Disparo Multi-Pixel com SHA-256)
+- Facebook Marketing API (Gestão de Campanhas, Conjuntos, Orçamentos e Duplicação)
+- Motor de Regras e Automações (Stop Loss, Escala de ROAS, CPA e Horários de Desligamento)
+- Multi-Dashboards / Workspaces
+- Som de Venda e Notificações Push
 """
 
-import sys
 import os
+import sys
 import json
 import sqlite3
-import uuid
-import datetime
 import hashlib
+import uuid
 import urllib.request
-import urllib.error
+import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
+from datetime import datetime
 
-if sys.platform == 'win32':
+# Garante saída UTF-8 no Windows
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        sys.stdout.reconfigure(encoding='utf-8')
     except Exception:
         pass
 
-DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trackpro.db')
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trackpro.db')
 DEMO_TOKEN = 'a8b3c4d5-e6f7-4a1b-9c8d-123456789abc'
 
 def get_db():
-    conn = sqlite3.connect(DB_FILE, timeout=30.0)
-    conn.execute('PRAGMA journal_mode=WAL')
-    conn.execute('PRAGMA busy_timeout = 30000')
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA journal_mode=WAL;')
+    conn.execute('PRAGMA busy_timeout=30000;')
     return conn
 
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.executescript('''
+    cursor.executescript("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -83,20 +86,24 @@ def init_db():
         customer_document TEXT,
         customer_ip TEXT,
         price_in_cents INTEGER NOT NULL DEFAULT 0,
-        gateway_fee_in_cents INTEGER NOT NULL DEFAULT 0,
-        net_amount_in_cents INTEGER NOT NULL DEFAULT 0,
-        currency TEXT NOT NULL DEFAULT 'BRL',
-        is_test INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        approved_at TEXT,
-        refunded_at TEXT
+        gateway_fee_in_cents INTEGER DEFAULT 0,
+        utm_source TEXT,
+        utm_medium TEXT,
+        utm_campaign TEXT,
+        utm_content TEXT,
+        utm_term TEXT,
+        src TEXT,
+        sck TEXT,
+        fbc TEXT,
+        fbp TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS tracking_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        order_id INTEGER,
         session_id TEXT,
+        order_id INTEGER,
         event_type TEXT NOT NULL,
         utm_source TEXT,
         utm_medium TEXT,
@@ -118,25 +125,87 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         name TEXT NOT NULL,
-        platform TEXT NOT NULL,
+        platform TEXT NOT NULL DEFAULT 'facebook',
         status TEXT NOT NULL DEFAULT 'active',
-        daily_budget_in_cents INTEGER NOT NULL DEFAULT 0,
+        daily_budget_in_cents INTEGER NOT NULL DEFAULT 5000,
         total_spent_in_cents INTEGER NOT NULL DEFAULT 0,
+        ad_account_id TEXT,
+        external_campaign_id TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS ad_sets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id INTEGER,
+        external_id TEXT,
+        name TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        daily_budget_cents INTEGER DEFAULT 5000,
+        spent_cents INTEGER DEFAULT 0,
+        targeting_info TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS facebook_ad_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        account_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        access_token TEXT,
+        currency TEXT DEFAULT 'BRL',
+        status TEXT DEFAULT 'ACTIVE',
+        is_default INTEGER DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS meta_pixels (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        name TEXT NOT NULL,
+        pixel_id TEXT NOT NULL,
+        access_token TEXT,
+        test_event_code TEXT,
+        is_default INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS custom_dashboards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        name TEXT NOT NULL,
+        platform_filter TEXT DEFAULT 'all',
+        is_default INTEGER DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS automated_rules (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL DEFAULT 1,
         name TEXT NOT NULL,
         active INTEGER NOT NULL DEFAULT 1,
         condition_metric TEXT NOT NULL,
         condition_operator TEXT NOT NULL,
         condition_value REAL NOT NULL,
+        condition_secondary_metric TEXT,
+        condition_secondary_operator TEXT,
+        condition_secondary_value REAL,
+        schedule_pause_time TEXT,
+        schedule_resume_time TEXT,
         action_type TEXT NOT NULL,
-        target_type TEXT NOT NULL,
+        action_value REAL DEFAULT 20,
+        target_type TEXT NOT NULL DEFAULT 'campaign',
         check_interval_minutes INTEGER DEFAULT 60,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS rule_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rule_id INTEGER,
+        rule_name TEXT,
+        target_name TEXT,
+        action TEXT,
+        details TEXT,
+        executed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS meta_settings (
@@ -160,216 +229,235 @@ def init_db():
         response_body TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-    ''')
+    """)
 
-    # Migration de colunas existentes se necessário
-    for col in ['fbc', 'fbp']:
+    # Migrações de colunas
+    migrations = [
+        ('orders', 'utm_source', 'TEXT'),
+        ('orders', 'utm_medium', 'TEXT'),
+        ('orders', 'utm_campaign', 'TEXT'),
+        ('orders', 'utm_content', 'TEXT'),
+        ('orders', 'utm_term', 'TEXT'),
+        ('orders', 'src', 'TEXT'),
+        ('orders', 'sck', 'TEXT'),
+        ('orders', 'fbc', 'TEXT'),
+        ('orders', 'fbp', 'TEXT'),
+        ('tracking_events', 'fbc', 'TEXT'),
+        ('tracking_events', 'fbp', 'TEXT'),
+        ('automated_rules', 'condition_secondary_metric', 'TEXT'),
+        ('automated_rules', 'condition_secondary_operator', 'TEXT'),
+        ('automated_rules', 'condition_secondary_value', 'REAL'),
+        ('automated_rules', 'schedule_pause_time', 'TEXT'),
+        ('automated_rules', 'schedule_resume_time', 'TEXT'),
+        ('automated_rules', 'action_value', 'REAL DEFAULT 20'),
+        ('campaigns', 'ad_account_id', 'TEXT'),
+        ('campaigns', 'external_campaign_id', 'TEXT')
+    ]
+    for table, col, col_type in migrations:
         try:
-            cursor.execute(f"ALTER TABLE tracking_events ADD COLUMN {col} TEXT")
+            cursor.execute(f'ALTER TABLE {table} ADD COLUMN {col} {col_type}')
         except Exception:
             pass
 
-    # Seed User se não existir (Início 100% Limpo, sem vendas ou saldo falso)
+    # Usuário padrão
     user = cursor.execute("SELECT id FROM users WHERE email = 'demo@trackpro.com'").fetchone()
     if not user:
         cursor.execute("INSERT INTO users (name, email, password, company) VALUES (?, ?, ?, ?)",
                        ('Meu Negócio', 'demo@trackpro.com', 'demo123', 'Minha Operação'))
         user_id = cursor.lastrowid
-
         cursor.execute("INSERT INTO api_credentials (user_id, name, token, active) VALUES (?, ?, ?, ?)",
-                       (user_id, 'Token Universal (Greenn, Hotmart, Kiwify, Cakto, Wiapy)', DEMO_TOKEN, 1))
-
-        # Configuração inicial de Meta CAPI vazia
+                       (user_id, 'Token Universal', DEMO_TOKEN, 1))
         cursor.execute("INSERT OR REPLACE INTO meta_settings (user_id, pixel_id, access_token, test_event_code, active) VALUES (?, '', '', '', 1)", (user_id,))
 
-    conn.commit()
+    dash = cursor.execute("SELECT id FROM custom_dashboards WHERE name = 'Geral'").fetchone()
+    if not dash:
+        cursor.execute("INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default) VALUES (1, 'Geral', 'all', 1)")
 
     conn.commit()
     conn.close()
 
 # ==================== PARSER UNIVERSAL DE WEBHOOKS ====================
 def parse_webhook_payload(headers, body):
-    """
-    Parser adaptativo para Greenn, Hotmart, Cakto, Kiwify, Wiapy e UTMify Universal.
-    Extrai dados do comprador, valor, status e parâmetros de tráfego UTM.
-    """
     platform = 'Universal'
     order_id = None
     status = 'paid'
     customer_name = 'Comprador'
     customer_email = ''
     customer_phone = ''
-    customer_doc = ''
-    product_name = 'Produto'
-    payment_method = 'pix'
     price_cents = 0
-    gateway_fee_cents = 0
     tracking = {}
     fbc = None
     fbp = None
 
-    # Normalizar headers em minúsculas
-    norm_headers = {k.lower(): v for k, v in headers.items()}
-
-    # 1. HOTMART WEBHOOK (v2.0.0 ou 1.0.0)
-    if 'x-hotmart-hottok' in norm_headers or 'hottok' in body or (body.get('data') and body.get('data', {}).get('purchase')):
-        platform = 'Hotmart'
-        data = body.get('data', {})
-        purchase = data.get('purchase', {})
-        buyer = data.get('buyer', {})
-        prod = data.get('product', {})
-        order_id = purchase.get('transaction') or body.get('id') or f"HM-{uuid.uuid4().hex[:6].upper()}"
-        p_status = str(purchase.get('status', '')).upper()
-        status = 'paid' if p_status in ['APPROVED', 'COMPLETE', 'PAID'] else ('refunded' if p_status in ['REFUNDED', 'CHARGEBACK', 'DISPUTE'] else 'waiting_payment')
-        customer_name = buyer.get('name', 'Comprador Hotmart')
-        customer_email = buyer.get('email', '')
-        customer_phone = buyer.get('phone', '')
-        customer_doc = buyer.get('document', '')
-        product_name = prod.get('name', 'Produto Hotmart')
-        price_val = purchase.get('price', {}).get('value', 0)
-        price_cents = int(float(price_val) * 100) if price_val else 0
-        gateway_fee_cents = int(price_cents * 0.099)
-        track = purchase.get('tracking', {})
-        tracking = {
-            'src': track.get('external_code'),
-            'sck': track.get('source_sck'),
-            'utm_source': track.get('source') if track.get('source') != 'HOTMART' else 'hotmart',
-            'utm_medium': 'cpc',
-            'utm_campaign': track.get('external_code') or 'campanha_hotmart',
-            'utm_content': track.get('source_sck')
-        }
-
-    # 2. KIWIFY WEBHOOK
-    elif 'order_status' in body or 'TrackingParameters' in body or 'sale_type' in body:
+    # Kiwify
+    if 'order_status' in body or 'TrackingParameters' in body or 'sale_type' in body:
         platform = 'Kiwify'
-        order_id = body.get('order_id') or body.get('order_ref') or f"KW-{uuid.uuid4().hex[:6].upper()}"
-        k_status = str(body.get('order_status', '')).lower()
-        status = 'paid' if k_status in ['paid', 'approved'] else ('refunded' if 'refund' in k_status or 'chargeback' in k_status else 'waiting_payment')
+        order_id = body.get('order_id') or body.get('order_ref')
+        st = str(body.get('order_status', '')).lower()
+        if 'paid' in st or 'approved' in st:
+            status = 'paid'
+        elif 'refund' in st or 'chargeback' in st:
+            status = 'refunded'
+        else:
+            status = 'waiting_payment'
+            
         cust = body.get('Customer', {})
-        customer_name = cust.get('full_name', 'Comprador Kiwify')
+        customer_name = cust.get('full_name') or cust.get('name', 'Comprador Kiwify')
         customer_email = cust.get('email', '')
         customer_phone = cust.get('mobile', '')
-        customer_doc = cust.get('CPF', '')
-        product_name = body.get('Product', {}).get('product_name', 'Produto Kiwify')
-        payment_method = body.get('payment_method', 'pix')
+        
         comm = body.get('Commissions', {})
         price_cents = int(comm.get('charge_amount') or comm.get('product_base_price') or 0)
-        gateway_fee_cents = int(comm.get('kiwify_fee') or (price_cents * 0.0899))
-        track = body.get('TrackingParameters', {})
+        
+        tp = body.get('TrackingParameters', {})
         tracking = {
-            'src': track.get('src'),
-            'sck': track.get('sck'),
-            'utm_source': track.get('utm_source'),
-            'utm_medium': track.get('utm_medium'),
-            'utm_campaign': track.get('utm_campaign'),
-            'utm_content': track.get('utm_content'),
-            'utm_term': track.get('utm_term')
+            'utm_source': tp.get('utm_source'),
+            'utm_medium': tp.get('utm_medium'),
+            'utm_campaign': tp.get('utm_campaign'),
+            'utm_content': tp.get('utm_content'),
+            'utm_term': tp.get('utm_term'),
+            'src': tp.get('src'),
+            'sck': tp.get('sck')
         }
 
-    # 3. GREENN WEBHOOK
-    elif 'x-webhook-token' in norm_headers or body.get('event') in ['salePaid', 'saleCreated', 'saleRefunded'] or (body.get('data') and 'transaction' in body.get('data', {})):
+    # Hotmart
+    elif 'x-hotmart-hottok' in [k.lower() for k in headers.keys()] or 'hottok' in body or 'purchase' in body.get('data', {}):
+        platform = 'Hotmart'
+        data = body.get('data', {})
+        pur = data.get('purchase', {})
+        buyer = data.get('buyer', {})
+        order_id = pur.get('transaction') or body.get('transaction')
+        st = str(pur.get('status', '')).upper()
+        if st in ['APPROVED', 'COMPLETE']:
+            status = 'paid'
+        elif st in ['REFUNDED', 'CHARGEBACK']:
+            status = 'refunded'
+        else:
+            status = 'waiting_payment'
+            
+        customer_name = buyer.get('name', 'Comprador Hotmart')
+        customer_email = buyer.get('email', '')
+        customer_phone = buyer.get('checkout_phone', '')
+        price_cents = int(round(float(pur.get('price', {}).get('value', 0)) * 100))
+        
+        tr = pur.get('tracking', {})
+        tracking = {
+            'utm_source': tr.get('source') if tr.get('source') != 'HOTMART' else 'hotmart',
+            'utm_campaign': tr.get('external_code'),
+            'utm_content': tr.get('source_sck'),
+            'src': tr.get('external_code'),
+            'sck': tr.get('source_sck')
+        }
+
+    # Greenn
+    elif 'x-webhook-token' in [k.lower() for k in headers.keys()] or str(body.get('event', '')).startswith('sale') or 'transaction' in body.get('data', {}):
         platform = 'Greenn'
         data = body.get('data', {})
-        trans = data.get('transaction', {})
+        tr = data.get('transaction', {})
         cust = data.get('customer', {})
-        order_id = trans.get('id') or body.get('id') or f"GN-{uuid.uuid4().hex[:6].upper()}"
-        ev = str(body.get('event', trans.get('status', ''))).lower()
-        status = 'paid' if 'paid' in ev else ('refunded' if 'refund' in ev else 'waiting_payment')
+        order_id = tr.get('id') or body.get('id')
+        ev = str(body.get('event') or tr.get('status', '')).lower()
+        if 'paid' in ev or 'aprovad' in ev:
+            status = 'paid'
+        elif 'refund' in ev or 'estorno' in ev:
+            status = 'refunded'
+        else:
+            status = 'waiting_payment'
+            
         customer_name = cust.get('name', 'Comprador Greenn')
         customer_email = cust.get('email', '')
         customer_phone = cust.get('phone', '')
-        customer_doc = cust.get('document', '')
-        product_name = data.get('product', {}).get('name', 'Produto Greenn')
-        payment_method = trans.get('payment_method', 'pix')
-        price_cents = int(trans.get('amount') or 0)
-        gateway_fee_cents = int(price_cents * 0.059)
-        track = data.get('tracking', {})
+        price_cents = int(tr.get('amount') or 0)
+        tk = data.get('tracking', {})
         tracking = {
-            'src': track.get('src'),
-            'sck': track.get('sck'),
-            'utm_source': track.get('utm_source'),
-            'utm_medium': track.get('utm_medium'),
-            'utm_campaign': track.get('utm_campaign'),
-            'utm_content': track.get('utm_content'),
-            'utm_term': track.get('utm_term')
+            'utm_source': tk.get('utm_source'),
+            'utm_medium': tk.get('utm_medium'),
+            'utm_campaign': tk.get('utm_campaign'),
+            'utm_content': tk.get('utm_content'),
+            'src': tk.get('src'),
+            'sck': tk.get('sck')
         }
 
-    # 4. CAKTO WEBHOOK
-    elif 'x-cakto-signature' in norm_headers or str(body.get('event', '')).startswith('purchase_') or (body.get('data') and 'offer_type' in body.get('data', {})):
+    # Cakto
+    elif 'x-cakto-signature' in [k.lower() for k in headers.keys()] or str(body.get('event', '')).startswith('purchase_') or 'offer_type' in body.get('data', {}):
         platform = 'Cakto'
-        data = body.get('data', {})
-        order_id = data.get('id') or body.get('id') or f"CK-{uuid.uuid4().hex[:6].upper()}"
-        ev = str(body.get('event', data.get('status', ''))).lower()
-        status = 'paid' if 'approved' in ev or 'paid' in ev else ('refunded' if 'refund' in ev else 'waiting_payment')
-        cust = data.get('customer', {})
+        dt = body.get('data', {})
+        order_id = dt.get('id') or body.get('id')
+        ev = str(body.get('event') or dt.get('status', '')).lower()
+        if 'approved' in ev or 'paid' in ev:
+            status = 'paid'
+        elif 'refunded' in ev or 'chargeback' in ev:
+            status = 'refunded'
+        else:
+            status = 'waiting_payment'
+            
+        cust = dt.get('customer', {})
         customer_name = cust.get('name', 'Comprador Cakto')
         customer_email = cust.get('email', '')
         customer_phone = cust.get('phone', '')
-        product_name = data.get('product', {}).get('name', 'Produto Cakto')
-        payment_method = data.get('paymentMethod', 'credit_card')
-        price_val = data.get('amount', 0)
-        price_cents = int(float(price_val) * 100) if price_val else 0
-        gateway_fee_cents = int(price_cents * 0.049)
+        price_cents = int(round(float(dt.get('amount', 0)) * 100))
         tracking = {
-            'src': data.get('src'),
-            'sck': data.get('sck'),
-            'utm_source': data.get('utm_source'),
-            'utm_medium': data.get('utm_medium'),
-            'utm_campaign': data.get('utm_campaign'),
-            'utm_content': data.get('utm_content'),
-            'utm_term': data.get('utm_term')
+            'utm_source': dt.get('utm_source'),
+            'utm_medium': dt.get('utm_medium'),
+            'utm_campaign': dt.get('utm_campaign'),
+            'utm_content': dt.get('utm_content'),
+            'src': dt.get('src'),
+            'sck': dt.get('sck')
         }
 
-    # 5. WIAPY WEBHOOK
+    # Wiapy
     elif 'payment' in body and ('customer' in body or 'tracking' in body):
         platform = 'Wiapy'
-        payment = body.get('payment', {})
+        pay = body.get('payment', {})
         cust = body.get('customer', {})
-        order_id = payment.get('id') or str(body.get('id', f"WP-{uuid.uuid4().hex[:6].upper()}"))
-        w_status = str(payment.get('status', '')).lower()
-        status = 'paid' if w_status in ['approved', 'paid'] else ('refunded' if 'refund' in w_status else 'waiting_payment')
+        order_id = pay.get('id') or body.get('id')
+        st = str(pay.get('status', '')).lower()
+        if 'approved' in st or 'paid' in st:
+            status = 'paid'
+        elif 'refund' in st:
+            status = 'refunded'
+        else:
+            status = 'waiting_payment'
+            
         customer_name = cust.get('name', 'Comprador Wiapy')
         customer_email = cust.get('email', '')
-        customer_phone = cust.get('mobile_phone', '')
-        price_cents = int(payment.get('amount', 0))
-        gateway_fee_cents = int(payment.get('fee', price_cents * 0.05))
-        track = body.get('tracking', {})
+        customer_phone = cust.get('phone', '')
+        price_cents = int(pay.get('amount') or 0)
+        tk = body.get('tracking', {})
         tracking = {
-            'src': track.get('src'),
-            'sck': track.get('sck'),
-            'utm_source': track.get('utm_source'),
-            'utm_medium': track.get('utm_medium'),
-            'utm_campaign': track.get('utm_campaign'),
-            'utm_content': track.get('utm_content'),
-            'utm_term': track.get('utm_term')
+            'utm_source': tk.get('utm_source'),
+            'utm_medium': tk.get('utm_medium'),
+            'utm_campaign': tk.get('utm_campaign'),
+            'utm_content': tk.get('utm_content'),
+            'src': tk.get('src'),
+            'sck': tk.get('sck')
         }
-        fbc = track.get('fbc')
-        fbp = track.get('fbp')
+        fbc = tk.get('fbc')
+        fbp = tk.get('fbp')
 
-    # 6. UNIVERSAL / UTMIFY PADRÃO
+    # Universal / UTMify Webhook Format
     else:
-        order_id = body.get('orderId') or body.get('order_id') or body.get('transaction_id') or f"ORD-{uuid.uuid4().hex[:6].upper()}"
+        order_id = body.get('orderId') or body.get('order_id') or body.get('id') or f"ORD-{uuid.uuid4().hex[:8].upper()}"
         cust = body.get('customer', {})
-        customer_name = cust.get('name', 'Comprador Webhook')
+        customer_name = cust.get('name', 'Comprador')
         customer_email = cust.get('email', '')
         customer_phone = cust.get('phone', '')
-        customer_doc = cust.get('document', '')
-        price_cents = body.get('priceInCents') or body.get('price_in_cents') or int(float(body.get('value', 297)) * 100)
-        gateway_fee_cents = body.get('gatewayFeeInCents') or int(price_cents * 0.05)
-        status = body.get('status', 'paid')
-        platform = body.get('platform', 'Checkout Personalizado')
-        track = body.get('trackingParameters', {}) or body.get('tracking_parameters', {})
+        price_cents = int(body.get('priceInCents') or round(float(body.get('value', 0)) * 100))
+        tp = body.get('trackingParameters', {})
         tracking = {
-            'src': track.get('src'),
-            'sck': track.get('sck'),
-            'utm_source': track.get('utm_source'),
-            'utm_medium': track.get('utm_medium'),
-            'utm_campaign': track.get('utm_campaign'),
-            'utm_content': track.get('utm_content'),
-            'utm_term': track.get('utm_term')
+            'utm_source': tp.get('utm_source'),
+            'utm_medium': tp.get('utm_medium'),
+            'utm_campaign': tp.get('utm_campaign'),
+            'utm_content': tp.get('utm_content'),
+            'utm_term': tp.get('utm_term'),
+            'src': tp.get('src'),
+            'sck': tp.get('sck')
         }
-        fbc = track.get('fbc')
-        fbp = track.get('fbp')
+        fbc = tp.get('fbc')
+        fbp = tp.get('fbp')
+
+    if not order_id:
+        order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
 
     return {
         'platform': platform,
@@ -378,113 +466,241 @@ def parse_webhook_payload(headers, body):
         'customer_name': customer_name,
         'customer_email': customer_email,
         'customer_phone': customer_phone,
-        'customer_doc': customer_doc,
-        'product_name': product_name,
-        'payment_method': payment_method,
         'price_cents': price_cents,
-        'gateway_fee_cents': gateway_fee_cents,
-        'net_amount_cents': price_cents - gateway_fee_cents,
         'tracking': tracking,
         'fbc': fbc,
         'fbp': fbp
     }
 
-# ==================== DISPARADOR SERVER-SIDE META ADS CAPI ====================
+# ==================== DISPARO META ADS CAPI (MULTI-PIXEL) ====================
 def send_meta_capi(user_id, order_data):
-    """
-    Envia o evento 'Purchase' diretamente para a Conversions API (CAPI) do Meta Ads.
-    Hasheia dados do usuário em SHA-256 conforme padrão oficial da Meta.
-    """
     conn = get_db()
     cursor = conn.cursor()
-    meta = cursor.execute("SELECT pixel_id, access_token, test_event_code, active FROM meta_settings WHERE user_id = ? AND active = 1", (user_id,)).fetchone()
     
-    if not meta or not meta['pixel_id'] or not meta['access_token']:
-        conn.close()
-        return {"status": "skipped", "message": "Meta CAPI não configurado. Adicione seu Pixel ID e Token CAPI na aba Meta Ads."}
+    # Busca pixels cadastrados e settings gerais
+    pixels = cursor.execute("""
+        SELECT pixel_id, access_token, test_event_code FROM meta_pixels WHERE user_id = ? AND pixel_id != ''
+        UNION
+        SELECT pixel_id, access_token, test_event_code FROM meta_settings WHERE user_id = ? AND pixel_id != '' AND active = 1
+    """, (user_id, user_id)).fetchall()
+    conn.close()
 
-    pixel_id = meta['pixel_id'].strip()
-    access_token = meta['access_token'].strip()
-    test_code = meta['test_event_code'].strip() if meta['test_event_code'] else None
+    if not pixels:
+        return {"status": "skipped", "message": "Nenhum Pixel Meta configurado. Adicione seu Pixel ID e Token CAPI."}
 
-    def hash_val(val):
+    def sha256(val):
         if not val:
             return None
-        clean = str(val).strip().lower()
-        return hashlib.sha256(clean.encode('utf-8')).hexdigest()
+        return hashlib.sha256(str(val).strip().lower().encode('utf-8')).hexdigest()
 
     user_data = {}
     if order_data.get('customer_email'):
-        user_data['em'] = [hash_val(order_data.get('customer_email'))]
+        user_data['em'] = [sha256(order_data['customer_email'])]
     if order_data.get('customer_phone'):
-        phone_nums = ''.join(c for c in str(order_data.get('customer_phone')) if c.isdigit())
-        if phone_nums:
-            if not phone_nums.startswith('55') and len(phone_nums) in [10, 11]:
-                phone_nums = '55' + phone_nums
-            user_data['ph'] = [hash_val(phone_nums)]
+        ph = ''.join(filter(str.isdigit, str(order_data['customer_phone'])))
+        if ph and not ph.startswith('55') and len(ph) in [10, 11]:
+            ph = '55' + ph
+        user_data['ph'] = [sha256(ph)]
     if order_data.get('customer_name'):
-        parts = order_data.get('customer_name').strip().split(' ', 1)
-        user_data['fn'] = [hash_val(parts[0])]
+        parts = order_data['customer_name'].strip().split(' ')
+        user_data['fn'] = [sha256(parts[0])]
         if len(parts) > 1:
-            user_data['ln'] = [hash_val(parts[1])]
+            user_data['ln'] = [sha256(' '.join(parts[1:]))]
     if order_data.get('customer_ip'):
-        user_data['client_ip_address'] = order_data.get('customer_ip')
+        user_data['client_ip_address'] = order_data['customer_ip']
     if order_data.get('fbp'):
-        user_data['fbp'] = order_data.get('fbp')
+        user_data['fbp'] = order_data['fbp']
     if order_data.get('fbc'):
-        user_data['fbc'] = order_data.get('fbc')
+        user_data['fbc'] = order_data['fbc']
 
     event_payload = {
-        "event_name": "Purchase",
-        "event_time": int(datetime.datetime.now().timestamp()),
-        "event_id": str(order_data.get('order_id')),
-        "action_source": "website",
-        "user_data": user_data,
-        "custom_data": {
-            "currency": "BRL",
-            "value": float(order_data.get('price_cents', 0)) / 100.0,
-            "content_name": order_data.get('product_name', 'Produto'),
-            "content_type": "product"
+        'event_name': 'Purchase',
+        'event_time': int(datetime.now().timestamp()),
+        'event_id': str(order_data['order_id']),
+        'action_source': 'website',
+        'user_data': user_data,
+        'custom_data': {
+            'currency': 'BRL',
+            'value': float(order_data.get('price_cents', 0)) / 100.0,
+            'content_name': order_data.get('product_name', 'Produto'),
+            'content_type': 'product'
         }
     }
 
-    body = {"data": [event_payload]}
-    if test_code:
-        body["test_event_code"] = test_code
+    results = []
+    for p in pixels:
+        pixel_id = p['pixel_id']
+        access_token = p['access_token']
+        test_code = p['test_event_code']
 
-    url = f"https://graph.facebook.com/v19.0/{pixel_id}/events?access_token={access_token}"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode('utf-8'),
-        headers={'Content-Type': 'application/json'},
-        method='POST'
-    )
+        if not pixel_id or not access_token:
+            continue
 
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            resp_code = resp.getcode()
-            resp_text = resp.read().decode('utf-8')
-            cursor.execute("INSERT INTO capi_logs (user_id, order_id, event_name, pixel_id, status, response_code, response_body) VALUES (?, ?, 'Purchase', ?, 'success', ?, ?)",
-                           (user_id, str(order_data.get('order_id')), pixel_id, resp_code, resp_text))
-            conn.commit()
-            conn.close()
-            return {"status": "success", "code": resp_code, "response": json.loads(resp_text)}
-    except urllib.error.HTTPError as e:
-        err_text = e.read().decode('utf-8', errors='replace')
-        cursor.execute("INSERT INTO capi_logs (user_id, order_id, event_name, pixel_id, status, response_code, response_body) VALUES (?, ?, 'Purchase', ?, 'error', ?, ?)",
-                       (user_id, str(order_data.get('order_id')), pixel_id, e.code, err_text))
-        conn.commit()
-        conn.close()
-        return {"status": "error", "code": e.code, "response": err_text}
-    except Exception as ex:
-        conn.close()
-        return {"status": "error", "code": 500, "response": str(ex)}
+        payload = {'data': [event_payload]}
+        if test_code:
+            payload['test_event_code'] = test_code
 
+        api_url = f"https://graph.facebook.com/v19.0/{pixel_id}/events?access_token={access_token}"
+        req = urllib.request.Request(
+            api_url,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                resp_body = resp.read().decode('utf-8')
+                code = resp.status
+                status_str = 'success'
+        except urllib.error.HTTPError as ex:
+            resp_body = ex.read().decode('utf-8')
+            code = ex.code
+            status_str = 'error'
+        except Exception as ex:
+            resp_body = str(ex)
+            code = 500
+            status_str = 'error'
+
+        # Salva log
+        conn_log = get_db()
+        c_log = conn_log.cursor()
+        c_log.execute("""
+            INSERT INTO capi_logs (user_id, order_id, event_name, pixel_id, status, response_code, response_body)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, str(order_data['order_id']), 'Purchase', pixel_id, status_str, code, resp_body))
+        conn_log.commit()
+        conn_log.close()
+
+        results.append({
+            'pixel_id': pixel_id,
+            'status': status_str,
+            'code': code,
+            'response': resp_body
+        })
+
+    return {"status": "dispatched", "pixels": results}
+
+# ==================== MOTOR DE REGRAS E AUTOMAÇÕES ====================
+def evaluate_automated_rules():
+    conn = get_db()
+    cursor = conn.cursor()
+    rules = cursor.execute("SELECT * FROM automated_rules WHERE active = 1").fetchall()
+    campaigns = cursor.execute("SELECT * FROM campaigns").fetchall()
+    
+    current_time_str = datetime.now().strftime("%H:%M")
+    executed_logs = []
+
+    for rule in rules:
+        r = dict(rule)
+        rule_id = r['id']
+        rule_name = r['name']
+        
+        # 1. Regra de Horário (Schedule)
+        pause_time = r.get('schedule_pause_time')
+        resume_time = r.get('schedule_resume_time')
+        
+        if pause_time and current_time_str == pause_time:
+            for camp in campaigns:
+                if camp['status'] == 'active':
+                    cursor.execute("UPDATE campaigns SET status = 'paused' WHERE id = ?", (camp['id'],))
+                    cursor.execute("INSERT INTO rule_logs (rule_id, rule_name, target_name, action, details) VALUES (?, ?, ?, ?, ?)",
+                                   (rule_id, rule_name, camp['name'], 'PAUSAR', f'Horário programado ({pause_time}) atingido.'))
+                    executed_logs.append(f"Regra '{rule_name}': Pausou {camp['name']} às {pause_time}")
+            continue
+            
+        if resume_time and current_time_str == resume_time:
+            for camp in campaigns:
+                if camp['status'] == 'paused':
+                    cursor.execute("UPDATE campaigns SET status = 'active' WHERE id = ?", (camp['id'],))
+                    cursor.execute("INSERT INTO rule_logs (rule_id, rule_name, target_name, action, details) VALUES (?, ?, ?, ?, ?)",
+                                   (rule_id, rule_name, camp['name'], 'ATIVAR', f'Horário programado ({resume_time}) atingido.'))
+                    executed_logs.append(f"Regra '{rule_name}': Ativou {camp['name']} às {resume_time}")
+            continue
+
+        # 2. Regra por Métricas
+        metric = r['condition_metric']
+        op = r['condition_operator']
+        target_val = float(r['condition_value'] or 0)
+        action = r['action_type']
+        act_val = float(r.get('action_value') or 20)
+
+        sec_metric = r.get('condition_secondary_metric')
+        sec_op = r.get('condition_secondary_operator')
+        sec_val = float(r.get('condition_secondary_value') or 0) if sec_metric else None
+
+        for camp in campaigns:
+            c = dict(camp)
+            c_id = c['id']
+            c_name = c['name']
+            spent = (c['total_spent_in_cents'] or 0) / 100.0
+
+            order_data = cursor.execute("""
+                SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as revenue_cents
+                FROM orders
+                WHERE (utm_campaign = ? OR order_external_id LIKE ?) AND status = 'paid'
+            """, (c_name, f"%{c_name}%")).fetchone()
+
+            sales = order_data['count'] if order_data else 0
+            revenue = (order_data['revenue_cents'] if order_data else 0) / 100.0
+            cpa = (spent / sales) if sales > 0 else (spent if spent > 0 else 0)
+            roas = (revenue / spent) if spent > 0 else 0
+
+            val_map = {'spent': spent, 'cpa': cpa, 'roas': roas, 'sales': sales}
+            current_m_val = val_map.get(metric, 0)
+
+            match = False
+            if op == '>' and current_m_val > target_val: match = True
+            elif op == '>=' and current_m_val >= target_val: match = True
+            elif op == '<' and current_m_val < target_val: match = True
+            elif op == '<=' and current_m_val <= target_val: match = True
+            elif op == '=' and abs(current_m_val - target_val) < 0.001: match = True
+
+            if match and sec_metric:
+                sec_curr = val_map.get(sec_metric, 0)
+                sec_match = False
+                if sec_op == '>' and sec_curr > sec_val: sec_match = True
+                elif sec_op == '>=' and sec_curr >= sec_val: sec_match = True
+                elif sec_op == '<' and sec_curr < sec_val: sec_match = True
+                elif sec_op == '<=' and sec_curr <= sec_val: sec_match = True
+                elif sec_op == '=' and abs(sec_curr - sec_val) < 0.001: sec_match = True
+                match = sec_match
+
+            if match:
+                if action == 'PAUSE_CAMPAIGN' and c['status'] == 'active':
+                    cursor.execute("UPDATE campaigns SET status = 'paused' WHERE id = ?", (c_id,))
+                    cursor.execute("INSERT INTO rule_logs (rule_id, rule_name, target_name, action, details) VALUES (?, ?, ?, ?, ?)",
+                                   (rule_id, rule_name, c_name, 'PAUSAR', f"{metric.upper()}={current_m_val:.2f} {op} {target_val:.2f}. Campanha pausada."))
+                    executed_logs.append(f"Regra '{rule_name}' pausou {c_name}")
+                elif action == 'RESUME_CAMPAIGN' and c['status'] == 'paused':
+                    cursor.execute("UPDATE campaigns SET status = 'active' WHERE id = ?", (c_id,))
+                    cursor.execute("INSERT INTO rule_logs (rule_id, rule_name, target_name, action, details) VALUES (?, ?, ?, ?, ?)",
+                                   (rule_id, rule_name, c_name, 'ATIVAR', f"{metric.upper()}={current_m_val:.2f} {op} {target_val:.2f}. Campanha ativada."))
+                    executed_logs.append(f"Regra '{rule_name}' reativou {c_name}")
+                elif action == 'INCREASE_BUDGET':
+                    factor = 1.0 + (act_val / 100.0)
+                    new_budget_cents = int((c['daily_budget_in_cents'] or 5000) * factor)
+                    cursor.execute("UPDATE campaigns SET daily_budget_in_cents = ? WHERE id = ?", (new_budget_cents, c_id))
+                    cursor.execute("INSERT INTO rule_logs (rule_id, rule_name, target_name, action, details) VALUES (?, ?, ?, ?, ?)",
+                                   (rule_id, rule_name, c_name, 'AUMENTAR ORÇAMENTO', f"Orçamento aumentado em {act_val}% (Novo: R$ {new_budget_cents/100:.2f}/dia)"))
+                    executed_logs.append(f"Regra '{rule_name}' escalou orçamento de {c_name}")
+                elif action == 'DECREASE_BUDGET':
+                    factor = max(0.1, 1.0 - (act_val / 100.0))
+                    new_budget_cents = int((c['daily_budget_in_cents'] or 5000) * factor)
+                    cursor.execute("UPDATE campaigns SET daily_budget_in_cents = ? WHERE id = ?", (new_budget_cents, c_id))
+                    cursor.execute("INSERT INTO rule_logs (rule_id, rule_name, target_name, action, details) VALUES (?, ?, ?, ?, ?)",
+                                   (rule_id, rule_name, c_name, 'DIMINUIR ORÇAMENTO', f"Orçamento reduzido em {act_val}% (Novo: R$ {new_budget_cents/100:.2f}/dia)"))
+                    executed_logs.append(f"Regra '{rule_name}' reduziu orçamento de {c_name}")
+
+    conn.commit()
+    conn.close()
+    return executed_logs
 
 # ==================== HANDLER HTTP ====================
 class TrackProHandler(BaseHTTPRequestHandler):
     def _send_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Connection', 'close')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-token, X-HOTMART-HOTTOK, X-Webhook-Token, X-Cakto-Signature')
 
@@ -517,7 +733,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
         # Health
         if path == '/api/health':
-            self._send_json({"status": "ok", "app": "TrackPro Engine", "version": "2.0.0", "capi": True})
+            self._send_json({"status": "ok", "app": "TrackPro Engine v2.5", "version": "2.5.0", "capi": True})
             return
 
         # PWA Manifest
@@ -549,16 +765,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
         # PWA Service Worker
         if path == '/sw.js':
             sw_code = """
-            self.addEventListener('install', (e) => {
-              self.skipWaiting();
-            });
-            self.addEventListener('activate', (e) => {
-              e.waitUntil(clients.claim());
-            });
-            self.addEventListener('fetch', (e) => {
-              // Network-first com fallback para cache
-              e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-            });
+            self.addEventListener('install', (e) => { self.skipWaiting(); });
+            self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
+            self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
             """
             self.send_response(200)
             self.send_header('Content-Type', 'application/javascript; charset=utf-8')
@@ -568,7 +777,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             return
 
         # Pixel JS com Link Forwarder Automático (Kiwify, Hotmart, Greenn, Cakto, Wiapy)
-        if path == '/tracking/pixel.js':
+        if path in ['/tracking/pixel.js', '/tracking/pixel']:
             token = params.get('token', [''])[0]
             script = f"""(function(){{
   'use strict';
@@ -585,7 +794,6 @@ class TrackProHandler(BaseHTTPRequestHandler):
     return null;
   }}
 
-  // 1. Extração de Parâmetros UTM e Meta Click IDs
   var currentUtms = {{
     utm_source: getQueryParam('utm_source'),
     utm_medium: getQueryParam('utm_medium'),
@@ -598,7 +806,6 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
   var fbclid = getQueryParam('fbclid');
 
-  // Gerar / Recuperar _fbp (Facebook Browser ID)
   function getCookie(n) {{
     var v = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
     return v ? decodeURIComponent(v[2]) : null;
@@ -621,7 +828,6 @@ class TrackProHandler(BaseHTTPRequestHandler):
     setCookie('_fbc', fbc, 90);
   }}
 
-  // Persistir em LocalStorage e Cookies First-Party
   var hasUtm = false;
   for (var k in currentUtms) {{
     if (currentUtms[k]) {{ hasUtm = true; break; }}
@@ -630,15 +836,17 @@ class TrackProHandler(BaseHTTPRequestHandler):
   if (hasUtm) {{
     currentUtms.fbp = fbp;
     if (fbc) currentUtms.fbc = fbc;
-    localStorage.setItem('_trackpro_utms', JSON.stringify(currentUtms));
-    setCookie('_trackpro_utms', JSON.stringify(currentUtms), 30);
+    try {{
+      localStorage.setItem('_trackpro_utms', JSON.stringify(currentUtms));
+      setCookie('_trackpro_utms', JSON.stringify(currentUtms), 30);
+    }} catch(e){{}}
   }}
 
-  var stored = JSON.parse(localStorage.getItem('_trackpro_utms') || '{{}}');
+  var stored = {{}};
+  try {{ stored = JSON.parse(localStorage.getItem('_trackpro_utms') || '{{}}'); }} catch(e){{}}
   if (!stored.fbp) stored.fbp = fbp;
   if (fbc && !stored.fbc) stored.fbc = fbc;
 
-  // 2. Disparar Pageview para a API
   fetch(API + '/api/tracking/event', {{
     method: 'POST',
     headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
@@ -658,7 +866,6 @@ class TrackProHandler(BaseHTTPRequestHandler):
     }})
   }}).catch(function(){{}});
 
-  // 3. Link Forwarder Automático (Injeta UTMs em botões de Kiwify, Hotmart, Greenn, Cakto, Wiapy)
   function decorateCheckoutLinks() {{
     var links = document.querySelectorAll('a[href]');
     var checkouts = ['kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com'];
@@ -706,96 +913,92 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self.wfile.write(script.encode('utf-8'))
             return
 
-        # Dashboard Overview API
+        # Dashboard Overview API (com suporte a filtros por dashboard/workspace)
         if path in ['/api/dashboard', '/api/dashboard/overview']:
             conn = get_db()
             cursor = conn.cursor()
             
-            row = cursor.execute("""
-                SELECT 
-                    COALESCE(SUM(CASE WHEN status = 'paid' THEN price_in_cents ELSE 0 END), 0) as total_revenue,
-                    COALESCE(SUM(CASE WHEN status = 'paid' THEN gateway_fee_in_cents ELSE 0 END), 0) as total_fees,
-                    COALESCE(SUM(CASE WHEN status = 'paid' THEN net_amount_in_cents ELSE 0 END), 0) as total_net,
-                    COUNT(*) as total_orders,
-                    SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_orders
-                FROM orders WHERE user_id = 1
-            """).fetchone()
+            platform_filter = params.get('platform', ['all'])[0]
+            dash_id = params.get('dashboard_id', [''])[0]
+            if dash_id:
+                d_row = cursor.execute("SELECT platform_filter FROM custom_dashboards WHERE id = ?", (dash_id,)).fetchone()
+                if d_row and d_row['platform_filter']:
+                    platform_filter = d_row['platform_filter']
 
-            spend_row = cursor.execute("SELECT COALESCE(SUM(total_spent_in_cents), 0) as total_spent FROM campaigns WHERE user_id = 1").fetchone()
+            where_clause = ""
+            where_params = []
+            if platform_filter and platform_filter != 'all':
+                where_clause = "WHERE platform = ?"
+                where_params = [platform_filter]
 
-            tot_rev = row['total_revenue']
-            tot_spent = spend_row['total_spent']
-            paid_ord = row['paid_orders'] or 0
+            query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {'WHERE status = "paid"' if not where_clause else where_clause + ' AND status = "paid"'}"
+            row_paid = cursor.execute(query_paid, where_params).fetchone()
+            tot_revenue = (row_paid['total'] or 0) / 100.0
+            paid_ord = row_paid['count'] or 0
 
-            roas = round(tot_rev / tot_spent, 2) if tot_spent > 0 else 0
-            roi = round(((tot_rev - tot_spent) / tot_spent) * 100, 2) if tot_spent > 0 else 0
-            cpa = round((tot_spent / paid_ord) / 100, 2) if paid_ord > 0 else 0
+            row_spent = cursor.execute("SELECT COALESCE(SUM(total_spent_in_cents), 0) as total FROM campaigns").fetchone()
+            tot_spent = (row_spent['total'] or 0) / 100.0
 
-            # Sources breakdown
-            sources_rows = cursor.execute("""
-                SELECT COALESCE(t.utm_source, 'direto') as source, 
-                       SUM(o.price_in_cents) as revenue,
-                       COUNT(o.id) as orders
-                FROM orders o
-                LEFT JOIN tracking_events t ON o.id = t.order_id
-                WHERE o.status = 'paid'
-                GROUP BY source
-                ORDER BY revenue DESC
-            """).fetchall()
+            roas = round(tot_revenue / tot_spent, 2) if tot_spent > 0 else 0
+            cpa = round(tot_spent / paid_ord, 2) if paid_ord > 0 else 0
+            roi = round(((tot_revenue - tot_spent) / tot_spent) * 100, 1) if tot_spent > 0 else 0
 
-            colors = {'facebook': '#1877F2', 'google': '#4285F4', 'instagram': '#E4405F', 'tiktok': '#00F2FE', 'direto': '#10B981'}
+            # Fontes de tráfego
+            query_sources = f"SELECT utm_source, COUNT(*) as count, SUM(price_in_cents) as total FROM orders {'WHERE status = "paid"' if not where_clause else where_clause + ' AND status = "paid"'} GROUP BY utm_source"
+            sources_rows = cursor.execute(query_sources, where_params).fetchall()
+            color_map = {'facebook': '#1877F2', 'instagram': '#E4405F', 'google': '#4285F4', 'tiktok': '#00F2FE', 'direto': '#10B981'}
             sources_chart = [
-                {"name": s['source'], "value": s['revenue'] / 100, "color": colors.get(s['source'].lower(), '#8B5CF6')}
-                for s in sources_rows
+                {
+                    "name": r['utm_source'] or 'direto',
+                    "value": round((r['total'] or 0) / 100.0, 2),
+                    "color": color_map.get((r['utm_source'] or '').lower(), '#8B5CF6')
+                } for r in sources_rows
             ]
 
-            # Recent orders
-            recent_rows = cursor.execute("""
-                SELECT o.order_external_id as id, o.customer_name as customer, o.customer_email as email,
-                       o.price_in_cents as amount_cents, o.status, o.payment_method, o.platform, o.created_at as date,
-                       COALESCE(t.utm_source, 'direto') as utm_source,
-                       COALESCE(t.utm_campaign, 'nenhuma') as utm_campaign,
-                       COALESCE(t.utm_content, '-') as utm_content
+            # Pedidos Recentes
+            query_orders = f"""
+                SELECT o.id, o.order_external_id, o.customer_name, o.customer_email, o.price_in_cents,
+                       o.status, o.platform, o.created_at, o.utm_source, o.utm_campaign, o.utm_content
                 FROM orders o
-                LEFT JOIN tracking_events t ON o.id = t.order_id
+                {where_clause}
                 ORDER BY o.created_at DESC LIMIT 15
-            """).fetchall()
-
+            """
+            recent_rows = cursor.execute(query_orders, where_params).fetchall()
             recent_orders = [
                 {
-                    "id": r['id'],
-                    "customer": r['customer'],
-                    "email": r['email'],
-                    "amount": r['amount_cents'] / 100,
+                    "id": r['order_external_id'],
+                    "customer": r['customer_name'],
+                    "email": r['customer_email'],
+                    "amount": (r['price_in_cents'] or 0) / 100.0,
                     "status": r['status'],
                     "platform": r['platform'],
-                    "source": r['utm_source'],
-                    "utm_source": r['utm_source'],
-                    "utm_campaign": r['utm_campaign'],
-                    "utm_content": r['utm_content'],
-                    "date": r['date']
+                    "source": r['utm_source'] or 'direto',
+                    "utm_source": r['utm_source'] or 'direto',
+                    "utm_campaign": r['utm_campaign'] or 'nenhuma',
+                    "utm_content": r['utm_content'] or '-',
+                    "date": r['created_at']
                 } for r in recent_rows
             ]
 
-            # Campaigns summary
-            c_rows = cursor.execute("SELECT name, platform, status, total_spent_in_cents FROM campaigns WHERE user_id = 1").fetchall()
+            # Campanhas
+            camp_rows = cursor.execute("SELECT * FROM campaigns ORDER BY total_spent_in_cents DESC").fetchall()
             campaign_summary = [
                 {
+                    "id": c['id'],
                     "name": c['name'],
-                    "platform": c['platform'],
                     "status": c['status'],
-                    "spent": c['total_spent_in_cents'] / 100,
-                    "revenue": (c['total_spent_in_cents'] * 3.4) / 100,
-                    "roas": 3.4
-                } for c in c_rows
+                    "platform": c['platform'],
+                    "spent": (c['total_spent_in_cents'] or 0) / 100.0,
+                    "dailyBudget": (c['daily_budget_in_cents'] or 0) / 100.0
+                } for c in camp_rows
             ]
 
             conn.close()
 
             resp = {
                 "kpis": {
-                    "faturamento": tot_rev / 100,
-                    "gastoAds": tot_spent / 100,
+                    "faturamento": tot_revenue,
+                    "gastoAds": tot_spent,
                     "roi": roi,
                     "roas": roas,
                     "cpa": cpa,
@@ -815,16 +1018,15 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json(resp)
             return
 
-        # Orders list
+        # Pedidos
         if path == '/api/orders':
             conn = get_db()
             cursor = conn.cursor()
             rows = cursor.execute("""
                 SELECT o.id, o.order_external_id, o.customer_name, o.customer_email, o.price_in_cents,
                        o.status, o.payment_method, o.platform, o.created_at,
-                       t.utm_source, t.utm_medium, t.utm_campaign, t.utm_content, t.utm_term
+                       o.utm_source, o.utm_medium, o.utm_campaign, o.utm_content, o.utm_term
                 FROM orders o
-                LEFT JOIN tracking_events t ON o.id = t.order_id
                 ORDER BY o.created_at DESC
             """).fetchall()
             
@@ -833,7 +1035,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "id": r['order_external_id'],
                     "customer": r['customer_name'],
                     "email": r['customer_email'],
-                    "amount": r['price_in_cents'] / 100,
+                    "amount": (r['price_in_cents'] or 0) / 100.0,
                     "status": r['status'],
                     "paymentMethod": r['payment_method'],
                     "platform": r['platform'],
@@ -847,6 +1049,106 @@ class TrackProHandler(BaseHTTPRequestHandler):
             ]
             conn.close()
             self._send_json({"orders": orders})
+            return
+
+        # Facebook Ad Accounts
+        if path in ['/api/facebook/accounts', '/api/adaccounts']:
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY id DESC").fetchall()
+            conn.close()
+            self._send_json({"accounts": [dict(r) for r in rows]})
+            return
+
+        # Campanhas e Conjuntos
+        if path in ['/api/campaigns', '/api/facebook/campaigns']:
+            conn = get_db()
+            cursor = conn.cursor()
+            c_rows = cursor.execute("SELECT * FROM campaigns WHERE user_id = 1 ORDER BY id DESC").fetchall()
+            
+            campaigns = []
+            for c in c_rows:
+                c_id = c['id']
+                adsets = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (c_id,)).fetchall()
+                
+                # Calcula ROAS e vendas da campanha
+                order_calc = cursor.execute("""
+                    SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as rev
+                    FROM orders WHERE utm_campaign = ? AND status = 'paid'
+                """, (c['name'],)).fetchone()
+                
+                vendas = order_calc['count'] if order_calc else 0
+                faturamento = (order_calc['rev'] if order_calc else 0) / 100.0
+                gasto = (c['total_spent_in_cents'] or 0) / 100.0
+                roas = round(faturamento / gasto, 2) if gasto > 0 else 0
+                cpa = round(gasto / vendas, 2) if vendas > 0 else 0
+
+                campaigns.append({
+                    "id": c_id,
+                    "name": c['name'],
+                    "platform": c['platform'],
+                    "status": c['status'],
+                    "daily_budget": (c['daily_budget_in_cents'] or 0) / 100.0,
+                    "spent": gasto,
+                    "sales": vendas,
+                    "revenue": faturamento,
+                    "roas": roas,
+                    "cpa": cpa,
+                    "ad_account_id": c['ad_account_id'],
+                    "adsets": [dict(a) for a in adsets]
+                })
+
+            conn.close()
+            self._send_json({"campaigns": campaigns})
+            return
+
+        # Conjuntos de Anúncio isolados
+        if path in ['/api/facebook/adsets', '/api/adsets']:
+            conn = get_db()
+            cursor = conn.cursor()
+            camp_id = params.get('campaign_id', [''])[0]
+            if camp_id:
+                rows = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (camp_id,)).fetchall()
+            else:
+                rows = cursor.execute("SELECT a.*, c.name as campaign_name FROM ad_sets a LEFT JOIN campaigns c ON a.campaign_id = c.id").fetchall()
+            conn.close()
+            self._send_json({"adsets": [dict(r) for r in rows]})
+            return
+
+        # Regras de Automação
+        if path == '/api/rules':
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT * FROM automated_rules WHERE user_id = 1 ORDER BY id DESC").fetchall()
+            conn.close()
+            self._send_json({"rules": [dict(r) for r in rows]})
+            return
+
+        # Logs de Execução das Regras
+        if path == '/api/rules/logs':
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT * FROM rule_logs ORDER BY id DESC LIMIT 50").fetchall()
+            conn.close()
+            self._send_json({"logs": [dict(r) for r in rows]})
+            return
+
+        # Pixels Meta (Multi-Pixel)
+        if path == '/api/pixels':
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT * FROM meta_pixels WHERE user_id = 1 ORDER BY id DESC").fetchall()
+            conn.close()
+            self._send_json({"pixels": [dict(r) for r in rows]})
+            return
+
+        # Custom Dashboards / Workspaces
+        if path == '/api/dashboards':
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT * FROM custom_dashboards WHERE user_id = 1 ORDER BY id ASC").fetchall()
+            conn.close()
+            self._send_json({"dashboards": [dict(r) for r in rows]})
             return
 
         # Meta Settings GET
@@ -867,12 +1169,12 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/meta/logs':
             conn = get_db()
             cursor = conn.cursor()
-            logs = cursor.execute("SELECT * FROM capi_logs WHERE user_id = 1 ORDER BY id DESC LIMIT 20").fetchall()
+            logs = cursor.execute("SELECT * FROM capi_logs WHERE user_id = 1 ORDER BY id DESC LIMIT 30").fetchall()
             conn.close()
             self._send_json({"logs": [dict(l) for l in logs]})
             return
 
-        # Serve static web application (raiz ou pasta demo)
+        # Serve static web application
         root_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
         demo_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo', 'index.html')
         html_to_serve = root_html if os.path.exists(root_html) else demo_html
@@ -895,7 +1197,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         path = parsed.path
         body = self._read_json()
 
-        # Configurar Meta CAPI (Pixel ID + Token)
+        # Configurar Meta CAPI
         if path == '/api/meta/settings':
             pixel_id = body.get('pixel_id', '').strip()
             access_token = body.get('access_token', '').strip()
@@ -929,7 +1231,292 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json(res)
             return
 
-        # Ingestão de Webhooks (Kiwify, Hotmart, Greenn, Cakto, Wiapy ou Universal)
+        # Facebook Ad Accounts: Cadastrar / Atualizar
+        if path == '/api/facebook/accounts':
+            account_id = str(body.get('account_id', '')).strip()
+            name = str(body.get('name', '')).strip() or f"Conta {account_id}"
+            access_token = str(body.get('access_token', '')).strip()
+            currency = str(body.get('currency', 'BRL')).strip()
+
+            if not account_id:
+                self._send_json({"error": "Account ID obrigatório"}, 400)
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, status)
+                VALUES (1, ?, ?, ?, ?, 'ACTIVE')
+            """, (account_id, name, access_token, currency))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": f"Conta de Anúncio {name} cadastrada com sucesso!"})
+            return
+
+        # Facebook Ad Accounts: Deletar
+        if path in ['/api/facebook/accounts/delete', '/api/facebook/accounts/remove']:
+            acc_id = body.get('id')
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM facebook_ad_accounts WHERE id = ? AND user_id = 1", (acc_id,))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Conta removida com sucesso!"})
+            return
+
+        # Criar Campanha
+        if path in ['/api/facebook/campaigns/create', '/api/campaigns/create']:
+            name = body.get('name', '').strip() or f"Campanha Meta {datetime.now().strftime('%d/%m')}"
+            budget = int(float(body.get('daily_budget', 50)) * 100)
+            account_id = body.get('ad_account_id', '')
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id)
+                VALUES (1, ?, 'facebook', 'active', ?, 0, ?)
+            """, (name, budget, account_id))
+            camp_id = cursor.lastrowid
+
+            # Cria conjunto padrão
+            cursor.execute("""
+                INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents)
+                VALUES (?, ?, ?, 'active', ?, 0)
+            """, (camp_id, f"ADSET-{uuid.uuid4().hex[:6].upper()}", f"Conjunto Aberto - {name}", budget))
+
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "campaign_id": camp_id, "message": f"Campanha {name} criada com sucesso!"})
+            return
+
+        # Alterar Status de Campanha (Ativar / Pausar)
+        if path == '/api/facebook/campaigns/status':
+            camp_id = body.get('id')
+            new_status = str(body.get('status', 'active')).lower() # 'active' ou 'paused'
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE campaigns SET status = ? WHERE id = ?", (new_status, camp_id))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "status": new_status, "message": f"Campanha alterada para {new_status.upper()}!"})
+            return
+
+        # Alterar Orçamento de Campanha
+        if path == '/api/facebook/campaigns/budget':
+            camp_id = body.get('id')
+            new_budget_cents = int(float(body.get('daily_budget', 0)) * 100)
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE campaigns SET daily_budget_in_cents = ? WHERE id = ?", (new_budget_cents, camp_id))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "daily_budget": new_budget_cents / 100.0, "message": "Orçamento atualizado!"})
+            return
+
+        # Duplicar Conjunto de Anúncio
+        if path in ['/api/facebook/adsets/duplicate', '/api/adsets/duplicate']:
+            adset_id = body.get('adset_id') or body.get('id')
+            conn = get_db()
+            cursor = conn.cursor()
+            orig = cursor.execute("SELECT * FROM ad_sets WHERE id = ?", (adset_id,)).fetchone()
+            if not orig:
+                conn.close()
+                self._send_json({"error": "Conjunto não encontrado"}, 404)
+                return
+
+            new_name = f"[CÓPIA] {orig['name']}"
+            cursor.execute("""
+                INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents, targeting_info)
+                VALUES (?, ?, ?, 'active', ?, 0, ?)
+            """, (orig['campaign_id'], f"ADSET-{uuid.uuid4().hex[:6].upper()}", new_name, orig['daily_budget_cents'], orig['targeting_info']))
+            new_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "new_adset_id": new_id, "name": new_name, "message": f"Conjunto '{new_name}' duplicado com sucesso!"})
+            return
+
+        # Duplicar Campanha Inteira
+        if path in ['/api/facebook/campaigns/duplicate', '/api/campaigns/duplicate']:
+            camp_id = body.get('campaign_id') or body.get('id')
+            conn = get_db()
+            cursor = conn.cursor()
+            orig = cursor.execute("SELECT * FROM campaigns WHERE id = ?", (camp_id,)).fetchone()
+            if not orig:
+                conn.close()
+                self._send_json({"error": "Campanha não encontrada"}, 404)
+                return
+
+            new_name = f"[CÓPIA] {orig['name']}"
+            cursor.execute("""
+                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id)
+                VALUES (1, ?, ?, 'active', ?, 0, ?)
+            """, (new_name, orig['platform'], orig['daily_budget_in_cents'], orig['ad_account_id']))
+            new_camp_id = cursor.lastrowid
+
+            # Duplica conjuntos da campanha
+            adsets = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (camp_id,)).fetchall()
+            for a in adsets:
+                cursor.execute("""
+                    INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents, targeting_info)
+                    VALUES (?, ?, ?, 'active', ?, 0, ?)
+                """, (new_camp_id, f"ADSET-{uuid.uuid4().hex[:6].upper()}", a['name'], a['daily_budget_cents'], a['targeting_info']))
+
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "new_campaign_id": new_camp_id, "name": new_name, "message": f"Campanha '{new_name}' duplicada com sucesso!"})
+            return
+
+        # Regras de Automação: Criar
+        if path == '/api/rules':
+            try:
+                name = body.get('name', '').strip() or f"Regra Automação {datetime.now().strftime('%d/%m')}"
+                metric = body.get('condition_metric', 'spent')
+                op = body.get('condition_operator', '>=')
+                val = float(body.get('condition_value', 0))
+                
+                sec_metric = body.get('condition_secondary_metric')
+                sec_op = body.get('condition_secondary_operator', '=')
+                sec_val = float(body.get('condition_secondary_value', 0)) if sec_metric else None
+
+                pause_time = body.get('schedule_pause_time')
+                resume_time = body.get('schedule_resume_time')
+
+                action = body.get('action_type', 'PAUSE_CAMPAIGN')
+                act_val = float(body.get('action_value', 20))
+                target_type = body.get('target_type', 'campaign')
+
+                conn = get_db()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO automated_rules (
+                        user_id, name, active, condition_metric, condition_operator, condition_value,
+                        condition_secondary_metric, condition_secondary_operator, condition_secondary_value,
+                        schedule_pause_time, schedule_resume_time, action_type, action_value, target_type
+                    ) VALUES (1, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (name, metric, op, val, sec_metric, sec_op, sec_val, pause_time, resume_time, action, act_val, target_type))
+                rule_id = cursor.lastrowid
+                conn.commit()
+                conn.close()
+
+                self._send_json({"success": True, "rule_id": rule_id, "message": f"Regra '{name}' criada e ativada!"})
+            except Exception as e:
+                self._send_json({"error": str(e)}, 500)
+            return
+
+        # Regras de Automação: Alternar Ativo/Inativo
+        if path == '/api/rules/toggle':
+            rule_id = body.get('id')
+            conn = get_db()
+            cursor = conn.cursor()
+            curr = cursor.execute("SELECT active FROM automated_rules WHERE id = ?", (rule_id,)).fetchone()
+            if curr:
+                new_act = 0 if curr['active'] == 1 else 1
+                cursor.execute("UPDATE automated_rules SET active = ? WHERE id = ?", (new_act, rule_id))
+                conn.commit()
+                conn.close()
+                self._send_json({"success": True, "active": new_act, "message": f"Regra {'ativada' if new_act else 'desativada'}!"})
+                return
+            conn.close()
+            self._send_json({"error": "Regra não encontrada"}, 404)
+            return
+
+        # Regras de Automação: Deletar
+        if path == '/api/rules/delete':
+            rule_id = body.get('id')
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM automated_rules WHERE id = ?", (rule_id,))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Regra excluída!"})
+            return
+
+        # Regras de Automação: Executar Avaliação Imediata
+        if path == '/api/rules/evaluate':
+            logs = evaluate_automated_rules()
+            self._send_json({"success": True, "executed_logs": logs, "message": f"Avaliação concluída! {len(logs)} ação(ões) executada(s)."})
+            return
+
+        # Multi-Pixels: Cadastrar / Atualizar
+        if path == '/api/pixels':
+            name = body.get('name', '').strip() or 'Pixel Meta'
+            pixel_id = str(body.get('pixel_id', '')).strip()
+            access_token = str(body.get('access_token', '')).strip()
+            test_code = str(body.get('test_event_code', '')).strip()
+            is_default = 1 if body.get('is_default') else 0
+
+            if not pixel_id:
+                self._send_json({"error": "Pixel ID obrigatório"}, 400)
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO meta_pixels (user_id, name, pixel_id, access_token, test_event_code, is_default)
+                VALUES (1, ?, ?, ?, ?, ?)
+            """, (name, pixel_id, access_token, test_code, is_default))
+            pix_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "id": pix_id, "message": f"Pixel '{name}' cadastrado com sucesso!"})
+            return
+
+        # Multi-Pixels: Deletar
+        if path == '/api/pixels/delete':
+            pix_id = body.get('id')
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM meta_pixels WHERE id = ?", (pix_id,))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Pixel excluído com sucesso!"})
+            return
+
+        # Multi-Dashboards: Criar
+        if path == '/api/dashboards':
+            name = body.get('name', '').strip() or 'Novo Workspace'
+            platform_filter = body.get('platform_filter', 'all').strip()
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default)
+                VALUES (1, ?, ?, 0)
+            """, (name, platform_filter))
+            d_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "id": d_id, "name": name, "message": f"Dashboard '{name}' criada!"})
+            return
+
+        # Multi-Dashboards: Deletar
+        if path == '/api/dashboards/delete':
+            d_id = body.get('id')
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM custom_dashboards WHERE id = ? AND is_default = 0", (d_id,))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Dashboard removida!"})
+            return
+
+        # Zerar / Resetar Dados de Teste
+        if path in ['/api/reset', '/api/system/reset']:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM orders;")
+            cursor.execute("DELETE FROM tracking_events;")
+            cursor.execute("DELETE FROM capi_logs;")
+            cursor.execute("DELETE FROM rule_logs;")
+            cursor.execute("UPDATE campaigns SET total_spent_in_cents = 0;")
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Todos os pedidos e dados de teste foram zerados com sucesso!"})
+            return
+
+        # Ingestão de Webhooks
         webhook_routes = [
             '/api/webhook/orders',
             '/api/webhook/kiwify',
@@ -939,58 +1526,58 @@ class TrackProHandler(BaseHTTPRequestHandler):
             '/api/webhook/wiapy',
             '/api/orders/webhook/orders'
         ]
-
         if path in webhook_routes:
             parsed_order = parse_webhook_payload(self.headers, body)
-            
-            # Se a rota foi específica (ex: /api/webhook/greenn), fixar a plataforma
-            if 'kiwify' in path: parsed_order['platform'] = 'Kiwify'
-            elif 'hotmart' in path: parsed_order['platform'] = 'Hotmart'
-            elif 'greenn' in path: parsed_order['platform'] = 'Greenn'
-            elif 'cakto' in path: parsed_order['platform'] = 'Cakto'
-            elif 'wiapy' in path: parsed_order['platform'] = 'Wiapy'
+            p_lower = path.lower()
+            if 'kiwify' in p_lower: parsed_order['platform'] = 'Kiwify'
+            elif 'hotmart' in p_lower: parsed_order['platform'] = 'Hotmart'
+            elif 'greenn' in p_lower: parsed_order['platform'] = 'Greenn'
+            elif 'cakto' in p_lower: parsed_order['platform'] = 'Cakto'
+            elif 'wiapy' in p_lower: parsed_order['platform'] = 'Wiapy'
 
             conn = get_db()
             cursor = conn.cursor()
 
-            # Verificar se pedido já existe
-            existing = cursor.execute("SELECT id FROM orders WHERE order_external_id = ?", (parsed_order['order_id'],)).fetchone()
-            if existing:
-                cursor.execute("UPDATE orders SET status = ? WHERE id = ?", (parsed_order['status'], existing['id']))
-                order_id = existing['id']
-            else:
-                cursor.execute('''
-                    INSERT INTO orders (user_id, order_external_id, platform, payment_method, status,
-                                        customer_name, customer_email, customer_phone, customer_document, customer_ip,
-                                        price_in_cents, gateway_fee_in_cents, net_amount_in_cents)
-                    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    parsed_order['order_id'], parsed_order['platform'], parsed_order['payment_method'], parsed_order['status'],
-                    parsed_order['customer_name'], parsed_order['customer_email'], parsed_order['customer_phone'],
-                    parsed_order['customer_doc'], self.client_address[0],
-                    parsed_order['price_cents'], parsed_order['gateway_fee_cents'], parsed_order['net_amount_cents']
-                ))
-                order_id = cursor.lastrowid
-
-                # Gravar UTMs vinculadas ao pedido
-                t = parsed_order['tracking']
-                cursor.execute('''
-                    INSERT INTO tracking_events (user_id, order_id, event_type, utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, fbc, fbp)
-                    VALUES (1, ?, 'purchase', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    order_id,
-                    t.get('utm_source'), t.get('utm_medium'), t.get('utm_campaign'),
-                    t.get('utm_content'), t.get('utm_term'), t.get('src'), t.get('sck'),
-                    parsed_order.get('fbc'), parsed_order.get('fbp')
-                ))
-
+            tr = parsed_order.get('tracking', {})
+            cursor.execute("""
+                INSERT INTO orders (
+                    user_id, order_external_id, platform, status, customer_name,
+                    customer_email, customer_phone, customer_ip, price_in_cents,
+                    utm_source, utm_medium, utm_campaign, utm_content, utm_term,
+                    src, sck, fbc, fbp
+                ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                parsed_order['order_id'],
+                parsed_order['platform'],
+                parsed_order['status'],
+                parsed_order['customer_name'],
+                parsed_order['customer_email'],
+                parsed_order.get('customer_phone'),
+                self.client_address[0],
+                parsed_order['price_cents'],
+                tr.get('utm_source'),
+                tr.get('utm_medium'),
+                tr.get('utm_campaign'),
+                tr.get('utm_content'),
+                tr.get('utm_term'),
+                tr.get('src'),
+                tr.get('sck'),
+                parsed_order.get('fbc'),
+                parsed_order.get('fbp')
+            ))
+            new_order_id = cursor.lastrowid
             conn.commit()
             conn.close()
 
-            # Se status for pago/aprovado, dispara Meta CAPI automaticamente
+            # Disparo Meta CAPI
             capi_result = None
             if parsed_order['status'] == 'paid':
                 capi_result = send_meta_capi(1, parsed_order)
+                # Avalia regras de automação logo após a venda
+                try:
+                    evaluate_automated_rules()
+                except Exception:
+                    pass
 
             self._send_json({
                 "success": True,
@@ -1006,10 +1593,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/tracking/event':
             conn = get_db()
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute("""
                 INSERT INTO tracking_events (user_id, event_type, utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, fbc, fbp, page_url, ip_address)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
+            """, (
                 1,
                 body.get('event_type', 'pageview'),
                 body.get('utm_source'),
@@ -1031,18 +1618,13 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
         self._send_json({"error": "Rota POST não encontrada"}, 404)
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
 
 def run_server(port=3001):
     init_db()
-    server = HTTPServer(('0.0.0.0', port), TrackProHandler)
-    print(f"[TrackPro] Servidor Ativo em: http://localhost:{port}")
-    print(f"[TrackPro] Dashboard Visual & PWA: http://localhost:{port}/")
-    print(f"[TrackPro] Webhook Universal: http://localhost:{port}/api/webhook/orders")
-    print(f"[TrackPro] Webhook Kiwify: http://localhost:{port}/api/webhook/kiwify")
-    print(f"[TrackPro] Webhook Hotmart: http://localhost:{port}/api/webhook/hotmart")
-    print(f"[TrackPro] Webhook Greenn: http://localhost:{port}/api/webhook/greenn")
-    print(f"[TrackPro] Webhook Cakto: http://localhost:{port}/api/webhook/cakto")
-    print(f"[TrackPro] Webhook Wiapy: http://localhost:{port}/api/webhook/wiapy")
+    server = ThreadedHTTPServer(('0.0.0.0', port), TrackProHandler)
+    print(f"[TrackPro v2.5] Servidor Ativo em: http://localhost:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

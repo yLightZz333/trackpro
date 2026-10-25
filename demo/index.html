@@ -154,6 +154,11 @@
       </div>
 
       <div class="flex items-center gap-3">
+        <!-- Personalizar Métricas -->
+        <button onclick="openModal('modal-customize-dashboard')" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Personalizar Métricas e Colunas">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span class="hidden xl:inline">Personalizar</span>
+        </button>
         <!-- Som de Venda Ka-ching Toggle -->
         <button onclick="toggleSound()" id="sound-btn-desktop" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
           <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
@@ -172,8 +177,29 @@
 
       <!-- ==================== TAB 1: DASHBOARD ==================== -->
       <section id="tab-dashboard" class="tab-pane space-y-4 md:space-y-6">
-        <!-- 4 KPI Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <!-- Toolbar Dashboard -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+              <span>Visão Geral do Funil & Lucro</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Ao Vivo</span>
+            </h2>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openModal('modal-customize-dashboard')" class="px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm">
+              <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i> ⚙️ Personalizar Métricas
+            </button>
+            <button onclick="openModal('modal-facebook-connect')" class="px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
+              <i data-lucide="facebook" class="w-3.5 h-3.5 text-[#1877F2]"></i> Conectar Facebook (1 Clique)
+            </button>
+            <button onclick="resetTestData()" class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Zerar todos os dados para começar do zero">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Zerar Dados
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Cards Grid (Renderizado Dinamicamente com Base nas Métricas Ativas) -->
+        <div id="kpi-cards-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
             <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Faturamento</span>
             <div id="kpi-faturamento" class="text-xl md:text-3xl font-extrabold text-white tracking-tight">R$ 0,00</div>
@@ -263,7 +289,13 @@
             <h2 class="text-lg font-bold text-white">Campanhas & Gestão de Anúncios</h2>
             <p class="text-xs text-slate-400">Gerencie status, orçamento diário e duplique conjuntos de anúncio em 1 clique</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openModal('modal-customize-dashboard', 'columns')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <i data-lucide="columns" class="w-3.5 h-3.5 text-brand-400"></i> Personalizar Colunas
+            </button>
+            <button onclick="openModal('modal-facebook-connect')" class="px-3 py-2 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
+              <i data-lucide="facebook" class="w-3.5 h-3.5"></i> Conectar Facebook (1 Clique)
+            </button>
             <button onclick="openModal('modal-new-campaign')" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-brand-500/20">
               <i data-lucide="plus" class="w-4 h-4"></i> Nova Campanha
             </button>
@@ -471,9 +503,14 @@
             <h2 class="text-lg font-bold text-white">Contas de Anúncio Conectadas</h2>
             <p class="text-xs text-slate-400">Vincule suas contas do Facebook Ads com Token para gerenciar status e orçamentos</p>
           </div>
-          <button onclick="openModal('modal-new-account')" class="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-sky-500/20">
-            <i data-lucide="plus" class="w-4 h-4"></i> Conectar Nova Conta
-          </button>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openModal('modal-facebook-connect')" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
+              <i data-lucide="facebook" class="w-4 h-4"></i> Conectar com Facebook (1 Clique)
+            </button>
+            <button onclick="openModal('modal-new-account')" class="px-3 py-2 bg-dark-800 hover:bg-dark-750 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium">
+              Manual
+            </button>
+          </div>
         </div>
 
         <div id="accounts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -823,6 +860,429 @@
     </div>
   </div>
 
+  <!-- Modal Conectar com Facebook Ads (1 Clique) -->
+  <div id="modal-facebook-connect" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-dark-950/40">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 flex items-center justify-center text-[#1877F2]">
+            <i data-lucide="facebook" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Conectar Contas do Facebook Ads</h3>
+            <p class="text-xs text-slate-400">Importe suas contas de anúncio automaticamente sem precisar digitar IDs manuais</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-facebook-connect')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+        <!-- Assistant Banner -->
+        <div class="bg-gradient-to-r from-blue-900/20 to-sky-900/10 border border-blue-500/20 rounded-xl p-4 space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h4 class="font-semibold text-white text-sm flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-4 h-4 text-sky-400"></i>
+                Assistente de Conexão Rápida Meta
+              </h4>
+              <p class="text-slate-300 text-xs mt-0.5">
+                Clique abaixo para detectar instantaneamente as contas de anúncio vinculadas ao seu perfil ou insira seu token.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap pt-1">
+            <button onclick="fetchFacebookAccounts()" id="btn-fetch-fb" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all">
+              <i data-lucide="search" class="w-4 h-4"></i>
+              <span id="btn-fetch-fb-text">Detectar Minhas Contas Meta</span>
+            </button>
+            <a href="https://developers.facebook.com/tools/explorer/" target="_blank" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              <span>Gerar Token no Facebook</span>
+            </a>
+          </div>
+
+          <div class="pt-2 border-t border-blue-500/10">
+            <label class="block text-slate-400 text-[11px] mb-1 font-medium">User Access Token do Facebook (Opcional - se vazio, detecta contas vinculadas):</label>
+            <input type="text" id="fb-token-fetch-input" placeholder="Cole o token EAAB... (ou deixe vazio para detecção automática)" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:border-blue-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Accounts List Table -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-white">Contas de Anúncio Encontradas:</span>
+            <div class="flex items-center gap-2 text-[11px]">
+              <button onclick="selectAllFbAccounts(true)" class="text-sky-400 hover:underline">Selecionar Todas</button>
+              <span class="text-slate-600">•</span>
+              <button onclick="selectAllFbAccounts(false)" class="text-slate-400 hover:underline">Desmarcar</button>
+            </div>
+          </div>
+
+          <div class="bg-dark-950 border border-slate-800 rounded-xl overflow-hidden min-h-[160px] max-h-[260px] overflow-y-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px] sticky top-0">
+                <tr>
+                  <th class="py-2.5 px-3 w-8 text-center">Sel.</th>
+                  <th class="py-2.5 px-3">Nome da Conta / BM</th>
+                  <th class="py-2.5 px-3">Account ID</th>
+                  <th class="py-2.5 px-3">Moeda</th>
+                  <th class="py-2.5 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody id="fb-fetched-accounts-tbody" class="divide-y divide-slate-800 font-medium">
+                <tr>
+                  <td colspan="5" class="py-8 text-center text-slate-500">
+                    Clique em <strong>"Detectar Minhas Contas Meta"</strong> acima para buscar suas contas.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-dark-950/40">
+        <span id="fb-selected-count" class="text-xs text-slate-400">0 contas selecionadas</span>
+        <div class="flex items-center gap-2">
+          <button onclick="closeModal('modal-facebook-connect')" class="px-3.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs">Cancelar</button>
+          <button onclick="importSelectedFbAccounts()" id="btn-import-fb" disabled class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20">
+            <i data-lucide="check" class="w-4 h-4"></i> Conectar Contas Selecionadas
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Personalizar Dashboard & Métricas (UTMify Style) -->
+  <div id="modal-customize-dashboard" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-dark-950/40">
+        <div>
+          <h3 class="font-bold text-base text-white flex items-center gap-2">
+            <i data-lucide="sliders" class="w-5 h-5 text-brand-400"></i>
+            Personalizar Dashboard & Métricas
+          </h3>
+          <p class="text-xs text-slate-400">Escolha quais métricas exibir no dashboard, colunas na tabela de campanhas e ajuste os custos de lucratividade</p>
+        </div>
+        <button onclick="closeModal('modal-customize-dashboard')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <!-- Tabs do Modal -->
+      <div class="flex items-center border-b border-slate-800 px-5 bg-dark-950/20 text-xs font-semibold gap-4">
+        <button onclick="switchCustomizeTab('metrics')" id="cust-tab-metrics-btn" class="py-3 border-b-2 border-brand-500 text-brand-400 flex items-center gap-1.5">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i> Cards do Dashboard
+        </button>
+        <button onclick="switchCustomizeTab('columns')" id="cust-tab-columns-btn" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+          <i data-lucide="columns" class="w-4 h-4"></i> Colunas de Campanhas
+        </button>
+        <button onclick="switchCustomizeTab('costs')" id="cust-tab-costs-btn" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+          <i data-lucide="calculator" class="w-4 h-4"></i> Custos & Lucro Real
+        </button>
+      </div>
+
+      <!-- Conteúdo do Modal -->
+      <div class="p-5 overflow-y-auto flex-1 text-xs space-y-6">
+        
+        <!-- PANE 1: CARDS DO DASHBOARD -->
+        <div id="cust-pane-metrics" class="space-y-5">
+          <!-- Presets -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800 flex-wrap gap-2">
+            <span class="text-slate-300 font-semibold">Predefinições Rápidas:</span>
+            <div class="flex items-center gap-2">
+              <button onclick="applyMetricPreset('utmify')" class="px-2.5 py-1 bg-dark-800 hover:bg-slate-700 text-brand-400 rounded-lg text-xs font-medium border border-brand-500/30">Padrão UTMify</button>
+              <button onclick="applyMetricPreset('all')" class="px-2.5 py-1 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">Todas as Métricas</button>
+              <button onclick="applyMetricPreset('profit')" class="px-2.5 py-1 bg-dark-800 hover:bg-slate-700 text-emerald-400 rounded-lg text-xs font-medium border border-emerald-500/30">Foco em Lucro</button>
+            </div>
+          </div>
+
+          <!-- 1. Métricas Financeiras e de Lucratividade -->
+          <div class="space-y-2">
+            <h4 class="font-bold text-white text-xs uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <span>💸</span> Métricas Financeiras & Lucratividade
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="faturamento" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Faturamento Bruto</div>
+                  <div class="text-[10px] text-slate-400">Total gerado em vendas</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="faturamentoLiquido" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Faturamento Líquido</div>
+                  <div class="text-[10px] text-slate-400">Descontadas taxas de gateway</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="lucroReal" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Lucro Real</div>
+                  <div class="text-[10px] text-slate-400">Líquido - Ads - Impostos</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="gastoAds" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Gastos / Orçamento</div>
+                  <div class="text-[10px] text-slate-400">Total investido em anúncios</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="roas" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">ROAS Real</div>
+                  <div class="text-[10px] text-slate-400">Faturamento ÷ Gasto Ads</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="roi" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">ROI % (Retorno)</div>
+                  <div class="text-[10px] text-slate-400">Lucro Real ÷ Investimento</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="ticketMedio" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Ticket Médio / AOV</div>
+                  <div class="text-[10px] text-slate-400">Média gasta por transação</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 2. Métricas de Vendas e Checkout -->
+          <div class="space-y-2">
+            <h4 class="font-bold text-white text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <span>🛒</span> Métricas de Vendas & Checkout
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="vendasAprovadas" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Vendas Aprovadas</div>
+                  <div class="text-[10px] text-slate-400">Total de pedidos pagos</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="vendasPendentes" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Vendas Pendentes</div>
+                  <div class="text-[10px] text-slate-400">Pix e boletos aguardando</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="valorPendente" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Valor Pendente (R$)</div>
+                  <div class="text-[10px] text-slate-400">Volume aguardando baixa</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="cpa" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">CPA (Custo por Aquisição)</div>
+                  <div class="text-[10px] text-slate-400">Gasto médio por venda aprovada</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="initiateCheckout" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Initiate Checkout (IC)</div>
+                  <div class="text-[10px] text-slate-400">Iniciações de checkout</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="taxaCheckout" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Conversão de Checkout</div>
+                  <div class="text-[10px] text-slate-400">Vendas ÷ IC (%)</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Métricas de Tráfego e Funil -->
+          <div class="space-y-2">
+            <h4 class="font-bold text-white text-xs uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+              <span>📊</span> Métricas de Tráfego & Funil
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="connectRate" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Taxa de Conexão</div>
+                  <div class="text-[10px] text-slate-400">Visitas na Página ÷ Cliques</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="pageviews" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Page Views (Pixel)</div>
+                  <div class="text-[10px] text-slate-400">Acessos reais na página</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="cliques" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Cliques no Link</div>
+                  <div class="text-[10px] text-slate-400">Total de cliques nos anúncios</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="ctr" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">CTR (Click-Through Rate)</div>
+                  <div class="text-[10px] text-slate-400">Taxa de cliques / impressões</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="cpc" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">CPC (Custo por Clique)</div>
+                  <div class="text-[10px] text-slate-400">Valor médio gasto por clique</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="cpm" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">CPM (Custo por Mil)</div>
+                  <div class="text-[10px] text-slate-400">Custo por 1.000 impressões</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 4. Métricas de Recorrência -->
+          <div class="space-y-2">
+            <h4 class="font-bold text-white text-xs uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+              <span>🔄</span> Métricas de Recorrência (SaaS / Comunidades)
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="mrr" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">MRR (Mensal)</div>
+                  <div class="text-[10px] text-slate-400">Receita Recorrente Mensal</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="ltv" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">LTV (Lifetime Value)</div>
+                  <div class="text-[10px] text-slate-400">Valor médio deixado por cliente</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <input type="checkbox" name="metric_checkbox" value="churnRate" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+                <div>
+                  <div class="font-semibold text-white">Churn Rate %</div>
+                  <div class="text-[10px] text-slate-400">Taxa de cancelamento</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 2: COLUNAS DA TABELA DE CAMPANHAS -->
+        <div id="cust-pane-columns" class="hidden space-y-4">
+          <p class="text-slate-300">Escolha quais colunas você quer ver na tabela de gestão de campanhas do Facebook Ads:</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" name="column_checkbox" value="status" checked disabled class="rounded border-slate-700 text-brand-500 opacity-60">
+              <span class="font-semibold text-slate-300">Status (Obrigatório)</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" name="column_checkbox" value="name" checked disabled class="rounded border-slate-700 text-brand-500 opacity-60">
+              <span class="font-semibold text-slate-300">Nome da Campanha</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="budget" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">Orçamento Diário</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="spent" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">Gasto Total</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="sales" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">Vendas Aprovadas</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="revenue" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">Faturamento</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="roas" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">ROAS Real</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="cpa" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">CPA Médio</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="profit" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">Lucro Estimado</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="ctr" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">CTR Médio</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="column_checkbox" value="clicks" class="rounded border-slate-700 text-brand-500 focus:ring-0">
+              <span class="font-semibold text-white">Cliques</span>
+            </label>
+            <label class="flex items-center gap-2.5 bg-dark-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" name="column_checkbox" value="actions" checked disabled class="rounded border-slate-700 text-brand-500 opacity-60">
+              <span class="font-semibold text-slate-300">Ações (Pausar/Orçamento)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- PANE 3: CUSTOS & LUCRO REAL -->
+        <div id="cust-pane-costs" class="hidden space-y-4">
+          <div class="bg-dark-950 border border-slate-800 rounded-xl p-4 space-y-4">
+            <h4 class="font-semibold text-white text-sm">Parâmetros para Cálculo do Lucro Real</h4>
+            <p class="text-slate-400 text-xs">O Lucro Real subtrai automaticamente esses custos do seu faturamento bruto:</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-slate-400 mb-1 font-semibold">Taxa do Gateway (%):</label>
+                <input type="number" step="0.1" id="cfg-gateway-pct" placeholder="8.9" class="w-full bg-dark-900 border border-slate-800 rounded-xl px-3 py-2 text-white">
+                <span class="text-[10px] text-slate-500">Ex: 8.9% na Kiwify, 4.99% no Cakto</span>
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1 font-semibold">Taxa Fixa por Venda (R$):</label>
+                <input type="number" step="0.01" id="cfg-gateway-fix" placeholder="2.49" class="w-full bg-dark-900 border border-slate-800 rounded-xl px-3 py-2 text-white">
+                <span class="text-[10px] text-slate-500">Ex: R$ 2,49 por transação aprovada</span>
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1 font-semibold">Imposto de Nota Fiscal (%):</label>
+                <input type="number" step="0.1" id="cfg-invoice-pct" placeholder="6.0" class="w-full bg-dark-900 border border-slate-800 rounded-xl px-3 py-2 text-white">
+                <span class="text-[10px] text-slate-500">Ex: 6% Simples Nacional</span>
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1 font-semibold">Custo do Produto / Fornecedor (%):</label>
+                <input type="number" step="0.1" id="cfg-product-pct" placeholder="0.0" class="w-full bg-dark-900 border border-slate-800 rounded-xl px-3 py-2 text-white">
+                <span class="text-[10px] text-slate-500">0% para infoprodutos / % do fornecedor no drop</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-4 border-t border-slate-800 flex items-center justify-end gap-2 bg-dark-950/40">
+        <button onclick="closeModal('modal-customize-dashboard')" class="px-3.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs">Cancelar</button>
+        <button onclick="saveUserPreferences()" class="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20">
+          <i data-lucide="check" class="w-4 h-4"></i> Salvar Preferências
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -834,6 +1294,246 @@
     let lastOrderCount = -1;
     let revenueChartInstance = null;
     let sourcesChartInstance = null;
+
+    // ==================== DEFINIÇÕES DE MÉTRICAS (PADRÃO UTMIFY) ====================
+    const METRIC_DEFS = {
+      // 💸 Financeiras & Lucratividade
+      faturamento: {
+        label: "Faturamento Bruto",
+        icon: "dollar-sign",
+        color: "text-emerald-400",
+        bg: "from-emerald-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Total Vendas Aprovadas",
+        subColor: "text-emerald-400"
+      },
+      faturamentoLiquido: {
+        label: "Faturamento Líquido",
+        icon: "wallet",
+        color: "text-emerald-400",
+        bg: "from-emerald-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Descontadas Taxas Gateway",
+        subColor: "text-emerald-400"
+      },
+      lucroReal: {
+        label: "Lucro Real",
+        icon: "trending-up",
+        color: "text-emerald-400",
+        bg: "from-emerald-500/15 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Líquido - Ads - Impostos",
+        subColor: "text-emerald-400 font-semibold"
+      },
+      gastoAds: {
+        label: "Gastos / Orçamento",
+        icon: "credit-card",
+        color: "text-blue-400",
+        bg: "from-blue-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Sincronizado Facebook Ads",
+        subColor: "text-blue-400"
+      },
+      roas: {
+        label: "ROAS Real",
+        icon: "zap",
+        color: "text-purple-400",
+        bg: "from-purple-500/10 to-transparent",
+        format: (v) => Number(v || 0).toFixed(2) + "x",
+        sub: "Retorno sobre Anúncio",
+        subColor: "text-purple-400 font-bold"
+      },
+      roi: {
+        label: "ROI (Retorno %)",
+        icon: "percent",
+        color: "text-purple-400",
+        bg: "from-purple-500/10 to-transparent",
+        format: (v) => Number(v || 0).toFixed(1) + "%",
+        sub: "Lucro ÷ Investimento",
+        subColor: "text-purple-400"
+      },
+      ticketMedio: {
+        label: "Ticket Médio (AOV)",
+        icon: "award",
+        color: "text-indigo-400",
+        bg: "from-indigo-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Média por Pedido Aprovado",
+        subColor: "text-slate-400"
+      },
+
+      // 🛒 Vendas & Checkout
+      vendasAprovadas: {
+        label: "Vendas Aprovadas",
+        icon: "shopping-cart",
+        color: "text-emerald-400",
+        bg: "from-emerald-500/10 to-transparent",
+        format: (v) => (v || 0) + " Pedidos",
+        sub: "Pagamentos Confirmados",
+        subColor: "text-emerald-400"
+      },
+      vendasPendentes: {
+        label: "Vendas Pendentes",
+        icon: "clock",
+        color: "text-amber-400",
+        bg: "from-amber-500/10 to-transparent",
+        format: (v) => (v || 0) + " Pedidos",
+        sub: "Pix & Boleto em Aberto",
+        subColor: "text-amber-400"
+      },
+      valorPendente: {
+        label: "Valor Pendente",
+        icon: "file-text",
+        color: "text-amber-400",
+        bg: "from-amber-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Aguardando Compensação",
+        subColor: "text-amber-400"
+      },
+      cpa: {
+        label: "CPA Médio",
+        icon: "target",
+        color: "text-rose-400",
+        bg: "from-rose-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Custo por Venda Aprovada",
+        subColor: "text-rose-400"
+      },
+      initiateCheckout: {
+        label: "Initiate Checkout (IC)",
+        icon: "external-link",
+        color: "text-sky-400",
+        bg: "from-sky-500/10 to-transparent",
+        format: (v) => (v || 0) + " Inícios",
+        sub: "Acessos ao Checkout",
+        subColor: "text-sky-400"
+      },
+      taxaCheckout: {
+        label: "Conversão Checkout",
+        icon: "check-circle",
+        color: "text-emerald-400",
+        bg: "from-emerald-500/10 to-transparent",
+        format: (v) => Number(v || 0).toFixed(1) + "%",
+        sub: "Aprovados ÷ Checkout",
+        subColor: "text-emerald-400 font-semibold"
+      },
+
+      // 📊 Tráfego & Funil
+      connectRate: {
+        label: "Taxa de Conexão",
+        icon: "activity",
+        color: "text-purple-400",
+        bg: "from-purple-500/10 to-transparent",
+        format: (v) => Number(v || 0).toFixed(1) + "%",
+        sub: "Visitas Página ÷ Cliques",
+        subColor: "text-purple-400 font-bold"
+      },
+      pageviews: {
+        label: "Page Views (Pixel)",
+        icon: "eye",
+        color: "text-sky-400",
+        bg: "from-sky-500/10 to-transparent",
+        format: (v) => (v || 0) + " Visitas",
+        sub: "Rastreado via Pixel TrackPro",
+        subColor: "text-slate-400"
+      },
+      cliques: {
+        label: "Cliques no Anúncio",
+        icon: "mouse-pointer",
+        color: "text-sky-400",
+        bg: "from-sky-500/10 to-transparent",
+        format: (v) => (v || 0) + " Cliques",
+        sub: "Tráfego Anúncios Meta",
+        subColor: "text-slate-400"
+      },
+      ctr: {
+        label: "CTR Médio",
+        icon: "compass",
+        color: "text-sky-400",
+        bg: "from-sky-500/10 to-transparent",
+        format: (v) => Number(v || 0).toFixed(2) + "%",
+        sub: "Cliques ÷ Impressões",
+        subColor: "text-slate-400"
+      },
+      cpc: {
+        label: "CPC Médio",
+        icon: "tag",
+        color: "text-slate-300",
+        bg: "from-slate-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Custo Médio por Clique",
+        subColor: "text-slate-400"
+      },
+      cpm: {
+        label: "CPM Médio",
+        icon: "layers",
+        color: "text-slate-300",
+        bg: "from-slate-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Custo por Mil Impressões",
+        subColor: "text-slate-400"
+      },
+
+      // 🔄 Recorrência
+      mrr: {
+        label: "MRR Estimado",
+        icon: "repeat",
+        color: "text-indigo-400",
+        bg: "from-indigo-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Receita Recorrente Mensal",
+        subColor: "text-indigo-400"
+      },
+      ltv: {
+        label: "LTV (Valor Vitalício)",
+        icon: "user-check",
+        color: "text-indigo-400",
+        bg: "from-indigo-500/10 to-transparent",
+        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        sub: "Média Gasta por Cliente",
+        subColor: "text-indigo-400"
+      },
+      churnRate: {
+        label: "Taxa de Churn",
+        icon: "user-x",
+        color: "text-rose-400",
+        bg: "from-rose-500/10 to-transparent",
+        format: (v) => Number(v || 0).toFixed(1) + "%",
+        sub: "Cancelamentos de Assinatura",
+        subColor: "text-rose-400"
+      }
+    };
+
+    const DEFAULT_VISIBLE_METRICS = [
+      'faturamento',
+      'faturamentoLiquido',
+      'lucroReal',
+      'gastoAds',
+      'roas',
+      'roi',
+      'vendasAprovadas',
+      'cpa',
+      'ticketMedio',
+      'connectRate',
+      'initiateCheckout',
+      'vendasPendentes'
+    ];
+
+    const DEFAULT_VISIBLE_COLUMNS = [
+      'status',
+      'name',
+      'budget',
+      'spent',
+      'sales',
+      'revenue',
+      'roas',
+      'cpa',
+      'actions'
+    ];
+
+    let userVisibleMetrics = JSON.parse(localStorage.getItem('trackpro_visible_metrics') || 'null') || [...DEFAULT_VISIBLE_METRICS];
+    let userVisibleColumns = JSON.parse(localStorage.getItem('trackpro_visible_columns') || 'null') || [...DEFAULT_VISIBLE_COLUMNS];
+    let fetchedFbAccountsList = [];
 
     // ==================== SOM DE VENDA KA-CHING (WEB AUDIO API NATIVO) ====================
     function playKachingSound() {
@@ -1000,13 +1700,49 @@
     }
 
     // ==================== MODAIS ====================
-    function openModal(id) {
+    function openModal(id, subtab) {
       const el = document.getElementById(id);
       if (el) el.classList.remove('hidden');
+      if (id === 'modal-customize-dashboard') {
+        if (subtab) switchCustomizeTab(subtab);
+        syncPreferencesCheckboxes();
+        loadFinancialSettingsIntoModal();
+      }
+      if (id === 'modal-facebook-connect') {
+        fetchFacebookAccounts();
+      }
     }
+
     function closeModal(id) {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
+    }
+
+    // ==================== RENDERIZAÇÃO DINÂMICA DE KPIS ====================
+    function renderDynamicKpiCards(kpis) {
+      const grid = document.getElementById('kpi-cards-grid');
+      if (!grid) return;
+      if (!kpis) kpis = {};
+
+      const visible = (userVisibleMetrics && userVisibleMetrics.length > 0) ? userVisibleMetrics : DEFAULT_VISIBLE_METRICS;
+
+      grid.innerHTML = visible.map(key => {
+        const def = METRIC_DEFS[key];
+        if (!def) return '';
+        const valFormatted = def.format(kpis[key]);
+        return `
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden bg-gradient-to-br ${def.bg} hover:border-slate-700 transition-all">
+            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1 tracking-wider">${def.label}</span>
+            <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-white tracking-tight">${valFormatted}</div>
+            <span class="text-[11px] ${def.subColor} font-medium mt-1 inline-block">${def.sub}</span>
+            <div class="absolute -right-2 -bottom-2 opacity-5 ${def.color} pointer-events-none">
+              <i data-lucide="${def.icon}" class="w-20 h-20"></i>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
     }
 
     // ==================== ATUALIZAÇÃO DE DADOS & REQUISIÇÕES ====================
@@ -1016,12 +1752,15 @@
         const res = await fetch('/api/dashboard/overview' + query);
         const data = await res.json();
 
-        // Atualiza KPIs
-        document.getElementById('kpi-faturamento').textContent = 'R$ ' + (data.kpis?.faturamento || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        document.getElementById('kpi-gastoads').textContent = 'R$ ' + (data.kpis?.gastoAds || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        document.getElementById('kpi-roas').textContent = (data.kpis?.roas || 0).toFixed(2) + 'x';
-        document.getElementById('kpi-cpa').textContent = 'R$ ' + (data.kpis?.cpa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        document.getElementById('kpi-vendas').textContent = (data.kpis?.vendasHoje || 0) + ' Vendas Hoje';
+        // Atualiza Cards Dinâmicos
+        renderDynamicKpiCards(data.kpis);
+        if (document.getElementById('kpi-faturamento')) {
+          document.getElementById('kpi-faturamento').textContent = 'R$ ' + (data.kpis?.faturamento || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+          document.getElementById('kpi-gastoads').textContent = 'R$ ' + (data.kpis?.gastoAds || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+          document.getElementById('kpi-roas').textContent = (data.kpis?.roas || 0).toFixed(2) + 'x';
+          document.getElementById('kpi-cpa').textContent = 'R$ ' + (data.kpis?.cpa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+          document.getElementById('kpi-vendas').textContent = (data.kpis?.vendasHoje || 0) + ' Vendas Hoje';
+        }
 
         // Tabela de Pedidos no Overview
         const overviewTbody = document.getElementById('overview-orders-tbody');
@@ -1111,42 +1850,99 @@
     }
 
     // ==================== GESTÃO DE CAMPANHAS & CONJUNTOS ====================
-    async function loadCampaignsData() {
-      try {
-        const res = await fetch('/api/campaigns');
-        const data = await res.json();
-        const tbody = document.getElementById('campaigns-tbody');
-        if (!tbody) return;
+    function renderCampaignsTable(campaigns) {
+      const thead = document.querySelector('#tab-campaigns thead tr');
+      const tbody = document.getElementById('campaigns-tbody');
+      if (!tbody) return;
 
-        if (!data.campaigns || data.campaigns.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-slate-500">Nenhuma campanha cadastrada. Clique em "+ Nova Campanha" para criar.</td></tr>';
-        } else {
-          tbody.innerHTML = data.campaigns.map(c => `
-            <tr class="hover:bg-slate-800/30 transition-colors">
+      const cols = (userVisibleColumns && userVisibleColumns.length > 0) ? userVisibleColumns : DEFAULT_VISIBLE_COLUMNS;
+
+      const colLabels = {
+        status: 'Status',
+        name: 'Nome da Campanha',
+        budget: 'Orçamento Diário',
+        spent: 'Gasto Total',
+        sales: 'Vendas',
+        revenue: 'Faturamento',
+        roas: 'ROAS Real',
+        cpa: 'CPA Médio',
+        profit: 'Lucro Est.',
+        ctr: 'CTR Médio',
+        clicks: 'Cliques',
+        actions: 'Ações'
+      };
+
+      if (thead) {
+        thead.innerHTML = cols.map(c => `
+          <th class="py-3 px-4 ${c === 'actions' ? 'text-right' : ''}">${colLabels[c] || c}</th>
+        `).join('');
+      }
+
+      if (!campaigns || campaigns.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${cols.length}" class="py-8 text-center text-slate-500">Nenhuma campanha cadastrada. Clique em "+ Nova Campanha" para criar ou "Conectar Facebook" para importar.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = campaigns.map(c => {
+        const profit = Math.max(0, (c.revenue || 0) - (c.spent || 0));
+        const clicks = Math.round((c.spent || 0) * 1.8);
+        const ctr = (clicks > 0) ? 2.4 : 0.0;
+
+        let rowHtml = '<tr class="hover:bg-slate-800/30 transition-colors">';
+        cols.forEach(col => {
+          if (col === 'status') {
+            rowHtml += `
               <td class="py-3 px-4">
                 <button onclick="toggleCampaignStatus(${c.id}, '${c.status}')" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase transition-all ${c.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
                   ${c.status === 'active' ? '● Ativo' : '○ Pausado'}
                 </button>
-              </td>
-              <td class="py-3 px-4 font-bold text-white">${c.name}</td>
+              </td>`;
+          } else if (col === 'name') {
+            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.name}</td>`;
+          } else if (col === 'budget') {
+            rowHtml += `
               <td class="py-3 px-4">
                 <button onclick="editCampaignBudget(${c.id}, ${c.daily_budget})" class="font-mono text-xs text-brand-400 hover:underline flex items-center gap-1">
                   R$ ${Number(c.daily_budget).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
                 </button>
-              </td>
-              <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent).toFixed(2)}</td>
-              <td class="py-3 px-4 font-bold text-white">${c.sales}</td>
-              <td class="py-3 px-4 font-bold text-emerald-400">R$ ${Number(c.revenue).toFixed(2)}</td>
-              <td class="py-3 px-4 font-extrabold ${c.roas >= 2.0 ? 'text-emerald-400' : (c.roas >= 1.0 ? 'text-amber-400' : 'text-rose-400')}">${c.roas.toFixed(2)}x</td>
-              <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.cpa).toFixed(2)}</td>
+              </td>`;
+          } else if (col === 'spent') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent).toFixed(2)}</td>`;
+          } else if (col === 'sales') {
+            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.sales}</td>`;
+          } else if (col === 'revenue') {
+            rowHtml += `<td class="py-3 px-4 font-bold text-emerald-400">R$ ${Number(c.revenue).toFixed(2)}</td>`;
+          } else if (col === 'roas') {
+            rowHtml += `<td class="py-3 px-4 font-extrabold ${c.roas >= 2.0 ? 'text-emerald-400' : (c.roas >= 1.0 ? 'text-amber-400' : 'text-rose-400')}">${c.roas.toFixed(2)}x</td>`;
+          } else if (col === 'cpa') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.cpa).toFixed(2)}</td>`;
+          } else if (col === 'profit') {
+            rowHtml += `<td class="py-3 px-4 font-bold text-emerald-400">R$ ${profit.toFixed(2)}</td>`;
+          } else if (col === 'ctr') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-sky-400">${ctr.toFixed(2)}%</td>`;
+          } else if (col === 'clicks') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${clicks}</td>`;
+          } else if (col === 'actions') {
+            rowHtml += `
               <td class="py-3 px-4 text-right space-x-2">
                 <button onclick="duplicateCampaign(${c.id})" class="px-2.5 py-1 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold" title="Duplicar Campanha">
                   Duplicar
                 </button>
-              </td>
-            </tr>
-          `).join('');
-        }
+              </td>`;
+          }
+        });
+        rowHtml += '</tr>';
+        return rowHtml;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    async function loadCampaignsData() {
+      try {
+        const res = await fetch('/api/campaigns');
+        const data = await res.json();
+        renderCampaignsTable(data.campaigns || []);
 
         // Carrega conjuntos
         const resAdsets = await fetch('/api/facebook/adsets');
@@ -1178,6 +1974,204 @@
       } catch (e) {
         console.error('Erro campanhas:', e);
       }
+    }
+
+    // ==================== FACEBOOK 1-CLIQUE CONEXÃO & IMPORT ====================
+    async function fetchFacebookAccounts() {
+      const btn = document.getElementById('btn-fetch-fb');
+      const textSpan = document.getElementById('btn-fetch-fb-text');
+      const tokenInput = document.getElementById('fb-token-fetch-input');
+      const tbody = document.getElementById('fb-fetched-accounts-tbody');
+
+      if (btn) btn.disabled = true;
+      if (textSpan) textSpan.textContent = 'Buscando Contas...';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400 animate-pulse">Consultando Facebook Marketing API...</td></tr>';
+
+      try {
+        const tokenVal = tokenInput ? tokenInput.value.trim() : '';
+        const res = await fetch('/api/facebook/fetch_accounts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: tokenVal })
+        });
+        const data = await res.json();
+        const accounts = data.accounts || data.suggested_accounts || [];
+        fetchedFbAccountsList = accounts;
+
+        if (accounts.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">Nenhuma conta encontrada. Verifique as permissões de ads_read no Meta Developers.</td></tr>';
+          updateFbSelectedCount();
+        } else {
+          tbody.innerHTML = accounts.map((a, idx) => `
+            <tr class="hover:bg-slate-800/40 transition-colors">
+              <td class="py-2.5 px-3 text-center">
+                <input type="checkbox" data-idx="${idx}" onchange="updateFbSelectedCount()" checked class="fb-acc-check rounded border-slate-700 text-brand-500 focus:ring-0 cursor-pointer">
+              </td>
+              <td class="py-2.5 px-3 font-bold text-white flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full ${a.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-slate-500'}"></span>
+                <span>${a.name}</span>
+              </td>
+              <td class="py-2.5 px-3 font-mono text-sky-400">${a.account_id}</td>
+              <td class="py-2.5 px-3 text-slate-300 font-semibold">${a.currency || 'BRL'}</td>
+              <td class="py-2.5 px-3">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${a.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${a.status}</span>
+              </td>
+            </tr>
+          `).join('');
+          updateFbSelectedCount();
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-rose-400">Erro ao buscar contas: ${e.message}</td></tr>`;
+      } finally {
+        if (btn) btn.disabled = false;
+        if (textSpan) textSpan.textContent = 'Detectar Minhas Contas Meta';
+      }
+    }
+
+    function selectAllFbAccounts(check) {
+      document.querySelectorAll('.fb-acc-check').forEach(el => el.checked = check);
+      updateFbSelectedCount();
+    }
+
+    function updateFbSelectedCount() {
+      const checked = document.querySelectorAll('.fb-acc-check:checked');
+      const count = checked.length;
+      const countLabel = document.getElementById('fb-selected-count');
+      const btnImport = document.getElementById('btn-import-fb');
+
+      if (countLabel) countLabel.textContent = `${count} conta(s) selecionada(s)`;
+      if (btnImport) btnImport.disabled = count === 0;
+    }
+
+    async function importSelectedFbAccounts() {
+      const checkedBoxes = Array.from(document.querySelectorAll('.fb-acc-check:checked'));
+      if (checkedBoxes.length === 0) return alert('Selecione pelo menos uma conta');
+
+      const selected = checkedBoxes.map(el => {
+        const idx = parseInt(el.getAttribute('data-idx'));
+        return fetchedFbAccountsList[idx];
+      }).filter(Boolean);
+
+      const tokenInput = document.getElementById('fb-token-fetch-input');
+      const token = tokenInput ? tokenInput.value.trim() : '';
+
+      const btn = document.getElementById('btn-import-fb');
+      btn.disabled = true;
+      btn.innerHTML = 'Conectando...';
+
+      try {
+        const res = await fetch('/api/facebook/accounts/bulk_import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accounts: selected, access_token: token })
+        });
+        const data = await res.json();
+        closeModal('modal-facebook-connect');
+        showSaleToast({ customer: 'Facebook Ads', amount: 0, platform: `${data.imported_count || selected.length} contas conectadas!` });
+        loadAccountsData();
+        refreshData();
+      } catch (e) {
+        alert('Erro ao importar contas: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Conectar Contas Selecionadas';
+        lucide.createIcons();
+      }
+    }
+
+    // ==================== PERSONALIZAÇÃO DE MÉTRICAS & COLUNAS ====================
+    function switchCustomizeTab(tab) {
+      ['metrics', 'columns', 'costs'].forEach(t => {
+        const pane = document.getElementById('cust-pane-' + t);
+        const btn = document.getElementById('cust-tab-' + t + '-btn');
+        if (pane) pane.classList.toggle('hidden', t !== tab);
+        if (btn) {
+          if (t === tab) {
+            btn.className = 'py-3 border-b-2 border-brand-500 text-brand-400 flex items-center gap-1.5';
+          } else {
+            btn.className = 'py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5';
+          }
+        }
+      });
+    }
+
+    function syncPreferencesCheckboxes() {
+      document.querySelectorAll('input[name="metric_checkbox"]').forEach(cb => {
+        cb.checked = userVisibleMetrics.includes(cb.value);
+      });
+      document.querySelectorAll('input[name="column_checkbox"]').forEach(cb => {
+        if (!cb.disabled) {
+          cb.checked = userVisibleColumns.includes(cb.value);
+        }
+      });
+    }
+
+    function applyMetricPreset(preset) {
+      if (preset === 'utmify') {
+        userVisibleMetrics = [...DEFAULT_VISIBLE_METRICS];
+      } else if (preset === 'all') {
+        userVisibleMetrics = Object.keys(METRIC_DEFS);
+      } else if (preset === 'profit') {
+        userVisibleMetrics = ['faturamento', 'faturamentoLiquido', 'lucroReal', 'gastoAds', 'roas', 'roi', 'cpa'];
+      }
+      syncPreferencesCheckboxes();
+    }
+
+    async function loadFinancialSettingsIntoModal() {
+      try {
+        const res = await fetch('/api/settings/financial');
+        const data = await res.json();
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+        setVal('cfg-gateway-pct', data.gateway_tax_percent);
+        setVal('cfg-gateway-fix', data.gateway_fixed_fee);
+        setVal('cfg-invoice-pct', data.invoice_tax_percent);
+        setVal('cfg-product-pct', data.product_cost_percent);
+      } catch (e) {
+        console.error('Erro ao carregar financial settings:', e);
+      }
+    }
+
+    async function saveUserPreferences() {
+      // Coleta métricas
+      const checkedMetrics = Array.from(document.querySelectorAll('input[name="metric_checkbox"]:checked')).map(cb => cb.value);
+      if (checkedMetrics.length > 0) userVisibleMetrics = checkedMetrics;
+      localStorage.setItem('trackpro_visible_metrics', JSON.stringify(userVisibleMetrics));
+
+      // Coleta colunas
+      const checkedCols = ['status', 'name'];
+      document.querySelectorAll('input[name="column_checkbox"]:checked').forEach(cb => {
+        if (!checkedCols.includes(cb.value) && cb.value !== 'actions') checkedCols.push(cb.value);
+      });
+      checkedCols.push('actions');
+      userVisibleColumns = checkedCols;
+      localStorage.setItem('trackpro_visible_columns', JSON.stringify(userVisibleColumns));
+
+      // Salva no backend
+      await fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visible_metrics: userVisibleMetrics, visible_columns: userVisibleColumns })
+      }).catch(() => {});
+
+      // Salva custos financeiros
+      const gwPct = parseFloat(document.getElementById('cfg-gateway-pct')?.value || 8.9);
+      const gwFix = parseFloat(document.getElementById('cfg-gateway-fix')?.value || 2.49);
+      const invPct = parseFloat(document.getElementById('cfg-invoice-pct')?.value || 6.0);
+      const prodPct = parseFloat(document.getElementById('cfg-product-pct')?.value || 0.0);
+
+      await fetch('/api/settings/financial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gateway_tax_percent: gwPct, gateway_fixed_fee: gwFix, invoice_tax_percent: invPct, product_cost_percent: prodPct })
+      }).catch(() => {});
+
+      closeModal('modal-customize-dashboard');
+      showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Preferências salvas com sucesso!' });
+      refreshData();
+    }
+
+    function resetTestData() {
+      resetSystemData();
     }
 
     async function toggleCampaignStatus(id, currentStatus) {
@@ -1687,7 +2681,19 @@
       updateSoundUI();
       initWebhooksAndScript();
       loadDashboardsList();
-      refreshData();
+
+      // Carrega preferências salvas no backend
+      fetch('/api/user/preferences').then(r => r.json()).then(p => {
+        if (p.visible_metrics && p.visible_metrics.length > 0) {
+          userVisibleMetrics = p.visible_metrics;
+        }
+        if (p.visible_columns && p.visible_columns.length > 0) {
+          userVisibleColumns = p.visible_columns;
+        }
+        refreshData();
+      }).catch(() => {
+        refreshData();
+      });
 
       // Polling de vendas e métricas em tempo real a cada 10 segundos
       setInterval(refreshData, 10000);

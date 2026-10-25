@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TrackPro — Atribuição & Meta CAPI</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#10b981">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TrackPro">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%2310b981'/><text x='50' y='65' font-size='45' font-weight='bold' text-anchor='middle' fill='white'>TP</text></svg>">
+
+  <!-- Tailwind CSS & Lucide Icons & Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+            },
+            dark: {
+              950: '#060911',
+              900: '#0c111d',
+              850: '#111728',
+              800: '#161f36',
+              700: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased pb-20 md:pb-0">
+
+  <!-- DESKTOP SIDEBAR -->
+  <aside class="hidden md:flex w-64 bg-dark-900 border-r border-slate-800/80 flex-col flex-shrink-0 z-30">
+    <div class="h-16 px-6 border-b border-slate-800/80 flex items-center gap-3">
+      <div class="w-9 h-9 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+        <i data-lucide="crosshair" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <span class="font-extrabold text-lg text-white">Track<span class="text-brand-400">Pro</span></span>
+        <span class="block text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Meta CAPI Active</span>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-500/10 text-brand-400 border border-brand-500/20">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Visão Geral (KPIs)
+      </button>
+      <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="shopping-bag" class="w-4 h-4"></i> Pedidos com UTM
+      </button>
+      <button onclick="switchTab('meta')" id="nav-meta" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="share-2" class="w-4 h-4 text-blue-400"></i> Meta Ads (CAPI)
+      </button>
+      <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
+      </button>
+      <button onclick="switchTab('campaigns')" id="nav-campaigns" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="target" class="w-4 h-4"></i> Campanhas & ROAS
+      </button>
+      <button onclick="switchTab('simulator')" id="nav-simulator" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> Testador de Venda
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-800/80 bg-dark-950/50">
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Pronto para Receber Vendas</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="md:hidden h-14 bg-dark-900 border-b border-slate-800/80 px-4 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center font-bold text-xs text-white">TP</div>
+      <span class="font-bold text-sm text-white">Track<span class="text-brand-400">Pro</span></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="promptInstallPWA()" id="pwa-install-btn" class="hidden px-2.5 py-1 bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-lg text-xs font-semibold flex items-center gap-1">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i> Instalar App
+      </button>
+      <button onclick="refreshData()" class="p-1.5 bg-dark-800 text-slate-300 rounded-lg">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <!-- Desktop Header -->
+    <header class="hidden md:flex h-16 px-6 border-b border-slate-800/80 bg-dark-900/60 backdrop-blur-md items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-brand-500/10 text-brand-400 border border-brand-500/20">
+          ● Servidor de Atribuição Ativo
+        </span>
+        <span class="text-xs text-slate-400">Greenn • Hotmart • Cakto • Kiwify • Wiapy</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-lg text-slate-300 text-xs flex items-center gap-1.5 transition-colors">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Atualizar Dados
+        </button>
+      </div>
+    </header>
+
+    <div class="p-4 md:p-6 space-y-6">
+
+      <!-- ==================== TAB 1: DASHBOARD ==================== -->
+      <section id="tab-dashboard" class="tab-pane space-y-4 md:space-y-6">
+        <!-- 4 KPI Cards (Limpos) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Faturamento</span>
+            <p id="kpi-faturamento" class="text-xl md:text-2xl font-bold text-white tracking-tight">R$ 0,00</p>
+            <span class="text-[11px] text-slate-500 mt-1 block">Aguardando vendas</span>
+          </div>
+
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Gasto em Ads</span>
+            <p id="kpi-gasto" class="text-xl md:text-2xl font-bold text-white tracking-tight">R$ 0,00</p>
+            <span class="text-[11px] text-blue-400 mt-1 block">Meta Ads</span>
+          </div>
+
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">ROAS Real</span>
+            <p id="kpi-roas" class="text-xl md:text-2xl font-bold text-purple-400 tracking-tight">0.00x</p>
+            <span class="text-[11px] text-slate-500 mt-1 block">Retorno sobre investimento</span>
+          </div>
+
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
+            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Lucro Real Líquido</span>
+            <p id="kpi-lucro" class="text-xl md:text-2xl font-bold text-emerald-400 tracking-tight">R$ 0,00</p>
+            <span class="text-[11px] text-slate-500 mt-1 block">Pós-Taxas & Ads</span>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          <div class="lg:col-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6">
+            <h3 class="text-xs md:text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-4 h-4 text-brand-400"></i> Faturamento vs Investimento em Tráfego
+            </h3>
+            <div class="h-56 md:h-64">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6">
+            <h3 class="text-xs md:text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-blue-400"></i> Origem de Vendas (UTMs)
+            </h3>
+            <div class="h-56 md:h-64 flex items-center justify-center">
+              <canvas id="sourcesChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Sales -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs md:text-sm font-bold text-slate-100 flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Vendas Atribuídas
+            </h3>
+            <button onclick="switchTab('orders')" class="text-xs font-semibold text-brand-400">Ver todas →</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
+                <tr>
+                  <th class="pb-2.5">Plataforma</th>
+                  <th class="pb-2.5">Cliente</th>
+                  <th class="pb-2.5">Valor</th>
+                  <th class="pb-2.5">utm_source</th>
+                  <th class="pb-2.5">utm_campaign</th>
+                  <th class="pb-2.5">Status</th>
+                </tr>
+              </thead>
+              <tbody id="preview-orders-body" class="divide-y divide-slate-800/60 text-slate-300">
+                <tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Aguardando webhooks dos checkouts...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: PEDIDOS COM UTM ==================== -->
+      <section id="tab-orders" class="tab-pane hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-base md:text-lg font-bold text-white">Vendas & Atribuição de Tráfego</h2>
+            <p class="text-xs text-slate-400">Origem exata (campanha, criativo e plataforma) de cada venda</p>
+          </div>
+          <input type="text" onkeyup="filterOrders(this.value)" placeholder="Buscar cliente, UTM ou checkout..." class="px-3.5 py-2 bg-dark-800 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 w-full sm:w-64">
+        </div>
+
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-dark-950/70 text-slate-400 border-b border-slate-800 uppercase font-semibold">
+                <tr>
+                  <th class="px-4 py-3">Código</th>
+                  <th class="px-4 py-3">Plataforma</th>
+                  <th class="px-4 py-3">Cliente</th>
+                  <th class="px-4 py-3">Valor</th>
+                  <th class="px-4 py-3">utm_source</th>
+                  <th class="px-4 py-3">utm_campaign</th>
+                  <th class="px-4 py-3">utm_content</th>
+                  <th class="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody id="full-orders-body" class="divide-y divide-slate-800/60 text-slate-300">
+                <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Nenhuma venda registrada ainda. Cadastre o Webhook nas suas plataformas.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: META ADS (CAPI) ==================== -->
+      <section id="tab-meta" class="tab-pane hidden space-y-4 md:space-y-6">
+        <div class="bg-gradient-to-r from-blue-900/30 via-dark-900 to-dark-900 border border-blue-500/30 rounded-2xl p-4 md:p-6">
+          <div class="flex items-start gap-3">
+            <div class="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl">
+              <i data-lucide="share-2" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-sm md:text-base font-bold text-white">Meta Conversions API (CAPI) — Server-Side</h2>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                Quando uma venda for aprovada na Greenn, Hotmart, Cakto, Kiwify ou Wiapy, o TrackPro envia o evento <strong>Purchase</strong> automaticamente para a API da Meta com hash SHA-256 de e-mail e telefone, blindado contra ad blockers e iOS.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta CAPI Configuration Card -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-4">
+          <h3 class="text-xs md:text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="settings" class="w-4 h-4 text-blue-400"></i> Credenciais do Pixel Meta
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">ID do Pixel do Facebook</label>
+              <input id="meta-pixel-id" type="text" placeholder="Ex: 123456789012345" class="w-full px-3 py-2.5 bg-dark-800 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500">
+              <span class="text-[11px] text-slate-500 mt-1 block">Gerenciador de Eventos da Meta → Configurações</span>
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Código de Evento de Teste (Opcional)</label>
+              <input id="meta-test-code" type="text" placeholder="Ex: TEST12345" class="w-full px-3 py-2.5 bg-dark-800 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500">
+              <span class="text-[11px] text-slate-500 mt-1 block">Aba 'Testar Eventos' no Meta Events Manager</span>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-slate-300 font-semibold mb-1">Token de Acesso da API de Conversões (CAPI Token)</label>
+              <input id="meta-access-token" type="password" placeholder="EAABw..." class="w-full px-3 py-2.5 bg-dark-800 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500">
+              <span class="text-[11px] text-slate-500 mt-1 block">Gerenciador de Eventos → Configurações → Gerar Token de Acesso</span>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3 pt-2">
+            <button onclick="saveMetaSettings()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="save" class="w-4 h-4"></i> Salvar Credenciais Meta
+            </button>
+            <button onclick="testMetaCapi()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="play" class="w-4 h-4 text-emerald-400"></i> Disparar Compra de Teste para o Meta
+            </button>
+          </div>
+
+          <div id="meta-feedback" class="hidden p-3 rounded-xl text-xs flex items-center gap-2"></div>
+        </div>
+
+        <!-- Live CAPI Logs -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-3">
+          <h3 class="text-xs md:text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i> Registro de Disparos CAPI em Tempo Real
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
+                <tr>
+                  <th class="pb-2">Data/Hora</th>
+                  <th class="pb-2">Pedido</th>
+                  <th class="pb-2">Evento</th>
+                  <th class="pb-2">Status</th>
+                  <th class="pb-2">Resposta Meta</th>
+                </tr>
+              </thead>
+              <tbody id="capi-logs-body" class="divide-y divide-slate-800/60 text-slate-300">
+                <tr><td colspan="5" class="py-4 text-center text-slate-500">Nenhum evento disparado ainda. Suas vendas reais aparecerão aqui.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: PLATAFORMAS & WEBHOOKS ==================== -->
+      <section id="tab-webhooks" class="tab-pane hidden space-y-4 md:space-y-6">
+        <div>
+          <h2 class="text-base md:text-lg font-bold text-white">Integrações de Checkout</h2>
+          <p class="text-xs text-slate-400">Copie as URLs abaixo e cadastre nos Webhooks de cada plataforma</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- GREENN -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <h3 class="font-bold text-sm text-white">Greenn</h3>
+              </div>
+              <span class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Suportado</span>
+            </div>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Produtos → Editar Produto → Entrega / Integrações</strong></p>
+            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+              <input readonly value="https://SEU-DOMINIO/api/webhook/greenn" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-emerald-400 focus:outline-none">
+              <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+            </div>
+          </div>
+
+          <!-- HOTMART -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+                <h3 class="font-bold text-sm text-white">Hotmart</h3>
+              </div>
+              <span class="text-[10px] uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">Suportado</span>
+            </div>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Ferramentas → Webhook (Webhook 2.0)</strong></p>
+            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+              <input readonly value="https://SEU-DOMINIO/api/webhook/hotmart" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-orange-400 focus:outline-none">
+              <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+            </div>
+          </div>
+
+          <!-- CAKTO -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                <h3 class="font-bold text-sm text-white">Cakto</h3>
+              </div>
+              <span class="text-[10px] uppercase font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Suportado</span>
+            </div>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Configurações → Webhooks → Adicionar URL</strong></p>
+            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+              <input readonly value="https://SEU-DOMINIO/api/webhook/cakto" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-purple-400 focus:outline-none">
+              <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+            </div>
+          </div>
+
+          <!-- KIWIFY -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <h3 class="font-bold text-sm text-white">Kiwify</h3>
+              </div>
+              <span class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Suportado</span>
+            </div>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Apps → Webhooks → Criar Webhook</strong></p>
+            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+              <input readonly value="https://SEU-DOMINIO/api/webhook/kiwify" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-emerald-400 focus:outline-none">
+              <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+            </div>
+          </div>
+
+          <!-- WIAPY -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                <h3 class="font-bold text-sm text-white">Wiapy</h3>
+              </div>
+              <span class="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">Suportado</span>
+            </div>
+            <p class="text-xs text-slate-400">Cadastre em: <strong>Integrações → Webhook → Adicionar Endpoint</strong></p>
+            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+              <input readonly value="https://SEU-DOMINIO/api/webhook/wiapy" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-cyan-400 focus:outline-none">
+              <button onclick="copyWebhook(this)" class="p-1.5 hover:bg-slate-800 rounded text-slate-400"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+            </div>
+          </div>
+
+          <!-- SCRIPT DO PIXEL (HEAD) -->
+          <div class="bg-dark-900 border border-brand-500/30 rounded-2xl p-4 md:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="code" class="w-4 h-4 text-brand-400"></i>
+                <h3 class="font-bold text-sm text-white">Pixel & Link Forwarder</h3>
+              </div>
+              <span class="text-[10px] uppercase font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">Cole no Head</span>
+            </div>
+            <p class="text-xs text-slate-400">Injeta UTMs automaticamente nos botões de compra da página:</p>
+            <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 text-[11px] font-mono text-brand-400 select-all overflow-x-auto">
+&lt;script src="https://SEU-DOMINIO/tracking/pixel.js?token=a8b3c4d5-e6f7-4a1b-9c8d-123456789abc"&gt;&lt;/script&gt;
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: CAMPANHAS ==================== -->
+      <section id="tab-campaigns" class="tab-pane hidden space-y-4">
+        <div>
+          <h2 class="text-base md:text-lg font-bold text-white">Campanhas & ROAS Real</h2>
+          <p class="text-xs text-slate-400">Cruze o gasto de tráfego pago com a receita aprovada</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="campaigns-grid">
+          <div class="col-span-2 py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">
+            Nenhuma campanha cadastrada ainda.
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 6: SIMULADOR ==================== -->
+      <section id="tab-simulator" class="tab-pane hidden space-y-4 md:space-y-6">
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-4">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="play-circle" class="w-4 h-4 text-amber-400"></i> Testar Venda de Qualquer Plataforma
+          </h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Selecione uma plataforma e dispare uma compra para testar o rastreamento de UTMs e verificar o disparo para o Meta CAPI.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Plataforma</label>
+              <select id="sim-platform" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
+                <option value="greenn">Greenn</option>
+                <option value="hotmart">Hotmart</option>
+                <option value="cakto">Cakto</option>
+                <option value="kiwify">Kiwify</option>
+                <option value="wiapy">Wiapy</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">utm_source (Origem)</label>
+              <input id="sim-src" type="text" value="facebook" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100 font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">utm_campaign (Campanha)</label>
+              <input id="sim-cmp" type="text" value="escala_meta_vsl01" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100 font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Valor da Venda (R$)</label>
+              <input id="sim-val" type="number" value="197.00" step="0.01" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Nome do Cliente</label>
+              <input id="sim-name" type="text" value="Cliente Teste" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">E-mail do Cliente</label>
+              <input id="sim-email" type="email" value="cliente@exemplo.com" class="w-full px-3 py-2 bg-dark-800 border border-slate-700 rounded-lg text-slate-100">
+            </div>
+          </div>
+
+          <button onclick="triggerSimulation()" class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="zap" class="w-4 h-4"></i> Disparar Compra & Atribuir Venda
+          </button>
+
+          <div id="sim-feedback" class="hidden p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MOBILE BOTTOM NAVIGATION (PWA APP BAR) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-lg border-t border-slate-800/80 px-2 flex items-center justify-around z-40">
+    <button onclick="switchTab('dashboard')" id="mob-dashboard" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-brand-400">
+      <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-1 font-medium">Resumo</span>
+    </button>
+    <button onclick="switchTab('orders')" id="mob-orders" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
+      <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-1 font-medium">Vendas</span>
+    </button>
+    <button onclick="switchTab('meta')" id="mob-meta" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
+      <i data-lucide="share-2" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-1 font-medium">Meta Ads</span>
+    </button>
+    <button onclick="switchTab('webhooks')" id="mob-webhooks" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
+      <i data-lucide="webhook" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-1 font-medium">Webhooks</span>
+    </button>
+    <button onclick="switchTab('simulator')" id="mob-simulator" class="mob-nav flex flex-col items-center justify-center w-14 h-full text-slate-400">
+      <i data-lucide="zap" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-1 font-medium">Testar</span>
+    </button>
+  </nav>
+
+  <script>
+    // State Inicial 100% Limpo
+    const state = {
+      faturamento: 0.00,
+      gasto: 0.00,
+      orders: [],
+      campaigns: []
+    };
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('pwa-install-btn');
+      if (btn) btn.classList.remove('hidden');
+    });
+
+    function promptInstallPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+        });
+      }
+    }
+
+    function formatBRL(val) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-brand-500/10', 'text-brand-400', 'border', 'border-brand-500/20');
+        el.classList.add('text-slate-400');
+      });
+      document.querySelectorAll('.mob-nav').forEach(el => {
+        el.classList.remove('text-brand-400');
+        el.classList.add('text-slate-400');
+      });
+
+      const targetTab = document.getElementById('tab-' + tabId);
+      const targetNav = document.getElementById('nav-' + tabId);
+      const targetMob = document.getElementById('mob-' + tabId);
+
+      if (targetTab) targetTab.classList.remove('hidden');
+      if (targetNav) {
+        targetNav.classList.add('bg-brand-500/10', 'text-brand-400', 'border', 'border-brand-500/20');
+        targetNav.classList.remove('text-slate-400');
+      }
+      if (targetMob) {
+        targetMob.classList.add('text-brand-400');
+        targetMob.classList.remove('text-slate-400');
+      }
+    }
+
+    function renderOrders(orders) {
+      const previewTbody = document.getElementById('preview-orders-body');
+      const fullTbody = document.getElementById('full-orders-body');
+      
+      if (!orders || orders.length === 0) {
+        if (previewTbody) previewTbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Aguardando webhooks dos checkouts...</td></tr>';
+        if (fullTbody) fullTbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Nenhuma venda registrada ainda. Cadastre o Webhook nas suas plataformas.</td></tr>';
+        return;
+      }
+
+      const badgeClass = {
+        paid: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        waiting_payment: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+        refunded: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+      };
+      const badgeText = { paid: 'Aprovado', waiting_payment: 'Pendente', refunded: 'Reembolsado' };
+
+      let previewHtml = '';
+      let fullHtml = '';
+
+      orders.forEach(o => {
+        const row = `
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="py-2.5 px-2 font-medium text-slate-300"><span class="px-2 py-0.5 rounded bg-slate-800 text-[11px]">${o.platform || 'Checkout'}</span></td>
+            <td class="py-2.5 px-2 font-medium text-slate-100">${o.customer}</td>
+            <td class="py-2.5 px-2 font-semibold text-slate-200">${formatBRL(o.amount)}</td>
+            <td class="py-2.5 px-2"><span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono text-[11px]">${o.utm_source}</span></td>
+            <td class="py-2.5 px-2 text-slate-400">${o.utm_campaign}</td>
+            <td class="py-2.5 px-2"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeClass[o.status] || badgeClass.paid}">${badgeText[o.status] || o.status}</span></td>
+          </tr>
+        `;
+        previewHtml += row;
+
+        fullHtml += `
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="px-4 py-3 font-mono text-slate-400">${o.id}</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] font-medium">${o.platform || 'Checkout'}</span></td>
+            <td class="px-4 py-3 font-medium text-slate-100">${o.customer}</td>
+            <td class="px-4 py-3 font-semibold text-slate-200">${formatBRL(o.amount)}</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono text-[11px]">${o.utm_source}</span></td>
+            <td class="px-4 py-3 text-slate-300">${o.utm_campaign}</td>
+            <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">${o.utm_content || '-'}</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeClass[o.status] || badgeClass.paid}">${badgeText[o.status] || o.status}</span></td>
+          </tr>
+        `;
+      });
+
+      if (previewTbody) previewTbody.innerHTML = previewHtml;
+      if (fullTbody) fullTbody.innerHTML = fullHtml;
+    }
+
+    let revChartInstance = null;
+    let srcChartInstance = null;
+
+    function initCharts() {
+      const ctxRev = document.getElementById('revenueChart');
+      if (ctxRev) {
+        revChartInstance = new Chart(ctxRev, {
+          type: 'line',
+          data: {
+            labels: ['Hoje'],
+            datasets: [
+              {
+                label: 'Receita (R$)',
+                data: [0],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.35,
+                fill: true
+              },
+              {
+                label: 'Gasto em Ads (R$)',
+                data: [0],
+                borderColor: '#3b82f6',
+                borderDash: [5, 5],
+                tension: 0.35
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+            scales: {
+              x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 9 } } },
+              y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 9 } } }
+            }
+          }
+        });
+      }
+
+      const ctxSrc = document.getElementById('sourcesChart');
+      if (ctxSrc) {
+        srcChartInstance = new Chart(ctxSrc, {
+          type: 'doughnut',
+          data: {
+            labels: ['Nenhum tráfego ainda'],
+            datasets: [{
+              data: [1],
+              backgroundColor: ['#1e293b'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 } } } }
+          }
+        });
+      }
+    }
+
+    function loadMetaSettings() {
+      fetch('/api/meta/settings')
+        .then(r => r.json())
+        .then(data => {
+          if (data) {
+            document.getElementById('meta-pixel-id').value = data.pixel_id || '';
+            document.getElementById('meta-access-token').value = data.access_token || '';
+            document.getElementById('meta-test-code').value = data.test_event_code || '';
+          }
+        }).catch(()=>{});
+
+      fetch('/api/meta/logs')
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.logs && data.logs.length > 0) {
+            const tbody = document.getElementById('capi-logs-body');
+            tbody.innerHTML = data.logs.map(l => `
+              <tr class="hover:bg-slate-800/40">
+                <td class="py-2 text-slate-400">${l.created_at}</td>
+                <td class="py-2 font-mono text-slate-200">${l.order_id}</td>
+                <td class="py-2">${l.event_name}</td>
+                <td class="py-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">${l.status.toUpperCase()} (${l.response_code})</span></td>
+                <td class="py-2 text-slate-400 truncate max-w-xs font-mono text-[10px]">${l.response_body || '-'}</td>
+              </tr>
+            `).join('');
+          }
+        }).catch(()=>{});
+    }
+
+    function saveMetaSettings() {
+      const pixel_id = document.getElementById('meta-pixel-id').value;
+      const access_token = document.getElementById('meta-access-token').value;
+      const test_event_code = document.getElementById('meta-test-code').value;
+
+      fetch('/api/meta/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pixel_id, access_token, test_event_code })
+      })
+      .then(r => r.json())
+      .then(() => {
+        const fb = document.getElementById('meta-feedback');
+        fb.className = 'p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs';
+        fb.innerHTML = 'Credenciais Meta CAPI salvas com sucesso!';
+        fb.classList.remove('hidden');
+        setTimeout(() => fb.classList.add('hidden'), 4000);
+      });
+    }
+
+    function testMetaCapi() {
+      const fb = document.getElementById('meta-feedback');
+      fb.className = 'p-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs';
+      fb.innerHTML = 'Disparando evento de teste para o Meta...';
+      fb.classList.remove('hidden');
+
+      fetch('/api/meta/test', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success') {
+            fb.className = 'p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs';
+            fb.innerHTML = 'Sucesso! Evento Purchase recebido e validado pela Meta Graph API. Veja o log abaixo.';
+          } else {
+            fb.className = 'p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs';
+            fb.innerHTML = 'Resposta da Meta: ' + (typeof data.response === 'string' ? data.response : JSON.stringify(data.response));
+          }
+          loadMetaSettings();
+        });
+    }
+
+    function triggerSimulation() {
+      const platform = document.getElementById('sim-platform').value;
+      const src = document.getElementById('sim-src').value;
+      const cmp = document.getElementById('sim-cmp').value;
+      const val = parseFloat(document.getElementById('sim-val').value) || 197.00;
+      const name = document.getElementById('sim-name').value;
+      const email = document.getElementById('sim-email').value;
+
+      const payload = {
+        orderId: 'SIM-' + Math.floor(1000 + Math.random() * 9000),
+        platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+        status: 'paid',
+        customer: { name, email },
+        priceInCents: Math.round(val * 100),
+        trackingParameters: {
+          utm_source: src,
+          utm_medium: 'cpc',
+          utm_campaign: cmp,
+          utm_content: 'criativo_simulado'
+        }
+      };
+
+      fetch('/api/webhook/' + platform, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(() => {
+        const fb = document.getElementById('sim-feedback');
+        fb.innerHTML = 'Venda simulada via webhook da ' + platform.toUpperCase() + ' atribuída com sucesso!';
+        fb.classList.remove('hidden');
+        setTimeout(() => fb.classList.add('hidden'), 4000);
+        refreshData();
+      });
+    }
+
+    function copyWebhook(btn) {
+      const input = btn.parentElement.querySelector('input');
+      const origin = window.location.origin;
+      const fullUrl = input.value.replace('https://SEU-DOMINIO', origin);
+      navigator.clipboard.writeText(fullUrl);
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>';
+      lucide.createIcons();
+      setTimeout(() => {
+        btn.innerHTML = '<i data-lucide="copy" class="w-3.5 h-3.5"></i>';
+        lucide.createIcons();
+      }, 2000);
+    }
+
+    function filterOrders(query) {
+      query = query.toLowerCase();
+      document.querySelectorAll('#full-orders-body tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none';
+      });
+    }
+
+    function refreshData() {
+      fetch('/api/dashboard/overview')
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.kpis) {
+            document.getElementById('kpi-faturamento').innerText = formatBRL(data.kpis.faturamento);
+            document.getElementById('kpi-gasto').innerText = formatBRL(data.kpis.gastoAds);
+            document.getElementById('kpi-roas').innerText = (data.kpis.roas || 0) + 'x';
+            const lucro = (data.kpis.faturamento || 0) - (data.kpis.gastoAds || 0) - ((data.kpis.faturamento || 0) * 0.05);
+            document.getElementById('kpi-lucro').innerText = formatBRL(lucro > 0 ? lucro : 0);
+          }
+          if (data && data.recentOrders) {
+            renderOrders(data.recentOrders);
+          }
+        }).catch(()=>{});
+
+      fetch('/api/orders')
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.orders) {
+            renderOrders(data.orders);
+          }
+        }).catch(()=>{});
+    }
+
+    function updateHostnames() {
+      const origin = window.location.origin;
+      document.querySelectorAll('.webhook-url').forEach(input => {
+        input.value = input.value.replace('https://SEU-DOMINIO', origin);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initCharts();
+      refreshData();
+      loadMetaSettings();
+      updateHostnames();
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(()=>{});
+      }
+    });
+  </script>
+</body>
+</html>

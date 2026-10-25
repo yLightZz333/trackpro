@@ -7,3 +7,4 @@ trackpro.db-shm
 .env
 _frontend_react_backup/
 .DS_Store
+*.zip

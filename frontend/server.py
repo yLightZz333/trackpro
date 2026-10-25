@@ -710,11 +710,13 @@ class TrackProHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _send_json(self, data, status=200):
+        body_bytes = json.dumps(data, ensure_ascii=False).encode('utf-8')
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body_bytes)))
         self._send_cors_headers()
         self.end_headers()
-        self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        self.wfile.write(body_bytes)
 
     def _read_json(self):
         content_length = int(self.headers.get('Content-Length', 0))
@@ -931,7 +933,11 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 where_clause = "WHERE platform = ?"
                 where_params = [platform_filter]
 
-            query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {'WHERE status = "paid"' if not where_clause else where_clause + ' AND status = "paid"'}"
+            if where_clause:
+                paid_filter = where_clause + " AND status = 'paid'"
+            else:
+                paid_filter = "WHERE status = 'paid'"
+            query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {paid_filter}"
             row_paid = cursor.execute(query_paid, where_params).fetchone()
             tot_revenue = (row_paid['total'] or 0) / 100.0
             paid_ord = row_paid['count'] or 0
@@ -944,7 +950,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             roi = round(((tot_revenue - tot_spent) / tot_spent) * 100, 1) if tot_spent > 0 else 0
 
             # Fontes de tráfego
-            query_sources = f"SELECT utm_source, COUNT(*) as count, SUM(price_in_cents) as total FROM orders {'WHERE status = "paid"' if not where_clause else where_clause + ' AND status = "paid"'} GROUP BY utm_source"
+            query_sources = f"SELECT utm_source, COUNT(*) as count, SUM(price_in_cents) as total FROM orders {paid_filter} GROUP BY utm_source"
             sources_rows = cursor.execute(query_sources, where_params).fetchall()
             color_map = {'facebook': '#1877F2', 'instagram': '#E4405F', 'google': '#4285F4', 'tiktok': '#00F2FE', 'direto': '#10B981'}
             sources_chart = [

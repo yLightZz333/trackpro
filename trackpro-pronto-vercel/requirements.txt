@@ -1,1 +1,0 @@
-# TrackPro usa apenas a biblioteca padrão do Python (Zero dependências externas)

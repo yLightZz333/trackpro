@@ -212,6 +212,7 @@
                   <option value="last_week">Semana passada</option>
                   <option value="this_month">Este mês</option>
                   <option value="last_month">Mês passado</option>
+                  <option value="custom">📅 Personalizado (Escolher datas)</option>
                   <option value="all">Todo o período</option>
                 </select>
                 <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
@@ -270,6 +271,29 @@
                 </select>
                 <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
               </div>
+            </div>
+          </div>
+
+          <!-- Seletor de Datas Personalizado (exibido quando 'Personalizado' é selecionado) -->
+          <div id="custom-date-picker-row" class="hidden pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-950/70 p-3 rounded-xl border border-blue-500/25">
+            <div class="flex items-center gap-2 text-xs font-semibold text-blue-400">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+              <span>Escolha o Intervalo de Datas:</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5 bg-dark-900 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs">
+                <span class="text-slate-400 font-medium">De:</span>
+                <input type="date" id="filter-start-date" onchange="handleFilterChange()" class="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer [color-scheme:dark]">
+              </div>
+              <span class="text-slate-500 text-xs font-bold">até</span>
+              <div class="flex items-center gap-1.5 bg-dark-900 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs">
+                <span class="text-slate-400 font-medium">Até:</span>
+                <input type="date" id="filter-end-date" onchange="handleFilterChange()" class="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer [color-scheme:dark]">
+              </div>
+              <button onclick="refreshData()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Aplicar Datas</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1994,6 +2018,23 @@
     
     // ==================== CONTROLE DE FILTROS & RESUMO DO DASHBOARD ====================
     function handleFilterChange() {
+      const periodSelect = document.getElementById('filter-period');
+      const customRow = document.getElementById('custom-date-picker-row');
+      if (periodSelect && customRow) {
+        if (periodSelect.value === 'custom') {
+          customRow.classList.remove('hidden');
+          const startInput = document.getElementById('filter-start-date');
+          const endInput = document.getElementById('filter-end-date');
+          const today = new Date().toISOString().split('T')[0];
+          if (endInput && !endInput.value) endInput.value = today;
+          if (startInput && !startInput.value) {
+            const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            startInput.value = firstDay;
+          }
+        } else {
+          customRow.classList.add('hidden');
+        }
+      }
       refreshData();
     }
 
@@ -2257,6 +2298,8 @@
     async function refreshData() {
       try {
         const period = document.getElementById('filter-period')?.value || 'today';
+        const startDate = document.getElementById('filter-start-date')?.value || '';
+        const endDate = document.getElementById('filter-end-date')?.value || '';
         const adAccount = document.getElementById('filter-ad-account')?.value || 'all';
         const source = document.getElementById('filter-traffic-source')?.value || 'all';
         const platform = document.getElementById('filter-platform')?.value || 'all';
@@ -2265,6 +2308,10 @@
         const params = new URLSearchParams();
         if (currentDashboardId) params.append('dashboard_id', currentDashboardId);
         if (period) params.append('period', period);
+        if (period === 'custom') {
+          if (startDate) params.append('start_date', startDate);
+          if (endDate) params.append('end_date', endDate);
+        }
         if (adAccount && adAccount !== 'all') params.append('ad_account', adAccount);
         if (source && source !== 'all') params.append('source', source);
         if (platform && platform !== 'all') params.append('platform', platform);

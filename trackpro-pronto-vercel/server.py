@@ -1093,6 +1093,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
             # Filtro de Período SQLite
             date_clause = ""
+            date_params = []
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
+
             if period == 'today':
                 date_clause = "date(created_at, 'localtime') = date('now', 'localtime')"
             elif period == 'yesterday':
@@ -1105,11 +1109,22 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')"
             elif period == 'last_month':
                 date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')"
+            elif period == 'custom':
+                if start_date and end_date:
+                    date_clause = "date(created_at, 'localtime') >= ? AND date(created_at, 'localtime') <= ?"
+                    date_params = [start_date, end_date]
+                elif start_date:
+                    date_clause = "date(created_at, 'localtime') >= ?"
+                    date_params = [start_date]
+                elif end_date:
+                    date_clause = "date(created_at, 'localtime') <= ?"
+                    date_params = [end_date]
 
             order_conds = []
             order_params = []
             if date_clause:
                 order_conds.append(date_clause)
+                order_params.extend(date_params)
             if platform_filter and platform_filter != 'all':
                 order_conds.append("platform = ?")
                 order_params.append(platform_filter)
@@ -1169,6 +1184,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             event_params = []
             if date_clause:
                 event_conds.append(date_clause)
+                event_params.extend(date_params)
             if source_filter and source_filter != 'all':
                 event_conds.append("utm_source = ?")
                 event_params.append(source_filter)

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>TrackPro — Atribuição, Meta Ads & Automações</title>
+  <title>TrackPro</title>
   
   <!-- Favicon & App Icons (Desktop & Mobile PWA) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%23059669'/%3E%3Cstop offset='100%25' stop-color='%2334d399'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Cg stroke='%23ffffff' stroke-width='6.5' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Ccircle cx='50' cy='50' r='26'/%3E%3Cline x1='50' y1='14' x2='50' y2='24'/%3E%3Cline x1='50' y1='76' x2='50' y2='86'/%3E%3Cline x1='14' y1='50' x2='24' y2='50'/%3E%3Cline x1='76' y1='50' x2='86' y2='50'/%3E%3Ccircle cx='50' cy='50' r='3' fill='%23ffffff'/%3E%3C/g%3E%3C/svg%3E">
@@ -66,6 +66,135 @@
 </head>
 <body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased pb-20 md:pb-0">
 
+  <!-- BACKDROP MOBILE SIDEBAR -->
+  <div id="mobile-sidebar-backdrop" onclick="closeMobileSidebar()" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
+
+  <!-- DRAWER MOBILE SIDEBAR (MENU LATERAL COMPLETO NO CELULAR) -->
+  <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-dark-900 border-r border-slate-800 z-50 flex flex-col md:hidden transform -translate-x-full transition-transform duration-300 ease-in-out shadow-2xl">
+    <!-- Top Header do Drawer -->
+    <div class="h-16 px-5 border-b border-slate-800 flex items-center justify-between bg-dark-950/60">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i data-lucide="crosshair" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-base text-white">Track<span class="text-brand-400">Pro</span></span>
+          <span class="block text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Suite v2.5 Mobile</span>
+        </div>
+      </div>
+      <button onclick="closeMobileSidebar()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Fechar Menu">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Card do Perfil do Usuário no Topo do Drawer -->
+    <div class="p-4 border-b border-slate-800 bg-dark-950/40">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-sm text-white shadow-md">
+          L
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span id="drawer-user-name" class="font-bold text-sm text-white truncate">Lucas</span>
+            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">VIP</span>
+          </div>
+          <span id="drawer-user-email" class="text-xs text-slate-400 truncate block">luckinhasp4@gmail.com</span>
+        </div>
+        <button onclick="openAuthModal('login'); closeMobileSidebar();" title="Trocar Conta" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+          <i data-lucide="users" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista Completa de Seções (Exatamente igual ao PC) -->
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('dashboard')" id="drawer-nav-dashboard" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 text-brand-400"></i>
+          <span>Visão Geral (KPIs)</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('campaigns')" id="drawer-nav-campaigns" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="target" class="w-5 h-5 text-blue-400"></i>
+          <span>Campanhas & Anúncios</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('rules')" id="drawer-nav-rules" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="cpu" class="w-5 h-5 text-amber-400"></i>
+          <span>Regras de Automação</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('orders')" id="drawer-nav-orders" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="shopping-bag" class="w-5 h-5 text-emerald-400"></i>
+          <span>Pedidos com UTM</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('pixels')" id="drawer-nav-pixels" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="share-2" class="w-5 h-5 text-indigo-400"></i>
+          <span>Multi-Pixels & CAPI</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">CAPI</span>
+      </button>
+
+      <button onclick="switchTab('accounts')" id="drawer-nav-accounts" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="key-round" class="w-5 h-5 text-sky-400"></i>
+          <span>Contas de Anúncio Meta</span>
+        </div>
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </button>
+
+      <button onclick="switchTab('webhooks')" id="drawer-nav-webhooks" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="webhook" class="w-5 h-5 text-purple-400"></i>
+          <span>Plataformas & Webhooks</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('notifications')" id="drawer-nav-notifications" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="bell-ring" class="w-5 h-5 text-amber-400"></i>
+          <span>Notificações & Sons</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Novo</span>
+      </button>
+
+      <div class="pt-2 border-t border-slate-800/80">
+        <button onclick="openModal('modal-customize-dashboard'); closeMobileSidebar();" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40">
+          <i data-lucide="sliders" class="w-4 h-4 text-brand-400"></i>
+          <span>Personalizar Métricas & Colunas</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Rodapé do Drawer -->
+    <div class="p-4 border-t border-slate-800 bg-dark-950/80 space-y-3">
+      <div class="flex items-center justify-between text-xs text-slate-400">
+        <span class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Automações Ativas</span>
+        </span>
+        <button onclick="resetSystemData()" class="text-[11px] text-rose-400 hover:text-rose-300 font-semibold">Zerar Dados</button>
+      </div>
+      <button onclick="handleLogout()" class="w-full py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
+        <i data-lucide="log-out" class="w-4 h-4"></i> Sair da Conta
+      </button>
+    </div>
+  </aside>
+
   <!-- DESKTOP SIDEBAR -->
   <aside class="hidden md:flex w-64 bg-dark-900 border-r border-slate-800/80 flex-col flex-shrink-0 z-30">
     <div class="h-16 px-6 border-b border-slate-800/80 flex items-center justify-between">
@@ -102,6 +231,9 @@
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
       </button>
+      <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i> Notificações & Sons
+      </button>
     </nav>
 
     <!-- Rodapé Sidebar -->
@@ -116,22 +248,47 @@
     </div>
   </aside>
 
-  <!-- MOBILE TOP BAR -->
-  <div class="md:hidden h-14 bg-dark-900 border-b border-slate-800/80 px-4 flex items-center justify-between sticky top-0 z-30">
+  <!-- MOBILE TOP BAR (REFINADA COM MENU HAMBÚRGUER, STATUS E PERFIL) -->
+  <div class="md:hidden h-14 bg-dark-900/95 backdrop-blur-md border-b border-slate-800/80 px-3 flex items-center justify-between sticky top-0 z-30">
     <div class="flex items-center gap-2">
-      <div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center font-bold text-xs text-white">TP</div>
-      <span class="font-bold text-sm text-white">Track<span class="text-brand-400">Pro</span></span>
+      <button onclick="openMobileSidebar()" class="p-2 -ml-1 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Abrir Menu Completo">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+      <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('dashboard')">
+        <div class="w-7 h-7 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-sm">
+          <i data-lucide="crosshair" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-extrabold text-sm text-white tracking-tight">Track<span class="text-brand-400">Pro</span></span>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
+
+    <div class="flex items-center gap-1.5">
       <!-- Seletor Rápido de Dashboard Mobile -->
-      <select id="mobile-dash-select" onchange="changeDashboard(this.value)" class="bg-dark-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none">
+      <select id="mobile-dash-select" onchange="changeDashboard(this.value)" class="bg-dark-800 border border-slate-700/80 text-[11px] font-medium text-slate-200 rounded-xl px-2 py-1.5 focus:outline-none max-w-[90px] truncate">
         <option value="">Geral</option>
       </select>
-      <button onclick="toggleSound()" id="sound-btn-mobile" class="p-1.5 bg-dark-800 text-emerald-400 rounded-lg" title="Som de Venda">
-        <i data-lucide="volume-2" class="w-4 h-4"></i>
+
+      <!-- Botão Atualizar Mobile -->
+      <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors" title="Atualizar Dados">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
       </button>
-      <button onclick="promptInstallPWA()" id="pwa-install-btn" class="hidden px-2 py-1 bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-lg text-xs font-semibold">
-        App
+
+      <!-- Sino de Notificações Mobile -->
+      <button onclick="toggleNotificationDropdown()" id="notif-bell-mobile" class="relative p-2 bg-dark-800 hover:bg-slate-700 text-amber-400 rounded-xl transition-colors" title="Notificações">
+        <i data-lucide="bell" class="w-4 h-4"></i>
+        <span id="notif-badge-mobile" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
+      </button>
+
+      <!-- Avatar do Usuário Mobile -->
+      <button onclick="toggleProfileDropdown()" id="user-profile-btn-mobile" class="p-1 bg-dark-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors" title="Meu Perfil">
+        <div id="user-profile-avatar-mobile" class="w-6 h-6 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-[10px] font-bold text-white">
+          L
+        </div>
+      </button>
+
+      <!-- Botão Instalar App PWA -->
+      <button onclick="promptInstallPWA()" id="pwa-install-btn" class="hidden px-2.5 py-1 bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-xl text-[11px] font-bold">
+        Instalar
       </button>
     </div>
   </div>
@@ -169,6 +326,14 @@
           <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i>
           <span class="hidden xl:inline">Personalizar</span>
         </button>
+        <!-- Central de Notificações com Dropdown -->
+        <div class="relative">
+          <button onclick="toggleNotificationDropdown()" id="notif-bell-desktop" class="relative p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white transition-colors" title="Central de Notificações">
+            <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
+            <span id="notif-badge-desktop" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
+          </button>
+        </div>
+
         <!-- Som de Venda Ka-ching Toggle -->
         <button onclick="toggleSound()" id="sound-btn-desktop" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
           <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
@@ -177,13 +342,88 @@
         <button onclick="testKachingSound()" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors" title="Testar Som da Caixa Registradora">
           <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Testar Som
         </button>
-        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors">
+        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors" title="Atualizar">
           <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
         </button>
+
+        <!-- Menu de Perfil do Usuário Lucas / Multi-Tenant -->
+        <div class="relative ml-2">
+          <button onclick="toggleProfileDropdown()" id="user-profile-btn" class="flex items-center gap-2.5 pl-2 pr-3 py-1 bg-dark-800/80 hover:bg-dark-800 border border-slate-800 hover:border-slate-700 rounded-xl transition-all">
+            <div id="user-profile-avatar" class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+              L
+            </div>
+            <div class="text-left hidden lg:block">
+              <span id="header-user-name" class="block text-xs font-bold text-white leading-tight">Lucas</span>
+              <span id="header-user-email" class="block text-[10px] text-slate-400 leading-tight">luckinhasp4@gmail.com</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+          </button>
+        </div>
       </div>
     </header>
 
-    <div class="p-4 md:p-6 space-y-6">
+    <!-- Central de Notificações Universal Flutuante (Funciona tanto em Mobile quanto em Desktop) -->
+    <div id="notif-dropdown" class="hidden fixed top-16 right-3 left-3 sm:left-auto sm:right-6 sm:w-96 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-dark-950/80">
+        <div class="flex items-center gap-2">
+          <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
+          <span class="font-bold text-xs text-white">Notificações em Tempo Real</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="markAllNotificationsRead()" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar lidas</button>
+          <button onclick="switchTab('notifications'); closeNotificationDropdown();" class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">Ajustes</button>
+          <button onclick="closeNotificationDropdown()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors" title="Fechar">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+      <div id="notif-list-container" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1">
+        <div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>
+      </div>
+      <div class="p-2.5 border-t border-slate-800 bg-dark-950/50 flex items-center justify-between text-xs">
+        <button onclick="simulateSaleAlert()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+          <i data-lucide="play" class="w-3 h-3"></i> Testar Venda
+        </button>
+        <button onclick="simulatePixAlert()" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
+          <i data-lucide="play" class="w-3 h-3"></i> Testar PIX
+        </button>
+      </div>
+    </div>
+
+    <!-- Dropdown do Perfil Universal Flutuante (Funciona tanto em Mobile quanto em Desktop) -->
+    <div id="profile-dropdown" class="hidden fixed top-16 right-3 left-3 sm:left-auto sm:right-6 sm:w-64 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-800">
+      <div class="p-3 bg-dark-950/80 flex items-center justify-between">
+        <div>
+          <span class="block text-xs font-bold text-white" id="dropdown-user-name">Lucas</span>
+          <span class="block text-[11px] text-slate-400 truncate" id="dropdown-user-email">luckinhasp4@gmail.com</span>
+          <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold rounded-full">Conta Ativa • VIP</span>
+        </div>
+        <button onclick="closeProfileDropdown()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors" title="Fechar">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-1.5 space-y-0.5">
+        <button onclick="switchTab('notifications'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Notificações & Sons
+        </button>
+        <button onclick="switchTab('accounts'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="facebook" class="w-3.5 h-3.5 text-blue-400"></i> Conectar Meta Ads
+        </button>
+        <button onclick="openModal('modal-customize-dashboard'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i> Personalizar Métricas
+        </button>
+        <button onclick="openAuthModal('login'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i> Trocar de Conta
+        </button>
+      </div>
+      <div class="p-1.5">
+        <button onclick="handleLogout()" class="w-full text-left px-3 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-2">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sair da Conta
+        </button>
+      </div>
+    </div>
+
+    <div class="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 pb-24 md:pb-6">
 
       <!-- ==================== TAB 1: DASHBOARD ==================== -->
       <section id="tab-dashboard" class="tab-pane space-y-4 md:space-y-6">
@@ -320,7 +560,7 @@
             <button onclick="openModal('modal-customize-dashboard')" class="px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm">
               <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i> ⚙️ Personalizar Métricas
             </button>
-            <button onclick="openFacebookLoginPopup()" class="px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <button id="dash-facebook-connect-btn" onclick="openFacebookLoginPopup()" class="px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
               <i data-lucide="facebook" class="w-3.5 h-3.5 text-[#1877F2]"></i> Conectar Facebook (1 Clique)
             </button>
             <button onclick="resetTestData()" class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Zerar todos os dados para começar do zero">
@@ -378,7 +618,8 @@
           <!-- Container do Funil em Fita Fluida -->
           <div class="relative w-full rounded-2xl overflow-hidden py-2 select-none">
             <!-- Ribbon SVG Fluida Horizontal com Gradiente Azul -> Roxo -> Rosa -->
-            <svg viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
+            <!-- Ribbon SVG Fluida Horizontal com Gradiente Azul -> Roxo -> Rosa -->
+            <svg id="meta-funnel-svg" viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
               <defs>
                 <linearGradient id="metaFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#1E3A8A" />
@@ -389,13 +630,13 @@
                   <stop offset="100%" stop-color="#E11D48" />
                 </linearGradient>
               </defs>
-              <!-- Geometria do Funil Tapering Uniforme -->
-              <path d="M 0 14 C 100 14, 150 24, 200 24 C 280 24, 320 38, 400 38 C 480 38, 520 52, 600 52 C 680 52, 720 58, 800 58 L 1000 58 L 1000 102 L 800 102 C 720 102, 680 108, 600 108 C 520 108, 480 122, 400 122 C 320 122, 280 136, 200 136 C 150 136, 100 146, 0 146 Z" fill="url(#metaFunnelGrad)"/>
+              <!-- Geometria Dinâmica Adaptativa do Funil -->
+              <path id="meta-funnel-path" d="M 0 14 C 100 14, 150 24, 200 24 C 280 24, 320 38, 400 38 C 480 38, 520 52, 600 52 C 680 52, 720 58, 800 58 L 1000 58 L 1000 102 L 800 102 C 720 102, 680 108, 600 108 C 520 108, 480 122, 400 122 C 320 122, 280 136, 200 136 C 150 136, 100 146, 0 146 Z" fill="url(#metaFunnelGrad)" style="transition: d 0.4s ease-in-out;"/>
               <!-- Linhas Divisórias Verticais Finas -->
-              <line x1="200" y1="24" x2="200" y2="136" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line x1="400" y1="38" x2="400" y2="122" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line x1="600" y1="52" x2="600" y2="108" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line x1="800" y1="58" x2="800" y2="102" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-1" x1="200" y1="24" x2="200" y2="136" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-2" x1="400" y1="38" x2="400" y2="122" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-3" x1="600" y1="52" x2="600" y2="108" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-4" x1="800" y1="58" x2="800" y2="102" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
             </svg>
 
             <!-- Grade Sobreposta com os 5 Estágios Exatos da Referência -->
@@ -438,27 +679,41 @@
           </div>
         </div>
 
-        <!-- Gráfico e Fontes de Tráfego -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          <div class="lg:col-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
-            <div class="flex items-center justify-between mb-4">
+        <!-- Gráficos: Vendas por Horário | Canais & UTM | Vendas por Método -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
               <div>
-                <h3 class="font-bold text-sm text-white">Vendas por Horário (Hoje)</h3>
-                <span class="text-xs text-slate-400">Atualizado em tempo real</span>
+                <h3 class="font-bold text-sm text-white">Vendas por Horário</h3>
+                <span class="text-xs text-slate-400">Distribuição no período ativo</span>
               </div>
+              <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Hoje</span>
             </div>
-            <div class="h-60 flex items-center justify-center">
+            <div class="flex-1 flex items-center justify-center min-h-[180px]">
               <canvas id="revenueChart"></canvas>
             </div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col">
-            <h3 class="font-bold text-sm text-white mb-1">Canais & Fontes (UTM)</h3>
-            <span class="text-xs text-slate-400 mb-4">Origem do tráfego das compras</span>
-            <div class="flex-1 flex items-center justify-center min-h-[180px]">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-sm text-white mb-0.5">Canais & Fontes (UTM)</h3>
+              <span class="text-xs text-slate-400">Origem de tráfego das compras</span>
+            </div>
+            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2">
               <canvas id="sourcesChart"></canvas>
             </div>
-            <div id="sources-legend" class="mt-4 space-y-1.5 text-xs text-slate-300"></div>
+            <div id="sources-legend" class="space-y-1.5 text-xs text-slate-300"></div>
+          </div>
+
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-sm text-white mb-0.5">Vendas por Método</h3>
+              <span class="text-xs text-slate-400">PIX, Cartão de Crédito e Boleto</span>
+            </div>
+            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2">
+              <canvas id="paymentMethodsChart"></canvas>
+            </div>
+            <div id="payment-methods-legend" class="space-y-1.5 text-xs text-slate-300"></div>
           </div>
         </div>
 
@@ -472,7 +727,7 @@
             <button onclick="switchTab('orders')" class="text-xs font-semibold text-brand-400 hover:text-brand-300">Ver todas →</button>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[600px]">
               <thead class="text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-2.5 px-3">Pedido / Cliente</th>
@@ -503,7 +758,7 @@
             <button onclick="openModal('modal-customize-dashboard', 'columns')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
               <i data-lucide="columns" class="w-3.5 h-3.5 text-brand-400"></i> Personalizar Colunas
             </button>
-            <button onclick="openFacebookLoginPopup()" class="px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
+            <button id="camp-facebook-connect-btn" onclick="openFacebookLoginPopup()" class="px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
               <i data-lucide="facebook" class="w-3.5 h-3.5"></i> Conectar Facebook
             </button>
             <button onclick="openModal('modal-new-campaign')" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-brand-500/20">
@@ -663,7 +918,7 @@
         <!-- SUBPANE 1: TABELA DE CAMPANHAS -->
         <div id="camp-subpane-campaigns" class="bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[900px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr id="campaigns-thead-tr">
                   <th class="py-3 px-3 w-8 text-center">
@@ -681,7 +936,7 @@
         <!-- SUBPANE 2: TABELA DE CONJUNTOS DE ANÚNCIO (AD SETS) -->
         <div id="camp-subpane-adsets" class="hidden bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[850px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-3 px-3 w-8 text-center">
@@ -708,7 +963,7 @@
         <!-- SUBPANE 3: TABELA DE ANÚNCIOS (CRIATIVOS) -->
         <div id="camp-subpane-ads" class="hidden bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[850px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-3 px-3 w-8 text-center">
@@ -763,7 +1018,7 @@
             <span class="text-xs text-slate-400">Últimas ativações automáticas</span>
           </div>
           <div class="overflow-x-auto max-h-60 overflow-y-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[650px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-2 px-3">Data / Hora</th>
@@ -798,7 +1053,7 @@
 
         <div class="bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[750px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-3 px-4">ID Pedido</th>
@@ -875,7 +1130,7 @@
         <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
           <h3 class="font-bold text-sm text-white">Logs Recentes de Disparos CAPI</h3>
           <div class="overflow-x-auto max-h-60 overflow-y-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[650px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-2 px-3">Data</th>
@@ -896,6 +1151,85 @@
 
       <!-- ==================== TAB 6: CONTAS DE ANÚNCIO FACEBOOK ==================== -->
       <section id="tab-accounts" class="tab-pane hidden space-y-4">
+        <!-- ==================== CONEXÃO RÁPIDA FACEBOOK ADS (2 PASSOS SIMPLES) ==================== -->
+        <div id="quick-meta-connect-card" class="bg-gradient-to-r from-[#1877F2]/15 via-dark-900 to-dark-900 border border-[#1877F2]/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-[#1877F2] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/25">
+                <i data-lucide="facebook" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <span>Conectar Facebook Ads em 2 Passos Simples</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Super Fácil</span>
+                </h3>
+                <p class="text-xs text-slate-300">Sincronize gastos, métricas e campanhas em tempo real sem precisar abrir o Gerenciador da Meta.</p>
+              </div>
+            </div>
+            <div id="quick-meta-status-pill" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold self-start md:self-auto">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="quick-meta-status-text">Meta Conectado (lighttt)</span>
+            </div>
+          </div>
+
+          <!-- Banner ativo quando a conta já está conectada -->
+          <div id="quick-meta-connected-banner" class="hidden bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-white">Sua conta do Facebook Ads está vinculada e ativa!</p>
+                <p class="text-[11px] text-slate-300">Campanhas, gastos e métricas estão sendo sincronizados automaticamente em tempo real.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar da Meta
+              </button>
+              <button onclick="toggleQuickMetaInputs()" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
+                <i data-lucide="key" class="w-3.5 h-3.5 text-blue-400"></i> Trocar Token
+              </button>
+            </div>
+          </div>
+
+          <div id="quick-meta-inputs-container" class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+            <!-- Passo 1: Obter Token -->
+            <div class="bg-dark-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[11px] font-bold">1</span>
+                  Pegue seu Token Permanente no Facebook
+                </span>
+                <button onclick="openModal('modal-system-user-token')" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1">
+                  <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Ver Guia Passo a Passo
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400">
+                Acesse o Gerenciador de Negócios da Meta > Usuários do Sistema > Gerar Novo Token (com permissões <strong class="text-slate-300">ads_read</strong> e <strong class="text-slate-300">ads_management</strong>).
+              </p>
+              <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-semibold pt-1">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Abrir Meta Business Suite
+              </a>
+            </div>
+
+            <!-- Passo 2: Colar Token -->
+            <div class="bg-dark-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-bold">2</span>
+                Cole seu Token de Acesso
+              </span>
+              <div class="flex gap-2">
+                <input type="password" id="quick-meta-token-input" placeholder="Cole o token permanente aqui (EAAP...)" class="flex-1 bg-dark-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono">
+                <button onclick="connectQuickMetaToken()" id="btn-quick-connect-meta" class="px-4 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all whitespace-nowrap">
+                  <i data-lucide="zap" class="w-3.5 h-3.5"></i> Conectar
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-500">O token é validado instantaneamente e salvo de forma criptografada para a sua conta.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
@@ -905,7 +1239,7 @@
             <p class="text-xs text-slate-400">Integração oficial OAuth 2.0 da Meta Marketing API com seleção de contas para tracking e sincronização de métricas</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
+            <button id="btn-accounts-header-connect" onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
               <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
             </button>
             <button onclick="openModal('modal-system-user-token')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-emerald-600/20">
@@ -1077,6 +1411,23 @@
         <!-- SEÇÃO COMPLETA: SCRIPTS DO SITE & PROMPT IA -->
         <!-- ========================================== -->
         <div id="site-tracking-scripts" class="space-y-4 pt-2">
+          <!-- Seletor do Pixel Meta Cadastrado para Preenchimento Automático -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                <i data-lucide="crosshair" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm text-white">Preenchimento Automático do Pixel Meta</h4>
+                <p class="text-xs text-slate-400">Selecione seu pixel cadastrado para gerar os códigos já com seu ID sem precisar alterar manualmente:</p>
+              </div>
+            </div>
+            <div class="w-full sm:w-80">
+              <select id="script-pixel-selector" onchange="updatePixelSnippets()" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none">
+                <option value="">Carregando pixels...</option>
+              </select>
+            </div>
+          </div>
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
               <h2 class="text-lg font-bold text-white flex items-center gap-2">
@@ -1192,30 +1543,278 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
 
       </section>
 
+      <!-- ==================== TAB: NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ==================== -->
+      <section id="tab-notifications" class="tab-pane hidden space-y-4 md:space-y-6">
+        <!-- Banner Principal -->
+        <div class="bg-gradient-to-r from-amber-500/15 via-dark-900 to-dark-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-gradient-to-tr from-amber-600 to-amber-400 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
+                <i data-lucide="bell-ring" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-xl font-extrabold text-white tracking-tight">Notificações & Sons no Celular</h2>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Estilo UTMify & LowTrack</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-0.5">Sons de venda aprovada, alertas de PIX gerado, notificações push e resumos programados por horário.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <button onclick="requestPushNotificationPermission()" id="btn-enable-push" class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                <span id="btn-enable-push-text">Ativar Alertas no Celular</span>
+              </button>
+              <button onclick="testSelectedSound()" class="px-3.5 py-2.5 bg-dark-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors">
+                <i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
+                <span>Testar Som Selecionado</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grade de Configurações -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          
+          <!-- COLUNA 1: SELEÇÃO DE SOM & VOLUME -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="music" class="w-4 h-4 text-emerald-400"></i>
+                <h3 class="font-bold text-sm text-white">Efeito Sonoro de Venda</h3>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="notif-sound-toggle" onchange="handleSoundToggleChange(this.checked)" checked class="sr-only peer">
+                <div class="w-9 h-5 bg-dark-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 border border-slate-700"></div>
+              </label>
+            </div>
+
+            <!-- Volume Slider -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-400 font-medium">Volume do Som</span>
+                <span id="volume-val-display" class="font-bold text-white font-mono">100%</span>
+              </div>
+              <input type="range" id="notif-volume-slider" min="0" max="1" step="0.05" value="1.0" oninput="handleVolumeChange(this.value)" class="w-full h-1.5 bg-dark-950 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+            </div>
+
+            <!-- Opções de Sons com Botão Ouvir -->
+            <div class="space-y-2 pt-1">
+              <label class="text-xs font-semibold text-slate-300">Escolha o Toque de Sucesso:</label>
+              
+              <!-- 1. Ka-Ching Clássico -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('kaching')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-kaching" value="kaching" checked class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Ka-Ching Clássico</span>
+                    <span class="text-[10px] text-slate-400 block">Caixa Registradora (Oficial UTMify)</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('kaching', 1.0);" class="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- 2. Moedas Caindo -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('coins')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-coins" value="coins" class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Moedas Caindo</span>
+                    <span class="text-[10px] text-slate-400 block">Tilintar Metálico (Estilo LowTrack)</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('coins', 1.0);" class="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- 3. Sino de Sucesso -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('bell')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-bell" value="bell" class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Sino de Conquista</span>
+                    <span class="text-[10px] text-slate-400 block">Chime Moderno & Elegante</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('bell', 1.0);" class="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- 4. Pop Digital -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('pop')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-pop" value="pop" class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Pop Digital</span>
+                    <span class="text-[10px] text-slate-400 block">Alerta Fintech Energético</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('pop', 1.0);" class="p-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUNA 2: TIPOS DE EVENTOS & GATILHOS -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center gap-2 border-b border-slate-800/80 pb-3">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+              <h3 class="font-bold text-sm text-white">Gatilhos em Tempo Real</h3>
+            </div>
+
+            <div class="space-y-3">
+              <!-- Gatilho 1: Venda Aprovada -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>💸 Venda Aprovada (Pago)</span>
+                    <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.2 rounded">Ka-Ching</span>
+                  </span>
+                  <p class="text-[11px] text-slate-400">Cartão de Crédito, PIX pago e saldo na plataforma. Dispara som e notificação push.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-sale" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+
+              <!-- Gatilho 2: PIX Gerado -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>⚡ PIX Gerado</span>
+                    <span class="text-[9px] bg-sky-500/20 text-sky-400 font-bold px-1.5 py-0.2 rounded">Aguardando</span>
+                  </span>
+                  <p class="text-[11px] text-slate-400">Alerta com valor emitido para você acompanhar e converter o lead.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-pix" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+
+              <!-- Gatilho 3: Boleto Impresso -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white">📄 Boleto Bancário Impresso</span>
+                  <p class="text-[11px] text-slate-400">Notificação quando o cliente emitir o código de barras do boleto.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-boleto" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+
+              <!-- Gatilho 4: Reembolso / Estorno -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white">⚠️ Reembolsos & Estornos</span>
+                  <p class="text-[11px] text-slate-400">Alerta caso ocorra devolução para ajuste imediato da margem.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-refund" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+            </div>
+
+            <!-- Botões de Teste Rápido -->
+            <div class="pt-2 border-t border-slate-800/80 space-y-2">
+              <span class="text-[11px] font-semibold text-slate-400 block">Simular Evento Agora:</span>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="simulateSaleAlert()" class="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i> Venda (R$ 197)
+                </button>
+                <button type="button" onclick="simulatePixAlert()" class="px-3 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i> PIX (R$ 97)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUNA 3: RESUMO DIÁRIO PROGRAMADO (HORÁRIOS & TOM) -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="calendar-clock" class="w-4 h-4 text-indigo-400"></i>
+                <h3 class="font-bold text-sm text-white">Resumo Programado</h3>
+              </div>
+              <input type="checkbox" id="toggle-scheduled-summary" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0">
+            </div>
+
+            <p class="text-xs text-slate-300">
+              Receba no seu celular um resumo automático com o <strong class="text-white">lucro líquido</strong>, <strong class="text-white">faturamento</strong> e <strong class="text-white">vendas do dia</strong> nos horários estratégicos escolhidos.
+            </p>
+
+            <!-- Horários Programados -->
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Horários de Disparo:</label>
+              <div id="summary-hours-chips" class="flex flex-wrap gap-2">
+                <!-- Chips de horários carregados dinamicamente -->
+              </div>
+
+              <!-- Adicionar Novo Horário -->
+              <div class="flex gap-2 pt-1">
+                <input type="time" id="new-summary-hour-input" value="14:00" class="bg-dark-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
+                <button type="button" onclick="addNewSummaryHour()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-md shadow-indigo-600/20 transition-all">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar
+                </button>
+              </div>
+            </div>
+
+            <!-- Estilo / Tom do Resumo -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-800/80">
+              <label class="text-xs font-semibold text-slate-300">Estilo da Notificação:</label>
+              <select id="summary-tone-select" onchange="saveNotificationSettingsToServer()" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <option value="creative" selected>🚀 Criativo & Motivacional ("Foguete não tem ré! Hoje você lucrou R$ X...")</option>
+                <option value="direct">💼 Direto & Executivo ("Resumo das 18:00: Receita R$ X | Lucro R$ Y...")</option>
+                <option value="strategic">🎯 Estratégico / ROI ("Performance: Lucro R$ Y | ROI 3.2x...")</option>
+              </select>
+            </div>
+
+            <!-- Botão Testar Resumo Agora -->
+            <button type="button" onclick="triggerScheduledSummaryTest()" class="w-full py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              <span>Testar Envio do Resumo Agora</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Histórico Recente de Notificações -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
+              <h3 class="font-bold text-sm text-white">Histórico de Notificações Recebidas</h3>
+            </div>
+            <button onclick="markAllNotificationsRead()" class="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar Todas como Lidas</button>
+          </div>
+          <div id="full-notifications-table" class="space-y-2">
+            <!-- Linhas de notificações injetadas via JavaScript -->
+          </div>
+        </div>
+      </section>
+
+
     </div>
   </main>
 
-  <!-- MOBILE BOTTOM NAVIGATION -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around z-30 px-2">
-    <button onclick="switchTab('dashboard')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-dashboard">
+  <!-- MOBILE BOTTOM NAVIGATION (DOCK INFERIOR COMPLETO E FLUIDO) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around z-30 px-1 shadow-2xl">
+    <button onclick="switchTab('dashboard')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-dashboard">
       <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium">Dashboard</span>
     </button>
-    <button onclick="switchTab('campaigns')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-campaigns">
+    <button onclick="switchTab('campaigns')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-campaigns">
       <i data-lucide="target" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium">Campanhas</span>
     </button>
-    <button onclick="switchTab('rules')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-rules">
-      <i data-lucide="cpu" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium">Regras</span>
-    </button>
-    <button onclick="switchTab('orders')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-orders">
+    <button onclick="switchTab('orders')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-orders">
       <i data-lucide="shopping-bag" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium">Vendas</span>
     </button>
-    <button onclick="switchTab('webhooks')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-webhooks">
-      <i data-lucide="webhook" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium">Webhooks</span>
+    <button onclick="switchTab('accounts')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-accounts">
+      <i data-lucide="key-round" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Contas Meta</span>
+    </button>
+    <button onclick="openMobileSidebar()" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-menu">
+      <i data-lucide="menu" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Mais (Menu)</span>
     </button>
   </nav>
 
@@ -1864,17 +2463,1552 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     </div>
   </div>
 
+  <!-- ==================== MODAL AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ==================== -->
+  <div id="modal-auth" class="modal fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-dark-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+      <button onclick="closeModal('modal-auth')" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="text-center space-y-2">
+        <div class="inline-flex w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl items-center justify-center shadow-lg shadow-brand-500/25">
+          <i data-lucide="crosshair" class="w-6 h-6 text-white"></i>
+        </div>
+        <h3 class="text-xl font-extrabold text-white">Track<span class="text-brand-400">Pro</span></h3>
+        <p class="text-xs text-slate-400">Acesse sua conta ou crie um perfil seguro com dados 100% isolados</p>
+      </div>
+
+      <!-- Abas Entrar / Criar Conta -->
+      <div class="flex bg-dark-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+        <button id="auth-tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all">
+          Entrar na Conta
+        </button>
+        <button id="auth-tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all">
+          Criar Nova Conta
+        </button>
+      </div>
+
+      <!-- Formulário LOGIN -->
+      <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-3.5">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Seu E-mail</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="email" id="login-email" required placeholder="ex: luckinhasp4@gmail.com" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Sua Senha</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+            <button type="button" onclick="togglePasswordVisibility('login-password')" class="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1">
+          <label class="flex items-center gap-2 cursor-pointer text-slate-400">
+            <input type="checkbox" id="login-remember" checked class="rounded border-slate-700 text-brand-500 focus:ring-0">
+            <span>Lembrar de mim</span>
+          </label>
+          <button type="button" onclick="fillLucasCredentials()" class="text-brand-400 hover:text-brand-300 font-semibold">Preencher Conta Lucas</button>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="w-full py-2.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
+          <i data-lucide="log-in" class="w-4 h-4"></i> Entrar no TrackPro
+        </button>
+
+        <div class="relative flex items-center justify-center pt-2">
+          <span class="absolute inset-x-0 h-px bg-slate-800"></span>
+          <span class="relative bg-dark-900 px-3 text-[11px] text-slate-500 font-medium">OU CONTINUE COM</span>
+        </div>
+
+        <button type="button" onclick="handleGoogleAuth()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2.5 shadow-md">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"/></svg>
+          Entrar com Google
+        </button>
+      </form>
+
+      <!-- Formulário CADASTRO (com confirmação de senha OBRIGATÓRIA) -->
+      <form id="form-register" onsubmit="handleRegisterSubmit(event)" class="space-y-3.5 hidden">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Nome Completo</label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="text" id="reg-name" required placeholder="Seu Nome ou Operação" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">E-mail Profissional</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="email" id="reg-email" required placeholder="seu@email.com" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Criar Senha (mín. 6 caracteres)</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="password" id="reg-password" oninput="validatePasswordsMatch()" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+            <button type="button" onclick="togglePasswordVisibility('reg-password')" class="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirmação de Senha Obrigatória -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-300">Confirmar Senha <span class="text-rose-400 font-bold">*</span></label>
+            <span id="reg-password-match-msg" class="text-[10px] font-semibold text-slate-500"></span>
+          </div>
+          <div class="relative">
+            <i data-lucide="check-check" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="password" id="reg-confirm-password" oninput="validatePasswordsMatch()" required minlength="6" placeholder="Repita exatamente a mesma senha" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+            <button type="button" onclick="togglePasswordVisibility('reg-confirm-password')" class="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-dark-950 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
+          <div class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>Ambiente 100% Seguro & Isolado</span>
+          </div>
+          <p>Cada conta criada possui sua própria base de campanhas, pixels e relatórios sem misturar dados.</p>
+        </div>
+
+        <button type="submit" id="btn-reg-submit" class="w-full py-2.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4"></i> Criar Minha Conta Grátis
+        </button>
+
+        <div class="relative flex items-center justify-center pt-2">
+          <span class="absolute inset-x-0 h-px bg-slate-800"></span>
+          <span class="relative bg-dark-900 px-3 text-[11px] text-slate-500 font-medium">OU</span>
+        </div>
+
+        <button type="button" onclick="handleGoogleAuth()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2.5 shadow-md">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"/></svg>
+          Cadastrar com Google
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- ==================== LOGICA JAVASCRIPT ==================== -->
   <script>
+    // ==================== TRACKPRO AUTH & MULTI-TENANT FETCH INTERCEPTOR ====================
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      const token = localStorage.getItem('trackpro_token');
+      if (token && typeof url === 'string' && url.startsWith('/api')) {
+        options.headers = options.headers || {};
+        if (options.headers instanceof Headers) {
+          if (!options.headers.has('Authorization')) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          }
+        } else {
+          if (!options.headers['Authorization']) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+          }
+        }
+      }
+      return originalFetch(url, options);
+    };
+
+    // ==================== AUDIO SYNTHESIZER (WEB AUDIO API - ZERO LATÊNCIA) ====================
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTrackProSound(soundType, customVol) {
+      const isEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      if (!isEnabled && customVol === undefined) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const vol = customVol !== undefined ? customVol : (parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0'));
+      const chosenSound = soundType || localStorage.getItem('trackpro_sound_type') || 'kaching';
+
+      try {
+        const now = ctx.currentTime;
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(Math.min(1.0, Math.max(0.05, vol)), now);
+        masterGain.connect(ctx.destination);
+
+        if (chosenSound === 'kaching') {
+          // 1. Som Clássico Ka-Ching (Caixa Registradora UTMify)
+          const clickOsc = ctx.createOscillator();
+          const clickGain = ctx.createGain();
+          clickOsc.type = 'triangle';
+          clickOsc.frequency.setValueAtTime(320, now);
+          clickOsc.frequency.exponentialRampToValueAtTime(80, now + 0.04);
+          clickGain.gain.setValueAtTime(0.4, now);
+          clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          clickOsc.connect(clickGain);
+          clickGain.connect(masterGain);
+          clickOsc.start(now);
+          clickOsc.stop(now + 0.05);
+
+          const bells = [
+            { f: 987.77, start: now + 0.03, dur: 1.1, vol: 0.6 },
+            { f: 1318.51, start: now + 0.03, dur: 0.9, vol: 0.5 },
+            { f: 2637.02, start: now + 0.03, dur: 0.5, vol: 0.25 },
+            { f: 3136.00, start: now + 0.03, dur: 0.4, vol: 0.2 }
+          ];
+          bells.forEach(b => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(b.f, b.start);
+            g.gain.setValueAtTime(b.vol, b.start);
+            g.gain.exponentialRampToValueAtTime(0.0001, b.start + b.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(b.start);
+            osc.stop(b.start + b.dur);
+          });
+
+          const coins = [
+            { f: 2400, delay: 0.18, dur: 0.35, v: 0.35 },
+            { f: 3100, delay: 0.26, dur: 0.35, v: 0.3 },
+            { f: 2750, delay: 0.34, dur: 0.4, v: 0.25 }
+          ];
+          coins.forEach(c => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(c.f, now + c.delay);
+            g.gain.setValueAtTime(c.v, now + c.delay);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + c.delay + c.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(now + c.delay);
+            osc.stop(now + c.delay + c.dur);
+          });
+
+        } else if (chosenSound === 'coins') {
+          // 2. Moedas Caindo (LowTrack Style)
+          const freqs = [1960, 2400, 2800, 3250, 3600, 2200];
+          freqs.forEach((freq, idx) => {
+            const start = now + idx * 0.06;
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+            g.gain.setValueAtTime(0.4, start);
+            g.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(start);
+            osc.stop(start + 0.35);
+          });
+
+        } else if (chosenSound === 'bell') {
+          // 3. Sino de Conquista (Modern Chime)
+          const notes = [
+            { f: 523.25, start: now, dur: 0.8 },
+            { f: 659.25, start: now + 0.08, dur: 0.9 },
+            { f: 783.99, start: now + 0.16, dur: 1.0 },
+            { f: 1046.50, start: now + 0.24, dur: 1.2 }
+          ];
+          notes.forEach(n => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(n.f, n.start);
+            g.gain.setValueAtTime(0.45, n.start);
+            g.gain.exponentialRampToValueAtTime(0.0005, n.start + n.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(n.start);
+            osc.stop(n.start + n.dur);
+          });
+
+        } else if (chosenSound === 'pop') {
+          // 4. Pop Digital (Fintech Alert)
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(1400, now + 0.09);
+          g.gain.setValueAtTime(0.5, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.18);
+
+        } else if (chosenSound === 'pix') {
+          // 5. PIX Gerado (Som Suave de Confirmação)
+          const pings = [
+            { f: 880, start: now, dur: 0.25 },
+            { f: 1174.66, start: now + 0.12, dur: 0.4 }
+          ];
+          pings.forEach(p => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(p.f, p.start);
+            g.gain.setValueAtTime(0.35, p.start);
+            g.gain.exponentialRampToValueAtTime(0.001, p.start + p.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(p.start);
+            osc.stop(p.start + p.dur);
+          });
+        }
+      } catch (e) {
+        console.warn('Erro ao reproduzir Web Audio:', e);
+      }
+    }
+
+    function selectSoundType(type) {
+      localStorage.setItem('trackpro_sound_type', type);
+      const radio = document.getElementById('sound-' + type);
+      if (radio) radio.checked = true;
+      playTrackProSound(type, 1.0);
+      saveNotificationSettingsToServer();
+    }
+
+    function testSelectedSound() {
+      const type = localStorage.getItem('trackpro_sound_type') || 'kaching';
+      playTrackProSound(type, 1.0);
+    }
+
+    function handleVolumeChange(val) {
+      const pct = Math.round(val * 100);
+      const display = document.getElementById('volume-val-display');
+      if (display) display.textContent = pct + '%';
+      localStorage.setItem('trackpro_sound_volume', val);
+      playTrackProSound(null, parseFloat(val));
+      saveNotificationSettingsToServer();
+    }
+
+    function handleSoundToggleChange(checked) {
+      soundEnabled = checked;
+      localStorage.setItem('trackpro_sound_enabled', checked);
+      updateSoundUI();
+      if (checked) testSelectedSound();
+      saveNotificationSettingsToServer();
+    }
+
+    // ==================== PUSH NOTIFICATIONS & MOBILE ALERTS ====================
+    async function requestPushNotificationPermission() {
+      getAudioContext();
+      if (!('Notification' in window)) {
+        showToast('Notificações push não suportadas neste navegador.', 'error');
+        return;
+      }
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          showToast('🔔 Permissão concedida! Você receberá alertas de vendas em tempo real no celular.', 'success');
+          const btnText = document.getElementById('btn-enable-push-text');
+          if (btnText) btnText.textContent = '✔ Alertas no Celular Ativos';
+          playTrackProSound('kaching', 1.0);
+          showMobileNotification('🎉 Notificações Ativadas!', 'TrackPro está pronto para alertar suas vendas no celular.', 'welcome');
+          saveNotificationSettingsToServer();
+        } else {
+          showToast('Permissão de notificações foi negada no navegador.', 'warning');
+        }
+      } catch (e) {
+        showToast('Erro ao solicitar permissão de notificações.', 'error');
+      }
+    }
+
+    async function showMobileNotification(title, body, tag = 'sale-alert') {
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
+
+      const options = {
+        body: body,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        vibrate: [250, 100, 250, 100, 250],
+        tag: tag,
+        renotify: true,
+        data: { url: '/' }
+      };
+
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          if (reg && reg.showNotification) {
+            await reg.showNotification(title, options);
+            return;
+          }
+        } catch (swErr) {
+          console.warn('ServiceWorker showNotification falhou:', swErr);
+        }
+      }
+
+      try {
+        new Notification(title, options);
+      } catch (e) {
+        console.warn('Notification constructor falhou (esperado em Android/iOS):', e);
+      }
+    }
+
+    // ==================== SIMULADOR DE ALERTAS ====================
+    async function simulateSaleAlert() {
+      playTrackProSound('kaching', 1.0);
+      showMobileNotification('💸 VENDA APROVADA!', 'Venda de R$ 197,00 aprovada via Cartão de Crédito! (Kiwify)', 'sale');
+      showSaleToast({
+        customer: 'Lucas Silva (Simulação)',
+        amount: 197.00,
+        platform: 'Kiwify',
+        source: 'facebook'
+      });
+      try {
+        await fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'sale_approved', amount_in_cents: 19700 })
+        });
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    async function simulatePixAlert() {
+      playTrackProSound('pix', 1.0);
+      showMobileNotification('⚡ PIX GERADO!', 'PIX de R$ 97,00 gerado! Aguardando pagamento do cliente.', 'pix');
+      showToast('⚡ PIX GERADO: R$ 97,00! Cliente aguardando pagamento.', 'info');
+      try {
+        await fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'pix_generated', amount_in_cents: 9700 })
+        });
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    // ==================== RESUMO DIÁRIO PROGRAMADO ====================
+    let configuredSummaryHours = ["08:00", "12:00", "16:00", "18:00", "22:00"];
+
+    function renderSummaryHoursChips() {
+      const container = document.getElementById('summary-hours-chips');
+      if (!container) return;
+      container.innerHTML = configuredSummaryHours.map(h => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold">
+          <span>${h}</span>
+          <button type="button" onclick="removeSummaryHour('${h}')" class="text-indigo-400 hover:text-rose-400 transition-colors ml-0.5">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
+        </span>
+      `).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function addNewSummaryHour() {
+      const input = document.getElementById('new-summary-hour-input');
+      if (!input || !input.value) return;
+      const h = input.value.trim();
+      if (!configuredSummaryHours.includes(h)) {
+        configuredSummaryHours.push(h);
+        configuredSummaryHours.sort();
+        renderSummaryHoursChips();
+        saveNotificationSettingsToServer();
+        showToast(`Horário ${h} adicionado aos resumos diários!`, 'success');
+      }
+    }
+
+    function removeSummaryHour(h) {
+      configuredSummaryHours = configuredSummaryHours.filter(item => item !== h);
+      renderSummaryHoursChips();
+      saveNotificationSettingsToServer();
+    }
+
+    async function triggerScheduledSummaryTest() {
+      try {
+        const res = await fetch('/api/notifications/scheduled-summary');
+        const data = await res.json();
+        if (data.success) {
+          playTrackProSound('bell', 1.0);
+          showMobileNotification(data.title, data.message, 'daily-summary');
+          showToast(`🔔 ${data.title}: ${data.message}`, 'info');
+          loadNotifications();
+        }
+      } catch (e) {
+        showToast('Erro ao testar envio de resumo diário.', 'error');
+      }
+    }
+
+    async function checkScheduledSummaries() {
+      const toggle = document.getElementById('toggle-scheduled-summary');
+      if (toggle && !toggle.checked) return;
+
+      const now = new Date();
+      const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      const todayDate = now.toISOString().slice(0, 10);
+
+      if (configuredSummaryHours.includes(currentHHMM)) {
+        const key = `trackpro_summary_fired_${todayDate}_${currentHHMM}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'true');
+          try {
+            const res = await fetch('/api/notifications/scheduled-summary');
+            const data = await res.json();
+            if (data.success) {
+              playTrackProSound('bell', 1.0);
+              showMobileNotification(data.title, data.message, 'daily-summary');
+              showToast(`📊 ${data.title}: ${data.message}`, 'info');
+              loadNotifications();
+            }
+          } catch (e) {
+            console.warn('Erro ao disparar resumo diário:', e);
+          }
+        }
+      }
+    }
+
+    // ==================== CENTRAL DE NOTIFICAÇÕES & FEED ====================
+    let cachedNotifications = [];
+
+    async function loadNotifications() {
+      try {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        cachedNotifications = data.notifications || [];
+        updateNotificationBadges(data.unread_count || 0);
+        renderNotificationDropdownList(cachedNotifications);
+        renderFullNotificationsTable(cachedNotifications);
+      } catch (e) {
+        console.warn('Erro ao carregar notificações:', e);
+      }
+    }
+
+    function updateNotificationBadges(count) {
+      const bDesktop = document.getElementById('notif-badge-desktop');
+      const bMobile = document.getElementById('notif-badge-mobile');
+      [bDesktop, bMobile].forEach(el => {
+        if (!el) return;
+        if (count > 0) {
+          el.textContent = count > 99 ? '99+' : count;
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    function renderNotificationDropdownList(list) {
+      const container = document.getElementById('notif-list-container');
+      if (!container) return;
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>';
+        return;
+      }
+      container.innerHTML = list.slice(0, 8).map(n => {
+        const isSale = n.type === 'sale_approved';
+        const isPix = n.type === 'pix_generated';
+        const icon = isSale ? 'check-circle-2' : (isPix ? 'zap' : 'bell');
+        const iconColor = isSale ? 'text-emerald-400' : (isPix ? 'text-sky-400' : 'text-amber-400');
+        const bgBadge = isSale ? 'bg-emerald-500/10' : (isPix ? 'bg-sky-500/10' : 'bg-amber-500/10');
+        return `
+          <div class="p-3 hover:bg-dark-950/70 transition-colors flex items-start gap-2.5 ${n.is_read ? 'opacity-70' : 'bg-dark-950/30'}">
+            <div class="w-7 h-7 rounded-lg ${bgBadge} ${iconColor} flex items-center justify-center shrink-0 mt-0.5">
+              <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white truncate">${n.title}</span>
+                <span class="text-[9px] text-slate-500 font-mono">${(n.created_at || '').slice(11, 16)}</span>
+              </div>
+              <p class="text-[11px] text-slate-300 line-clamp-2 mt-0.5">${n.message}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderFullNotificationsTable(list) {
+      const container = document.getElementById('full-notifications-table');
+      if (!container) return;
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-xs text-slate-500">Nenhuma notificação registrada na conta.</div>';
+        return;
+      }
+      container.innerHTML = list.map(n => {
+        const isSale = n.type === 'sale_approved';
+        const isPix = n.type === 'pix_generated';
+        const icon = isSale ? 'shopping-bag' : (isPix ? 'zap' : 'bell');
+        const color = isSale ? 'emerald' : (isPix ? 'sky' : 'amber');
+        return `
+          <div class="p-3.5 rounded-xl bg-dark-950/70 border border-slate-800 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-${color}-500/15 text-${color}-400 flex items-center justify-center font-bold">
+                <i data-lucide="${icon}" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-xs text-white">${n.title}</span>
+                  <span class="text-[10px] text-slate-500 font-mono">${n.created_at}</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-0.5">${n.message}</p>
+              </div>
+            </div>
+            ${n.amount_in_cents > 0 ? `<span class="text-xs font-bold text-${color}-400 font-mono">R$ ${(n.amount_in_cents / 100).toFixed(2).replace('.', ',')}</span>` : ''}
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleNotificationDropdown() {
+      const dd = document.getElementById('notif-dropdown');
+      if (!dd) return;
+      dd.classList.toggle('hidden');
+      if (!dd.classList.contains('hidden')) {
+        closeProfileDropdown();
+        loadNotifications();
+      }
+    }
+
+    function closeNotificationDropdown() {
+      const dd = document.getElementById('notif-dropdown');
+      if (dd) dd.classList.add('hidden');
+    }
+
+    async function markAllNotificationsRead() {
+      try {
+        await fetch('/api/notifications/read-all', { method: 'POST' });
+        updateNotificationBadges(0);
+        showToast('Notificações marcadas como lidas.', 'info');
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    // ==================== SALVAR CONFIGURAÇÕES DE NOTIFICAÇÃO NO SERVIDOR ====================
+    async function saveNotificationSettingsToServer() {
+      const soundType = localStorage.getItem('trackpro_sound_type') || 'kaching';
+      const soundVol = parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0');
+      const soundEn = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      const notifySale = document.getElementById('toggle-notify-sale')?.checked ?? true;
+      const notifyPix = document.getElementById('toggle-notify-pix')?.checked ?? true;
+      const notifyBoleto = document.getElementById('toggle-notify-boleto')?.checked ?? true;
+      const notifyRefund = document.getElementById('toggle-notify-refund')?.checked ?? true;
+      const notifySched = document.getElementById('toggle-scheduled-summary')?.checked ?? true;
+      const tone = document.getElementById('summary-tone-select')?.value || 'creative';
+
+      try {
+        await fetch('/api/notifications/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sound_enabled: soundEn,
+            sound_type: soundType,
+            sound_volume: soundVol,
+            notify_sale_approved: notifySale,
+            notify_pix_generated: notifyPix,
+            notify_boleto_printed: notifyBoleto,
+            notify_refund: notifyRefund,
+            notify_scheduled_summary: notifySched,
+            summary_hours: configuredSummaryHours,
+            summary_tone: tone
+          })
+        });
+      } catch (e) {}
+    }
+
+    async function loadNotificationSettingsFromBackend() {
+      try {
+        const res = await fetch('/api/notifications/settings');
+        const data = await res.json();
+        if (data && data.sound_type) {
+          localStorage.setItem('trackpro_sound_type', data.sound_type);
+          const radio = document.getElementById('sound-' + data.sound_type);
+          if (radio) radio.checked = true;
+
+          if (data.sound_volume !== undefined) {
+            localStorage.setItem('trackpro_sound_volume', data.sound_volume);
+            const slider = document.getElementById('notif-volume-slider');
+            if (slider) slider.value = data.sound_volume;
+            const display = document.getElementById('volume-val-display');
+            if (display) display.textContent = Math.round(data.sound_volume * 100) + '%';
+          }
+
+          if (data.sound_enabled !== undefined) {
+            const soundEn = data.sound_enabled === 1;
+            localStorage.setItem('trackpro_sound_enabled', soundEn);
+            const tSound = document.getElementById('notif-sound-toggle');
+            if (tSound) tSound.checked = soundEn;
+          }
+
+          if (Array.isArray(data.summary_hours)) {
+            configuredSummaryHours = data.summary_hours;
+            renderSummaryHoursChips();
+          }
+
+          if (data.summary_tone) {
+            const tSelect = document.getElementById('summary-tone-select');
+            if (tSelect) tSelect.value = data.summary_tone;
+          }
+
+          if (data.notify_sale_approved !== undefined) {
+            const el = document.getElementById('toggle-notify-sale');
+            if (el) el.checked = data.notify_sale_approved === 1;
+          }
+          if (data.notify_pix_generated !== undefined) {
+            const el = document.getElementById('toggle-notify-pix');
+            if (el) el.checked = data.notify_pix_generated === 1;
+          }
+          if (data.notify_boleto_printed !== undefined) {
+            const el = document.getElementById('toggle-notify-boleto');
+            if (el) el.checked = data.notify_boleto_printed === 1;
+          }
+          if (data.notify_refund !== undefined) {
+            const el = document.getElementById('toggle-notify-refund');
+            if (el) el.checked = data.notify_refund === 1;
+          }
+          if (data.notify_scheduled_summary !== undefined) {
+            const el = document.getElementById('toggle-scheduled-summary');
+            if (el) el.checked = data.notify_scheduled_summary === 1;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
+    function openAuthModal(tab = 'login') {
+      openModal('modal-auth');
+      switchAuthTab(tab);
+    }
+
+    function switchAuthTab(tab) {
+      const loginBtn = document.getElementById('auth-tab-login-btn');
+      const regBtn = document.getElementById('auth-tab-register-btn');
+      const formLogin = document.getElementById('form-login');
+      const formReg = document.getElementById('form-register');
+
+      if (tab === 'login') {
+        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
+        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
+        if (formLogin) formLogin.classList.remove('hidden');
+        if (formReg) formReg.classList.add('hidden');
+      } else {
+        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
+        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
+        if (formReg) formReg.classList.remove('hidden');
+        if (formLogin) formLogin.classList.add('hidden');
+      }
+    }
+
+    function togglePasswordVisibility(inputId) {
+      const inp = document.getElementById(inputId);
+      if (inp) {
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      }
+    }
+
+    function validatePasswordsMatch() {
+      const p1 = document.getElementById('reg-password')?.value || '';
+      const p2 = document.getElementById('reg-confirm-password')?.value || '';
+      const msg = document.getElementById('reg-password-match-msg');
+      if (!msg) return;
+
+      if (!p1 && !p2) {
+        msg.textContent = '';
+      } else if (p1 === p2 && p1.length >= 6) {
+        msg.textContent = '✔ Senhas conferem';
+        msg.className = 'text-[10px] font-semibold text-emerald-400';
+      } else if (p2.length > 0 && p1 !== p2) {
+        msg.textContent = '✖ As senhas não coincidem';
+        msg.className = 'text-[10px] font-semibold text-rose-400';
+      } else {
+        msg.textContent = '';
+      }
+    }
+
+    function fillLucasCredentials() {
+      const em = document.getElementById('login-email');
+      const pw = document.getElementById('login-password');
+      if (em) em.value = 'luckinhasp4@gmail.com';
+      if (pw) pw.value = 'yzzjl067_';
+      showToast('Credenciais do Lucas preenchidas!', 'info');
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const em = document.getElementById('login-email').value.trim();
+      const pw = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-login-submit');
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: em, password: pw })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast(`Bem-vindo, ${data.user.name}!`, 'success');
+          refreshData();
+          loadNotifications();
+        } else {
+          showToast(data.error || 'Erro ao fazer login.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão ao fazer login.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleRegisterSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = document.getElementById('reg-confirm-password').value;
+      const btn = document.getElementById('btn-reg-submit');
+
+      if (password !== confirmPassword) {
+        showToast('A confirmação de senha é obrigatória e deve ser idêntica à senha.', 'error');
+        document.getElementById('reg-confirm-password').focus();
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            password: password,
+            confirm_password: confirmPassword
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast(`Conta criada com sucesso! Seja bem-vindo, ${data.user.name}.`, 'success');
+          refreshData();
+          loadNotifications();
+        } else {
+          showToast(data.error || 'Erro ao criar conta.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão ao criar conta.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleGoogleAuth() {
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Lucas (Google)',
+            email: 'luckinhasp4@gmail.com'
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast('Conectado com Google com sucesso!', 'success');
+          refreshData();
+          loadNotifications();
+        }
+      } catch (e) {
+        showToast('Erro ao autenticar com Google.', 'error');
+      }
+    }
+
+    async function handleLogout() {
+      closeProfileDropdown();
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch (e) {}
+      localStorage.removeItem('trackpro_token');
+      localStorage.removeItem('trackpro_user');
+      showToast('Você saiu da sua conta.', 'info');
+      openAuthModal('login');
+    }
+
+    function toggleProfileDropdown() {
+      const dd = document.getElementById('profile-dropdown');
+      if (dd) {
+        dd.classList.toggle('hidden');
+        if (!dd.classList.contains('hidden')) {
+          closeNotificationDropdown();
+        }
+      }
+    }
+
+    function closeProfileDropdown() {
+      const dd = document.getElementById('profile-dropdown');
+      if (dd) dd.classList.add('hidden');
+    }
+
+    function updateProfileUI(user) {
+      if (!user) return;
+      const initial = (user.name || 'Lucas').charAt(0).toUpperCase();
+      const elAvatar = document.getElementById('user-profile-avatar');
+      const elAvatarMob = document.getElementById('user-profile-avatar-mobile');
+      const elHName = document.getElementById('header-user-name');
+      const elHEmail = document.getElementById('header-user-email');
+      const elDName = document.getElementById('dropdown-user-name');
+      const elDEmail = document.getElementById('dropdown-user-email');
+      const elDrawerName = document.getElementById('drawer-user-name');
+      const elDrawerEmail = document.getElementById('drawer-user-email');
+
+      if (elAvatar) elAvatar.textContent = initial;
+      if (elAvatarMob) elAvatarMob.textContent = initial;
+      if (elHName) elHName.textContent = user.name || 'Lucas';
+      if (elHEmail) elHEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+      if (elDName) elDName.textContent = user.name || 'Lucas';
+      if (elDEmail) elDEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+      if (elDrawerName) elDrawerName.textContent = user.name || 'Lucas';
+      if (elDrawerEmail) elDrawerEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+    }
+
+    async function checkAuthSession() {
+      let token = localStorage.getItem('trackpro_token');
+      if (!token) {
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'luckinhasp4@gmail.com', password: 'yzzjl067_' })
+          });
+          const data = await res.json();
+          if (data.token) {
+            token = data.token;
+            localStorage.setItem('trackpro_token', token);
+            localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          }
+        } catch (e) {}
+      }
+
+      if (token) {
+        try {
+          const res = await fetch('/api/auth/me');
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            updateProfileUI(data.user);
+          }
+        } catch (e) {}
+      }
+    }
+
+    // ==================== CONTROLE GLOBAL DO STATUS DA META ====================
+    function toggleQuickMetaInputs() {
+      const container = document.getElementById('quick-meta-inputs-container');
+      if (container) {
+        container.classList.toggle('hidden');
+      }
+    }
+
+    async function checkMetaGlobalStatus() {
+      try {
+        const res = await fetch('/api/integrations/meta/status');
+        const data = await res.json();
+        updateMetaGlobalStatusUI(data);
+        return data;
+      } catch (e) {
+        console.warn('Erro ao verificar status global da Meta:', e);
+        return { connected: false };
+      }
+    }
+
+    function updateMetaGlobalStatusUI(statusData) {
+      if (!statusData) return;
+      const isConnected = !!statusData.connected;
+      const accountName = statusData.meta_user_name || (statusData.ad_accounts && statusData.ad_accounts[0]?.name) || 'lighttt';
+
+      // 1. Botão no Header do Dashboard
+      const dashBtn = document.getElementById('dash-facebook-connect-btn');
+      if (dashBtn) {
+        if (isConnected) {
+          dashBtn.onclick = () => switchTab('accounts');
+          dashBtn.className = 'px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all';
+          dashBtn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Meta Conectado (${accountName})`;
+          dashBtn.title = 'Conta Meta conectada. Clique para gerenciar.';
+        } else {
+          dashBtn.onclick = () => openFacebookLoginPopup();
+          dashBtn.className = 'px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all';
+          dashBtn.innerHTML = '<i data-lucide="facebook" class="w-3.5 h-3.5 text-[#1877F2]"></i> Conectar Facebook (1 Clique)';
+          dashBtn.title = 'Conectar conta do Facebook Ads';
+        }
+      }
+
+      // 2. Botão no Header de Campanhas
+      const campBtn = document.getElementById('camp-facebook-connect-btn');
+      if (campBtn) {
+        if (isConnected) {
+          campBtn.onclick = () => syncMetaCampaigns();
+          campBtn.className = 'px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg';
+          campBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-400"></i> Sincronizar Meta';
+          campBtn.title = 'Sincronizar métricas e campanhas da Meta agora';
+        } else {
+          campBtn.onclick = () => openFacebookLoginPopup();
+          campBtn.className = 'px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30';
+          campBtn.innerHTML = '<i data-lucide="facebook" class="w-3.5 h-3.5"></i> Conectar Facebook';
+          campBtn.title = 'Conectar conta Meta';
+        }
+      }
+
+      // 3. Tab Contas: Banner e Inputs Rápidos
+      const quickPillText = document.getElementById('quick-meta-status-text');
+      const quickPill = document.getElementById('quick-meta-status-pill');
+      const quickBanner = document.getElementById('quick-meta-connected-banner');
+      const quickInputs = document.getElementById('quick-meta-inputs-container');
+
+      if (quickPillText) {
+        quickPillText.textContent = isConnected ? `Meta Conectado (${accountName})` : 'Desconectado';
+      }
+      if (quickPill) {
+        quickPill.className = isConnected
+          ? 'flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold self-start md:self-auto'
+          : 'flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 rounded-xl text-xs font-bold self-start md:self-auto';
+        const dot = quickPill.querySelector('span:first-child');
+        if (dot) dot.className = isConnected ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse' : 'w-2 h-2 rounded-full bg-slate-500';
+      }
+
+      if (quickBanner && quickInputs) {
+        if (isConnected) {
+          quickBanner.classList.remove('hidden');
+          quickInputs.classList.add('hidden');
+        } else {
+          quickBanner.classList.add('hidden');
+          quickInputs.classList.remove('hidden');
+        }
+      }
+
+      // 4. Tab Contas: Botão do Topo
+      const headerBtn = document.getElementById('btn-accounts-header-connect');
+      if (headerBtn) {
+        if (isConnected) {
+          headerBtn.onclick = () => syncMetaCampaigns();
+          headerBtn.className = 'px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-brand-500/20';
+          headerBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Sincronizar Métricas';
+          headerBtn.title = 'Sincronizar métricas das contas conectadas';
+        } else {
+          headerBtn.onclick = () => openFacebookLoginPopup();
+          headerBtn.className = 'px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30';
+          headerBtn.innerHTML = '<i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta';
+        }
+      }
+
+      // 5. Tab Contas: Card de Status Oficial OAuth
+      const nameEl = document.getElementById('meta-user-name-display');
+      const badgeEl = document.getElementById('meta-connection-badge');
+      const subEl = document.getElementById('meta-connection-subtext');
+      const tagsEl = document.getElementById('meta-permissions-tags');
+      const actionsEl = document.getElementById('meta-oauth-actions');
+
+      if (isConnected) {
+        const isPermanent = statusData.expires_at && statusData.expires_at.startsWith('2099');
+        if (nameEl) nameEl.textContent = `Meta Ads (${accountName})`;
+        if (badgeEl) {
+          badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          badgeEl.textContent = isPermanent ? 'Token Permanente Ativo' : 'OAuth 2.0 Conectado';
+        }
+        if (subEl) {
+          const expStr = isPermanent ? 'Token Permanente de System User (Não expira)' : (statusData.expires_at ? `Expira em: ${statusData.expires_at.substring(0, 10)}` : '60 dias');
+          subEl.textContent = `${expStr} • ${statusData.selected_accounts || 1} de ${statusData.total_accounts || 1} contas ativas para tracking de campanhas e métricas.`;
+        }
+        if (tagsEl) {
+          const perms = statusData.permissions || ['ads_management', 'ads_read', 'public_profile'];
+          tagsEl.innerHTML = perms.map(p => `
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-2.5 h-2.5"></i> ${p}
+            </span>
+          `).join('');
+        }
+        if (actionsEl) {
+          actionsEl.innerHTML = `
+            <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar da Meta
+            </button>
+            <button onclick="openModal('modal-system-user-token')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-emerald-400"></i> Atualizar Token
+            </button>
+            <button onclick="disconnectMetaAccount()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Desconectar
+            </button>
+          `;
+        }
+      } else {
+        if (nameEl) nameEl.textContent = 'Nenhuma Conta Meta Conectada';
+        if (badgeEl) {
+          badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+          badgeEl.textContent = 'Desconectado';
+        }
+        if (subEl) subEl.textContent = 'Conecte sua conta Meta para sincronizar campanhas, orçamentos e métricas automaticamente.';
+        if (tagsEl) tagsEl.innerHTML = '';
+        if (actionsEl) {
+          actionsEl.innerHTML = `
+            <button onclick="openFacebookLoginPopup()" class="px-4 py-2.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
+              <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
+            </button>
+          `;
+        }
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // ==================== CONEXÃO RÁPIDA FACEBOOK ADS ====================
+    async function connectQuickMetaToken() {
+      const input = document.getElementById('quick-meta-token-input');
+      const btn = document.getElementById('btn-quick-connect-meta');
+      const token = (input?.value || '').trim();
+
+      if (!token) {
+        showToast('Cole o token de acesso da Meta antes de continuar.', 'warning');
+        if (input) input.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Conectando...';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch('/api/facebook/connect_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Meta Ads conectado com sucesso! Conta: ${data.account_name || 'lighttt'}`, 'success');
+          input.value = '';
+          await checkMetaGlobalStatus();
+          refreshData();
+          if (currentTab === 'accounts') loadAccountsData();
+        } else {
+          showToast(data.error || 'Token inválido ou sem permissões no Facebook.', 'error');
+        }
+      } catch (e) {
+        showToast('Erro ao validar token com o Facebook.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="zap" class="w-3.5 h-3.5"></i> Conectar';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    }
+
     let currentTab = 'dashboard';
     let currentDashboardId = '';
     let soundEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
     let lastOrderCount = -1;
     let revenueChartInstance = null;
     let sourcesChartInstance = null;
+    let paymentMethodsChartInstance = null;
+    let cachedRegisteredPixels = [];
+
+    // ==================== FUNIL ADAPTATIVO & DINÂMICO ====================
+    function updateFunnelRibbon(f) {
+      if (!f) return;
+      const clicks = Number(f.clicks || 0);
+      const pv = Number(f.pageviews || 0);
+      const ic = Number(f.initiate_checkout || 0);
+      const ordInit = Number(f.orders_initiated || 0);
+      const ordPaid = Number(f.purchases || 0);
+
+      const baseClicks = Math.max(1, clicks);
+      const rPv = clicks > 0 ? (pv / baseClicks) : 0.8;
+      const rIc = clicks > 0 ? (ic / baseClicks) : 0.45;
+      const rInit = clicks > 0 ? (ordInit / baseClicks) : 0.25;
+      const rPaid = clicks > 0 ? (ordPaid / baseClicks) : 0.15;
+
+      // Altura total SVG é 160. Centro y = 80.
+      function getHalfHeight(ratio, count) {
+        if (clicks > 0 && count === 0) return 2; // afina quase a zero se zerou o estágio!
+        const h = Math.max(4, Math.min(136, 136 * Math.pow(Math.max(0.015, ratio), 0.65)));
+        return h / 2;
+      }
+
+      const h0 = clicks === 0 ? 55 : 68;
+      const h1 = getHalfHeight(rPv, pv);
+      const h2 = getHalfHeight(rIc, ic);
+      const h3 = getHalfHeight(rInit, ordInit);
+      const h4 = getHalfHeight(rPaid, ordPaid);
+
+      const top0 = 80 - h0, bot0 = 80 + h0;
+      const top1 = 80 - h1, bot1 = 80 + h1;
+      const top2 = 80 - h2, bot2 = 80 + h2;
+      const top3 = 80 - h3, bot3 = 80 + h3;
+      const top4 = 80 - h4, bot4 = 80 + h4;
+
+      const pathD = `M 0 ${top0.toFixed(1)} ` +
+        `C 100 ${top0.toFixed(1)}, 100 ${top1.toFixed(1)}, 200 ${top1.toFixed(1)} ` +
+        `C 300 ${top1.toFixed(1)}, 300 ${top2.toFixed(1)}, 400 ${top2.toFixed(1)} ` +
+        `C 500 ${top2.toFixed(1)}, 500 ${top3.toFixed(1)}, 600 ${top3.toFixed(1)} ` +
+        `C 700 ${top3.toFixed(1)}, 700 ${top4.toFixed(1)}, 800 ${top4.toFixed(1)} ` +
+        `L 1000 ${top4.toFixed(1)} ` +
+        `L 1000 ${bot4.toFixed(1)} ` +
+        `L 800 ${bot4.toFixed(1)} ` +
+        `C 700 ${bot4.toFixed(1)}, 700 ${bot3.toFixed(1)}, 600 ${bot3.toFixed(1)} ` +
+        `C 500 ${bot3.toFixed(1)}, 500 ${bot2.toFixed(1)}, 400 ${bot2.toFixed(1)} ` +
+        `C 300 ${bot2.toFixed(1)}, 300 ${bot1.toFixed(1)}, 200 ${bot1.toFixed(1)} ` +
+        `C 100 ${bot1.toFixed(1)}, 100 ${bot0.toFixed(1)}, 0 ${bot0.toFixed(1)} Z`;
+
+      const pathEl = document.getElementById('meta-funnel-path');
+      if (pathEl) pathEl.setAttribute('d', pathD);
+
+      const d1 = document.getElementById('funnel-div-1');
+      if (d1) { d1.setAttribute('y1', top1.toFixed(1)); d1.setAttribute('y2', bot1.toFixed(1)); }
+      const d2 = document.getElementById('funnel-div-2');
+      if (d2) { d2.setAttribute('y1', top2.toFixed(1)); d2.setAttribute('y2', bot2.toFixed(1)); }
+      const d3 = document.getElementById('funnel-div-3');
+      if (d3) { d3.setAttribute('y1', top3.toFixed(1)); d3.setAttribute('y2', bot3.toFixed(1)); }
+      const d4 = document.getElementById('funnel-div-4');
+      if (d4) { d4.setAttribute('y1', top4.toFixed(1)); d4.setAttribute('y2', bot4.toFixed(1)); }
+
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setEl('funnel-ribbon-cnt-clicks', clicks.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-clicks', '100%');
+
+      setEl('funnel-ribbon-cnt-pageviews', pv.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-pageviews', `${(clicks > 0 ? (pv / clicks * 100) : 0).toFixed(1)}%`);
+
+      setEl('funnel-ribbon-cnt-ic', ic.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-ic', `${(clicks > 0 ? (ic / clicks * 100) : 0).toFixed(1)}%`);
+
+      setEl('funnel-ribbon-cnt-orders-init', ordInit.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-orders-init', `${(clicks > 0 ? (ordInit / clicks * 100) : 0).toFixed(1)}%`);
+
+      setEl('funnel-ribbon-cnt-orders-paid', ordPaid.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-orders-paid', `${(clicks > 0 ? (ordPaid / clicks * 100) : 0).toFixed(1)}%`);
+    }
+
+    // ==================== GRÁFICOS: HORÁRIO | CANAIS | MÉTODOS DE PAGAMENTO ====================
+    function renderRevenueChart(hourlyData) {
+      const ctx = document.getElementById('revenueChart');
+      if (!ctx) return;
+      if (revenueChartInstance) revenueChartInstance.destroy();
+
+      const labels = Array.from({length: 24}, (_, i) => `${String(i).padStart(2, '0')}h`);
+      const values = Array(24).fill(0);
+      if (Array.isArray(hourlyData)) {
+        hourlyData.forEach(d => {
+          const h = parseInt(d.hour, 10);
+          if (h >= 0 && h < 24) values[h] = d.value || 0;
+        });
+      }
+
+      revenueChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Vendas (R$)',
+            data: values,
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 1.5,
+            pointHoverRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` R$ ${Number(ctx.raw).toFixed(2)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#64748B', font: { size: 9 }, maxTicksLimit: 12 }
+            },
+            y: {
+              grid: { color: '#1E293B' },
+              ticks: {
+                color: '#64748B',
+                font: { size: 9 },
+                callback: (v) => 'R$ ' + v
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderSourcesChart(sourcesData) {
+      const ctx = document.getElementById('sourcesChart');
+      const legEl = document.getElementById('sources-legend');
+      if (!ctx) return;
+      if (sourcesChartInstance) sourcesChartInstance.destroy();
+
+      const dataArr = (sourcesData && sourcesData.length > 0) ? sourcesData : [
+        { name: 'Direto / Orgânico', value: 0, color: '#10B981' },
+        { name: 'Facebook Ads', value: 0, color: '#1877F2' },
+        { name: 'Instagram', value: 0, color: '#E4405F' },
+        { name: 'Google Ads', value: 0, color: '#4285F4' }
+      ];
+
+      const labels = dataArr.map(d => d.name);
+      const values = dataArr.map(d => d.value || 1);
+      const colors = dataArr.map(d => d.color || '#8B5CF6');
+      const totalVal = dataArr.reduce((a, b) => a + (b.value || 0), 0);
+
+      sourcesChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` R$ ${Number(dataArr[ctx.dataIndex].value || 0).toFixed(2)}`
+              }
+            }
+          }
+        }
+      });
+
+      if (legEl) {
+        legEl.innerHTML = dataArr.slice(0, 4).map(d => {
+          const pct = totalVal > 0 ? ((d.value / totalVal) * 100).toFixed(0) : '0';
+          return `
+            <div class="flex items-center justify-between py-0.5">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${d.color};"></span>
+                <span class="text-slate-300 font-medium truncate">${d.name}</span>
+              </div>
+              <span class="font-bold text-white text-xs">${pct}% (R$ ${Number(d.value).toFixed(2)})</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderPaymentMethodsChart(methodsData) {
+      const ctx = document.getElementById('paymentMethodsChart');
+      const legEl = document.getElementById('payment-methods-legend');
+      if (!ctx) return;
+      if (paymentMethodsChartInstance) paymentMethodsChartInstance.destroy();
+
+      const dataArr = (methodsData && methodsData.length > 0) ? methodsData : [
+        { name: 'PIX', count: 0, value: 0, color: '#10B981' },
+        { name: 'Cartão de Crédito', count: 0, value: 0, color: '#6366F1' },
+        { name: 'Boleto', count: 0, value: 0, color: '#F59E0B' },
+        { name: 'Outros', count: 0, value: 0, color: '#8B5CF6' }
+      ];
+
+      const labels = dataArr.map(d => d.name);
+      const values = dataArr.map(d => d.count || (d.value > 0 ? d.value : 1));
+      const colors = dataArr.map(d => d.color || '#6366F1');
+      const totalCount = dataArr.reduce((a, b) => a + (b.count || 0), 0);
+
+      paymentMethodsChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` ${dataArr[ctx.dataIndex].count} vendas (R$ ${Number(dataArr[ctx.dataIndex].value || 0).toFixed(2)})`
+              }
+            }
+          }
+        }
+      });
+
+      if (legEl) {
+        legEl.innerHTML = dataArr.slice(0, 4).map(d => {
+          const pct = totalCount > 0 ? ((d.count / totalCount) * 100).toFixed(0) : '0';
+          return `
+            <div class="flex items-center justify-between py-0.5">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${d.color};"></span>
+                <span class="text-slate-300 font-medium truncate">${d.name}</span>
+              </div>
+              <span class="font-bold text-white text-xs">${pct}% (${d.count} un)</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // ==================== SINCRONIZAÇÃO DINÂMICA DO PIXEL & PROMPT IA ====================
+    function updatePixelSnippets() {
+      const selector = document.getElementById('script-pixel-selector');
+      let pixelId = selector?.value || '';
+      if (!pixelId && cachedRegisteredPixels.length > 0) {
+        pixelId = cachedRegisteredPixels[0].pixel_id;
+      }
+      const displayId = pixelId || 'SEU_PIXEL_ID';
+
+      const scriptEl = document.getElementById('script-meta-pixel-code');
+      if (scriptEl) {
+        scriptEl.textContent = `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${displayId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${displayId}&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->`;
+      }
+
+      const promptEl = document.getElementById('ai-prompt-content');
+      if (promptEl) {
+        const origin = window.location.origin;
+        promptEl.value = `Instale o rastreamento profissional completo da minha landing page/site com o TrackPro e Facebook Pixel.
+
+1. Dentro da tag <head> do site (antes de fechar </head>), adicione estes DOIS scripts exatamente nesta ordem:
+
+<!-- 1. Script Global TrackPro (Captura e Repasse de UTMs + CAPI) -->
+<script src="${origin}/trackpro.js" async><\/script>
+
+<!-- 2. Meta Pixel Oficial do Facebook -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${displayId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${displayId}&ev=PageView&noscript=1"
+/></noscript>
+
+2. Em todos os botões ou links que levam para o checkout de pagamento, garanta que qualquer parâmetro UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck) presente na URL da página seja automaticamente anexado no link do checkout ao clicar.`;
+      }
+    }
+
+    function copyPixelCode(pixelId) {
+      const code = `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->`;
+      navigator.clipboard.writeText(code);
+      alert(`Script do Pixel (${pixelId}) copiado com sucesso! Cole na tag <head> do seu site.`);
+    }
+
+    function copyPixelAiPrompt(pixelId) {
+      const origin = window.location.origin;
+      const promptText = `Instale o rastreamento profissional completo da minha landing page/site com o TrackPro e Facebook Pixel.
+
+1. Dentro da tag <head> do site (antes de fechar </head>), adicione estes DOIS scripts exatamente nesta ordem:
+
+<!-- 1. Script Global TrackPro (Captura e Repasse de UTMs + CAPI) -->
+<script src="${origin}/trackpro.js" async><\/script>
+
+<!-- 2. Meta Pixel Oficial do Facebook -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
+/></noscript>
+
+2. Em todos os botões ou links que levam para o checkout de pagamento, garanta que qualquer parâmetro UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck) presente na URL da página seja automaticamente anexado no link do checkout ao clicar.`;
+      navigator.clipboard.writeText(promptText);
+      alert(`Mini-Prompt para IA copiado com o Pixel (${pixelId})! Cole no Cursor, v0 ou ChatGPT.`);
+    }
 
     // ==================== DEFINIÇÕES DE MÉTRICAS (PADRÃO UTMIFY) ====================
     const METRIC_DEFS = {
@@ -2114,14 +4248,19 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       { key: 'status', label: 'Status (Ativo/Pausado)', fixed: true },
       { key: 'name', label: 'Nome da Campanha', fixed: true },
       { key: 'budget', label: 'Orçamento Diário' },
-      { key: 'spent', label: 'Gasto Total' },
-      { key: 'sales', label: 'Vendas Aprovadas' },
+      { key: 'spent', label: 'Gasto no Período' },
+      { key: 'sales', label: 'Vendas (Compras)' },
+      { key: 'initiate_checkouts', label: 'IC (Checkouts Iniciados)' },
+      { key: 'cost_per_ic', label: 'Custo por IC (CPA IC)' },
+      { key: 'impressions', label: 'Impressões' },
+      { key: 'clicks', label: 'Cliques' },
+      { key: 'ctr', label: 'CTR (%)' },
+      { key: 'cpc', label: 'CPC' },
+      { key: 'cpm', label: 'CPM' },
       { key: 'revenue', label: 'Faturamento' },
       { key: 'roas', label: 'ROAS Real' },
       { key: 'cpa', label: 'CPA Médio' },
-      { key: 'profit', label: 'Lucro Estimado' },
-      { key: 'ctr', label: 'CTR Médio' },
-      { key: 'clicks', label: 'Cliques' },
+      { key: 'profit', label: 'Lucro Est.' },
       { key: 'actions', label: 'Ações (Duplicar/Editar)', fixed: true }
     ];
 
@@ -2131,6 +4270,11 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       'budget',
       'spent',
       'sales',
+      'initiate_checkouts',
+      'cost_per_ic',
+      'impressions',
+      'clicks',
+      'ctr',
       'revenue',
       'roas',
       'cpa',
@@ -2138,7 +4282,11 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     ];
 
     let userVisibleMetrics = JSON.parse(localStorage.getItem('trackpro_visible_metrics') || 'null') || [...DEFAULT_VISIBLE_METRICS];
-    let userVisibleColumns = JSON.parse(localStorage.getItem('trackpro_visible_columns') || 'null') || [...DEFAULT_VISIBLE_COLUMNS];
+    let userVisibleColumns = JSON.parse(localStorage.getItem('trackpro_visible_columns') || 'null');
+    if (!userVisibleColumns || !userVisibleColumns.includes('initiate_checkouts')) {
+      userVisibleColumns = [...DEFAULT_VISIBLE_COLUMNS];
+      localStorage.setItem('trackpro_visible_columns', JSON.stringify(userVisibleColumns));
+    }
     let cardSizes = JSON.parse(localStorage.getItem('trackpro_card_sizes') || '{}');
     let draggedMetricKey = null;
     let lastCachedKpis = null;
@@ -2292,6 +4440,27 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       setTimeout(() => { Notification.requestPermission(); }, 3000);
     }
 
+    // ==================== CONTROLE DO MENU LATERAL MOBILE (DRAWER) ====================
+    function openMobileSidebar() {
+      const sidebar = document.getElementById('mobile-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (sidebar && backdrop) {
+        backdrop.classList.remove('hidden');
+        sidebar.classList.remove('-translate-x-full');
+        document.body.classList.add('overflow-hidden');
+      }
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('mobile-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (sidebar && backdrop) {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      }
+    }
+
     // ==================== NAVEGAÇÃO DE ABAS ====================
     function switchTab(tabId) {
       currentTab = tabId;
@@ -2300,7 +4469,10 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
         el.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50';
       });
       document.querySelectorAll('.mob-nav').forEach(el => {
-        el.className = 'mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white';
+        el.className = 'mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors';
+      });
+      document.querySelectorAll('.drawer-nav-item').forEach(el => {
+        el.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60';
       });
 
       const activePane = document.getElementById('tab-' + tabId);
@@ -2310,9 +4482,19 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       if (activeNav) activeNav.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-500/10 text-brand-400 border border-brand-500/20';
 
       const activeMob = document.getElementById('mob-' + tabId);
-      if (activeMob) activeMob.className = 'mob-nav flex flex-col items-center gap-1 text-brand-400 font-semibold';
+      if (activeMob) {
+        activeMob.className = 'mob-nav flex flex-col items-center gap-1 text-brand-400 font-semibold py-1 flex-1 transition-colors';
+      } else {
+        const mobMenu = document.getElementById('mob-menu');
+        if (mobMenu) mobMenu.className = 'mob-nav flex flex-col items-center gap-1 text-brand-400 font-semibold py-1 flex-1 transition-colors';
+      }
 
+      const activeDrawer = document.getElementById('drawer-nav-' + tabId);
+      if (activeDrawer) activeDrawer.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-brand-500/10 text-brand-400 border border-brand-500/25';
+
+      closeMobileSidebar();
       refreshData();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ==================== MODAIS ====================
@@ -2695,24 +4877,9 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
         // 3. Atualiza Cards Dinâmicos
         renderDynamicKpiCards(data.kpis);
 
-        // 4. Atualiza Funil Contínuo de Conversão (Meta ads Ribbon)
-        if (data.funnel && data.funnel.ribbon) {
-          const rib = data.funnel.ribbon;
-          const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-          setTxt('funnel-ribbon-pct-clicks', rib.clicks?.pct || '100%');
-          setTxt('funnel-ribbon-cnt-clicks', Number(rib.clicks?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-pageviews', rib.pageviews?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-pageviews', Number(rib.pageviews?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-ic', rib.ic?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-ic', Number(rib.ic?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-orders-init', rib.orders_initiated?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-orders-init', Number(rib.orders_initiated?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-orders-paid', rib.orders_paid?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-orders-paid', Number(rib.orders_paid?.count || 0).toLocaleString('pt-BR'));
+        // 4. Atualiza Funil Contínuo Adaptativo de Conversão (Meta Ads Ribbon Dinâmico)
+        if (data.funnel) {
+          updateFunnelRibbon(data.funnel);
         }
 
         // 3. Tabela de Pedidos Recentes
@@ -2745,13 +4912,23 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
           const totalOrders = data.recentOrders.length;
           if (lastOrderCount !== -1 && totalOrders > lastOrderCount) {
             const latest = data.recentOrders[0];
-            playKachingSound();
+            const isPix = (latest.payment_method || '').toLowerCase() === 'pix' && latest.status !== 'paid';
+            if (isPix) {
+              playTrackProSound('pix', 1.0);
+              showMobileNotification('🪙 PIX GERADO!', `PIX de R$ ${Number(latest.amount).toFixed(2).replace('.', ',')} gerado! (${latest.platform || 'Checkout'})`, 'pix');
+            } else {
+              const sound = localStorage.getItem('trackpro_sound_type') || 'kaching';
+              playTrackProSound(sound, 1.0);
+              showMobileNotification('💸 VENDA APROVADA!', `Venda de R$ ${Number(latest.amount).toFixed(2).replace('.', ',')} aprovada via ${latest.payment_method || 'Cartão'}! (${latest.platform || 'Checkout'})`, 'sale');
+            }
             showSaleToast(latest);
           }
           lastOrderCount = totalOrders;
         }
 
+        renderRevenueChart(data.revenueChart || []);
         renderSourcesChart(data.sourcesChart || []);
+        renderPaymentMethodsChart(data.paymentMethodsChart || []);
 
         if (currentTab === 'campaigns') loadCampaignsData();
         if (currentTab === 'rules') loadRulesData();
@@ -3085,15 +5262,20 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       const colLabels = {
         status: 'Status',
         name: 'Nome da Campanha',
-        budget: 'Orçamento Diário',
-        spent: 'Gasto Total',
+        budget: 'Orçamento',
+        spent: 'Gasto',
         sales: 'Vendas',
-        revenue: 'Faturamento',
-        roas: 'ROAS Real',
-        cpa: 'CPA Médio',
-        profit: 'Lucro Est.',
-        ctr: 'CTR Médio',
+        initiate_checkouts: 'IC (Checkouts)',
+        cost_per_ic: 'CPA IC',
+        impressions: 'Impressões',
         clicks: 'Cliques',
+        ctr: 'CTR',
+        cpc: 'CPC',
+        cpm: 'CPM',
+        revenue: 'Faturamento',
+        roas: 'ROAS',
+        cpa: 'CPA',
+        profit: 'Lucro Est.',
         actions: 'Ações'
       };
 
@@ -3107,14 +5289,12 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       }
 
       if (!campaigns || campaigns.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${cols.length + 1}" class="py-8 text-center text-slate-500">Nenhuma campanha cadastrada. Clique em "+ Nova Campanha" para criar ou "Conectar Facebook" para importar.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${cols.length + 1}" class="py-8 text-center text-slate-500">Nenhuma campanha rodou no período selecionado. Selecione 'Todo o período' para ver o histórico.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = campaigns.map(c => {
         const profit = Math.max(0, (c.revenue || 0) - (c.spent || 0));
-        const clicks = Math.round((c.spent || 0) * 1.8);
-        const ctr = (clicks > 0) ? 2.4 : 0.0;
         const isChecked = selectedCampaignIds.has(c.id);
 
         let rowHtml = `<tr class="hover:bg-slate-800/30 transition-colors ${isChecked ? 'bg-brand-500/5' : ''}">`;
@@ -3132,35 +5312,53 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
                 </button>
               </td>`;
           } else if (col === 'name') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.name}</td>`;
-          } else if (col === 'budget') {
             rowHtml += `
               <td class="py-3 px-4">
-                <button onclick="editCampaignBudget(${c.id}, ${c.daily_budget})" class="font-mono text-xs text-brand-400 hover:underline flex items-center gap-1">
-                  R$ ${Number(c.daily_budget).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
+                <div class="font-bold text-white hover:text-brand-400 cursor-pointer" onclick="filterByCampaign(${c.id})">${c.name}</div>
+                <div class="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                  <span>${c.objective || 'OUTCOME_SALES'}</span>
+                  <span>•</span>
+                  <span>${(c.adsets || []).length} conjuntos</span>
+                </div>
+              </td>`;
+          } else if (col === 'budget') {
+            rowHtml += `
+              <td class="py-3 px-4 font-mono text-brand-400">
+                <button onclick="editCampaignBudget(${c.id}, ${c.daily_budget || 0})" class="hover:underline flex items-center gap-1">
+                  R$ ${Number(c.daily_budget || 0).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
                 </button>
               </td>`;
           } else if (col === 'spent') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent).toFixed(2)}</td>`;
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent || 0).toFixed(2)}</td>`;
           } else if (col === 'sales') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.sales}</td>`;
-          } else if (col === 'revenue') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-emerald-400">R$ ${Number(c.revenue).toFixed(2)}</td>`;
-          } else if (col === 'roas') {
-            rowHtml += `<td class="py-3 px-4 font-extrabold ${c.roas >= 2.0 ? 'text-emerald-400' : (c.roas >= 1.0 ? 'text-amber-400' : 'text-rose-400')}">${c.roas.toFixed(2)}x</td>`;
-          } else if (col === 'cpa') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.cpa).toFixed(2)}</td>`;
-          } else if (col === 'profit') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-emerald-400">R$ ${profit.toFixed(2)}</td>`;
-          } else if (col === 'ctr') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-sky-400">${ctr.toFixed(2)}%</td>`;
+            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.sales || 0}</td>`;
+          } else if (col === 'initiate_checkouts') {
+            rowHtml += `<td class="py-3 px-4 font-bold text-purple-400">${c.initiate_checkouts || 0}</td>`;
+          } else if (col === 'cost_per_ic') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-purple-300">${c.cost_per_ic > 0 ? ('R$ ' + Number(c.cost_per_ic).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'impressions') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-400">${Number(c.impressions || 0).toLocaleString('pt-BR')}</td>`;
           } else if (col === 'clicks') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${clicks}</td>`;
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${Number(c.clicks || 0).toLocaleString('pt-BR')}</td>`;
+          } else if (col === 'ctr') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-amber-400">${Number(c.ctr || 0).toFixed(2)}%</td>`;
+          } else if (col === 'cpc') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${c.cpc > 0 ? ('R$ ' + Number(c.cpc).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'cpm') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${c.cpm > 0 ? ('R$ ' + Number(c.cpm).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'revenue') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-emerald-400 font-bold">R$ ${Number(c.revenue || 0).toFixed(2)}</td>`;
+          } else if (col === 'roas') {
+            rowHtml += `<td class="py-3 px-4 font-extrabold ${Number(c.roas || 0) >= 2.0 ? 'text-emerald-400' : 'text-slate-300'}">${Number(c.roas || 0).toFixed(2)}x</td>`;
+          } else if (col === 'cpa') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${c.cpa > 0 ? ('R$ ' + Number(c.cpa).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'profit') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-emerald-400 font-bold">R$ ${profit.toFixed(2)}</td>`;
           } else if (col === 'actions') {
             rowHtml += `
               <td class="py-3 px-4 text-right space-x-1.5">
-                <button onclick="duplicateCampaign(${c.id})" class="px-2.5 py-1 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold" title="Duplicar Campanha">
-                  Duplicar
+                <button onclick="duplicateCampaign(${c.id})" class="px-2.5 py-1 bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 rounded-lg text-xs font-semibold flex items-center gap-1 inline-flex">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Duplicar
                 </button>
               </td>`;
           }
@@ -3172,7 +5370,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       lucide.createIcons();
     }
 
-    function renderAdsetsTable(adsets) {
+function renderAdsetsTable(adsets) {
       const tbody = document.getElementById('adsets-tbody');
       if (!tbody) return;
 
@@ -3655,30 +5853,54 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       try {
         const res = await fetch('/api/pixels');
         const data = await res.json();
+        cachedRegisteredPixels = data.pixels || [];
         const grid = document.getElementById('pixels-grid');
-        if (!grid) return;
 
-        if (!data.pixels || data.pixels.length === 0) {
-          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhum Pixel adicional cadastrado. Clique em "+ Adicionar Pixel Meta" para configurar contingência ou multi-produtos.</div>';
-        } else {
-          grid.innerHTML = data.pixels.map(p => `
-            <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-                  <h4 class="font-bold text-sm text-white">${p.name}</h4>
+        // Atualiza seletor de pixel da aba Webhooks
+        const selector = document.getElementById('script-pixel-selector');
+        if (selector) {
+          if (cachedRegisteredPixels.length === 0) {
+            selector.innerHTML = '<option value="">Nenhum pixel cadastrado</option>';
+          } else {
+            selector.innerHTML = cachedRegisteredPixels.map(p => `<option value="${p.pixel_id}">${p.pixel_id} — ${p.name}</option>`).join('');
+          }
+          updatePixelSnippets();
+        }
+
+        if (grid) {
+          if (cachedRegisteredPixels.length === 0) {
+            grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhum Pixel cadastrado ainda. Clique no botão acima para adicionar seu Pixel Meta.</div>';
+          } else {
+            grid.innerHTML = cachedRegisteredPixels.map(p => `
+              <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3 flex flex-col justify-between">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+                      <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                    </div>
+                    <button onclick="deletePixel(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs p-1 rounded hover:bg-slate-800"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                  </div>
+                  <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-blue-400 select-all">
+                    ID: ${p.pixel_id}
+                  </div>
+                  <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span class="flex items-center gap-1 text-emerald-400 font-semibold"><i data-lucide="check" class="w-3.5 h-3.5"></i> CAPI Conectado</span>
+                    ${p.test_event_code ? `<span class="font-mono text-[11px] text-amber-400">Teste: ${p.test_event_code}</span>` : ''}
+                  </div>
                 </div>
-                <button onclick="deletePixel(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                  <button onclick="copyPixelCode('${p.pixel_id}')" class="py-1.5 px-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all">
+                    <i data-lucide="code" class="w-3 h-3"></i> Copiar Script
+                  </button>
+                  <button onclick="copyPixelAiPrompt('${p.pixel_id}')" class="py-1.5 px-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i> Prompt IA
+                  </button>
+                </div>
               </div>
-              <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-indigo-400 select-all">
-                ID: ${p.pixel_id}
-              </div>
-              <div class="flex items-center justify-between text-xs text-slate-400">
-                <span class="flex items-center gap-1 text-emerald-400 font-semibold"><i data-lucide="check" class="w-3.5 h-3.5"></i> CAPI Conectado</span>
-                ${p.test_event_code ? `<span class="font-mono text-[11px] text-amber-400">Teste: ${p.test_event_code}</span>` : ''}
-              </div>
-            </div>
-          `).join('');
+            `).join('');
+          }
         }
 
         // Logs CAPI
@@ -3706,7 +5928,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       }
     }
 
-    async function submitNewPixel() {
+async function submitNewPixel() {
       const name = document.getElementById('pixel-name-input').value;
       const pixel_id = document.getElementById('pixel-id-input').value;
       const access_token = document.getElementById('pixel-token-input').value;
@@ -3761,72 +5983,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     // ==================== CONTAS DE ANÚNCIO & STATUS META ====================
     async function loadAccountsData() {
       try {
-        // Atualiza Status do OAuth da Meta
-        let statusData = { connected: false, configured: false };
-        try {
-          const statusRes = await fetch('/api/integrations/meta/status');
-          statusData = await statusRes.json();
-          const nameEl = document.getElementById('meta-user-name-display');
-          const badgeEl = document.getElementById('meta-connection-badge');
-          const subEl = document.getElementById('meta-connection-subtext');
-          const tagsEl = document.getElementById('meta-permissions-tags');
-          const actionsEl = document.getElementById('meta-oauth-actions');
-
-          if (statusData.connected) {
-            const isPermanent = statusData.expires_at && statusData.expires_at.startsWith('2099');
-            if (nameEl) nameEl.textContent = statusData.meta_user_name || 'Trackeamento';
-            if (badgeEl) {
-              badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-              badgeEl.textContent = isPermanent ? 'Token Permanente Ativo' : 'OAuth 2.0 Ativo';
-            }
-            if (subEl) {
-              const expStr = isPermanent ? 'Token Permanente de System User (Não expira)' : (statusData.expires_at ? `Expira em: ${statusData.expires_at.substring(0, 10)}` : '60 dias');
-              subEl.textContent = `${expStr}. ${statusData.selected_accounts || 0} de ${statusData.total_accounts || 0} contas ativas para tracking de campanhas e métricas.`;
-            }
-            if (tagsEl) {
-              const perms = statusData.permissions || ['ads_read', 'public_profile'];
-              tagsEl.innerHTML = perms.map(p => `
-                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                  <i data-lucide="shield-check" class="w-2.5 h-2.5"></i> ${p}
-                </span>
-              `).join('');
-            }
-            if (actionsEl) {
-              actionsEl.innerHTML = `
-                <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
-                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar da Meta
-                </button>
-                <button onclick="openModal('modal-system-user-token')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
-                  <i data-lucide="key" class="w-3.5 h-3.5 text-emerald-400"></i> Atualizar Token
-                </button>
-                <button onclick="disconnectMetaAccount()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
-                  <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Desconectar
-                </button>
-              `;
-            }
-            const tokenInput = document.getElementById('system-user-token-input');
-            if (tokenInput && !tokenInput.value) {
-              tokenInput.value = 'EAAP3aw4jAzkBS5ZBSHgj5bnUZAEkmidzcUEdXZCCglpZBykiL8UcgCZAjIUcuY26HEGceD6s3DSHBTZA73ntdZAtGBVvbpeyTNaOd53uFTsJodLtez9ayaK7YBqdrw3nfxAFOsQXUVuKPZAHr5zAqztJQwsLaGVQ4QQLslvkLoZBUbniEv4P0OMRoZATopMBYsWgZDZD';
-            }
-          } else {
-            if (nameEl) nameEl.textContent = 'Nenhuma Conta Meta Conectada';
-            if (badgeEl) {
-              badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
-              badgeEl.textContent = 'Desconectado';
-            }
-            if (subEl) subEl.textContent = 'Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas, orçamentos e métricas automaticamente.';
-            if (tagsEl) tagsEl.innerHTML = '';
-            if (actionsEl) {
-              actionsEl.innerHTML = `
-                <button onclick="openFacebookLoginPopup()" class="px-4 py-2.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
-                  <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
-                </button>
-              `;
-            }
-          }
-        } catch (errStatus) {
-          console.warn('Erro ao carregar status OAuth:', errStatus);
-        }
+        await checkMetaGlobalStatus();
 
         const res = await fetch('/api/integrations/meta/ad-accounts');
         const data = await res.json();
@@ -4169,6 +6326,13 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
     // Inicialização ao carregar
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      checkAuthSession();
+      checkMetaGlobalStatus();
+      loadNotificationSettingsFromBackend();
+      loadNotifications();
+      renderSummaryHoursChips();
+      setInterval(checkScheduledSummaries, 30000);
+      setInterval(loadNotifications, 45000);
       updateSoundUI();
       initWebhooksAndScript();
       loadDashboardsList();

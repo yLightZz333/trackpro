@@ -66,6 +66,135 @@
 </head>
 <body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased pb-20 md:pb-0">
 
+  <!-- BACKDROP MOBILE SIDEBAR -->
+  <div id="mobile-sidebar-backdrop" onclick="closeMobileSidebar()" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
+
+  <!-- DRAWER MOBILE SIDEBAR (MENU LATERAL COMPLETO NO CELULAR) -->
+  <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-dark-900 border-r border-slate-800 z-50 flex flex-col md:hidden transform -translate-x-full transition-transform duration-300 ease-in-out shadow-2xl">
+    <!-- Top Header do Drawer -->
+    <div class="h-16 px-5 border-b border-slate-800 flex items-center justify-between bg-dark-950/60">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i data-lucide="crosshair" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-base text-white">Track<span class="text-brand-400">Pro</span></span>
+          <span class="block text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Suite v2.5 Mobile</span>
+        </div>
+      </div>
+      <button onclick="closeMobileSidebar()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Fechar Menu">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Card do Perfil do Usuário no Topo do Drawer -->
+    <div class="p-4 border-b border-slate-800 bg-dark-950/40">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-sm text-white shadow-md">
+          L
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span id="drawer-user-name" class="font-bold text-sm text-white truncate">Lucas</span>
+            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">VIP</span>
+          </div>
+          <span id="drawer-user-email" class="text-xs text-slate-400 truncate block">luckinhasp4@gmail.com</span>
+        </div>
+        <button onclick="openAuthModal('login'); closeMobileSidebar();" title="Trocar Conta" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+          <i data-lucide="users" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista Completa de Seções (Exatamente igual ao PC) -->
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('dashboard')" id="drawer-nav-dashboard" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 text-brand-400"></i>
+          <span>Visão Geral (KPIs)</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('campaigns')" id="drawer-nav-campaigns" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="target" class="w-5 h-5 text-blue-400"></i>
+          <span>Campanhas & Anúncios</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('rules')" id="drawer-nav-rules" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="cpu" class="w-5 h-5 text-amber-400"></i>
+          <span>Regras de Automação</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('orders')" id="drawer-nav-orders" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="shopping-bag" class="w-5 h-5 text-emerald-400"></i>
+          <span>Pedidos com UTM</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('pixels')" id="drawer-nav-pixels" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="share-2" class="w-5 h-5 text-indigo-400"></i>
+          <span>Multi-Pixels & CAPI</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">CAPI</span>
+      </button>
+
+      <button onclick="switchTab('accounts')" id="drawer-nav-accounts" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="key-round" class="w-5 h-5 text-sky-400"></i>
+          <span>Contas de Anúncio Meta</span>
+        </div>
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </button>
+
+      <button onclick="switchTab('webhooks')" id="drawer-nav-webhooks" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="webhook" class="w-5 h-5 text-purple-400"></i>
+          <span>Plataformas & Webhooks</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      </button>
+
+      <button onclick="switchTab('notifications')" id="drawer-nav-notifications" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="bell-ring" class="w-5 h-5 text-amber-400"></i>
+          <span>Notificações & Sons</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Novo</span>
+      </button>
+
+      <div class="pt-2 border-t border-slate-800/80">
+        <button onclick="openModal('modal-customize-dashboard'); closeMobileSidebar();" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40">
+          <i data-lucide="sliders" class="w-4 h-4 text-brand-400"></i>
+          <span>Personalizar Métricas & Colunas</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Rodapé do Drawer -->
+    <div class="p-4 border-t border-slate-800 bg-dark-950/80 space-y-3">
+      <div class="flex items-center justify-between text-xs text-slate-400">
+        <span class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Automações Ativas</span>
+        </span>
+        <button onclick="resetSystemData()" class="text-[11px] text-rose-400 hover:text-rose-300 font-semibold">Zerar Dados</button>
+      </div>
+      <button onclick="handleLogout()" class="w-full py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
+        <i data-lucide="log-out" class="w-4 h-4"></i> Sair da Conta
+      </button>
+    </div>
+  </aside>
+
   <!-- DESKTOP SIDEBAR -->
   <aside class="hidden md:flex w-64 bg-dark-900 border-r border-slate-800/80 flex-col flex-shrink-0 z-30">
     <div class="h-16 px-6 border-b border-slate-800/80 flex items-center justify-between">
@@ -102,10 +231,10 @@
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
       </button>
-    <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+      <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i> Notificações & Sons
       </button>
-      </nav>
+    </nav>
 
     <!-- Rodapé Sidebar -->
     <div class="p-4 border-t border-slate-800/80 bg-dark-950/50 space-y-2">
@@ -119,26 +248,47 @@
     </div>
   </aside>
 
-  <!-- MOBILE TOP BAR -->
-  <div class="md:hidden h-14 bg-dark-900 border-b border-slate-800/80 px-4 flex items-center justify-between sticky top-0 z-30">
+  <!-- MOBILE TOP BAR (REFINADA COM MENU HAMBÚRGUER, STATUS E PERFIL) -->
+  <div class="md:hidden h-14 bg-dark-900/95 backdrop-blur-md border-b border-slate-800/80 px-3 flex items-center justify-between sticky top-0 z-30">
     <div class="flex items-center gap-2">
-      <div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center font-bold text-xs text-white">TP</div>
-      <span class="font-bold text-sm text-white">Track<span class="text-brand-400">Pro</span></span>
+      <button onclick="openMobileSidebar()" class="p-2 -ml-1 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Abrir Menu Completo">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+      <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('dashboard')">
+        <div class="w-7 h-7 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-sm">
+          <i data-lucide="crosshair" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-extrabold text-sm text-white tracking-tight">Track<span class="text-brand-400">Pro</span></span>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
+
+    <div class="flex items-center gap-1.5">
       <!-- Seletor Rápido de Dashboard Mobile -->
-      <select id="mobile-dash-select" onchange="changeDashboard(this.value)" class="bg-dark-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none">
+      <select id="mobile-dash-select" onchange="changeDashboard(this.value)" class="bg-dark-800 border border-slate-700/80 text-[11px] font-medium text-slate-200 rounded-xl px-2 py-1.5 focus:outline-none max-w-[90px] truncate">
         <option value="">Geral</option>
       </select>
-      <button onclick="toggleNotificationDropdown()" id="notif-bell-mobile" class="relative p-1.5 bg-dark-800 text-amber-400 rounded-lg hover:text-amber-300" title="Notificações">
+
+      <!-- Botão Atualizar Mobile -->
+      <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors" title="Atualizar Dados">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Sino de Notificações Mobile -->
+      <button onclick="toggleNotificationDropdown()" id="notif-bell-mobile" class="relative p-2 bg-dark-800 hover:bg-slate-700 text-amber-400 rounded-xl transition-colors" title="Notificações">
         <i data-lucide="bell" class="w-4 h-4"></i>
         <span id="notif-badge-mobile" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
       </button>
-      <button onclick="toggleSound()" id="sound-btn-mobile" class="p-1.5 bg-dark-800 text-emerald-400 rounded-lg" title="Som de Venda">
-        <i data-lucide="volume-2" class="w-4 h-4"></i>
+
+      <!-- Avatar do Usuário Mobile -->
+      <button onclick="toggleProfileDropdown()" id="user-profile-btn-mobile" class="p-1 bg-dark-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors" title="Meu Perfil">
+        <div id="user-profile-avatar-mobile" class="w-6 h-6 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-[10px] font-bold text-white">
+          L
+        </div>
       </button>
-      <button onclick="promptInstallPWA()" id="pwa-install-btn" class="hidden px-2 py-1 bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-lg text-xs font-semibold">
-        App
+
+      <!-- Botão Instalar App PWA -->
+      <button onclick="promptInstallPWA()" id="pwa-install-btn" class="hidden px-2.5 py-1 bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-xl text-[11px] font-bold">
+        Instalar
       </button>
     </div>
   </div>
@@ -182,31 +332,6 @@
             <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
             <span id="notif-badge-desktop" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
           </button>
-          
-          <!-- Dropdown Central de Notificações -->
-          <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-            <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-dark-950/80">
-              <div class="flex items-center gap-2">
-                <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
-                <span class="font-bold text-xs text-white">Notificações em Tempo Real</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <button onclick="markAllNotificationsRead()" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar lidas</button>
-                <button onclick="switchTab('notifications'); closeNotificationDropdown();" class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">Ajustes</button>
-              </div>
-            </div>
-            <div id="notif-list-container" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1">
-              <div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>
-            </div>
-            <div class="p-2.5 border-t border-slate-800 bg-dark-950/50 flex items-center justify-between text-xs">
-              <button onclick="simulateSaleAlert()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
-                <i data-lucide="play" class="w-3 h-3"></i> Testar Venda
-              </button>
-              <button onclick="simulatePixAlert()" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
-                <i data-lucide="play" class="w-3 h-3"></i> Testar PIX
-              </button>
-            </div>
-          </div>
         </div>
 
         <!-- Som de Venda Ka-ching Toggle -->
@@ -217,9 +342,10 @@
         <button onclick="testKachingSound()" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors" title="Testar Som da Caixa Registradora">
           <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Testar Som
         </button>
-        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors">
+        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors" title="Atualizar">
           <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
         </button>
+
         <!-- Menu de Perfil do Usuário Lucas / Multi-Tenant -->
         <div class="relative ml-2">
           <button onclick="toggleProfileDropdown()" id="user-profile-btn" class="flex items-center gap-2.5 pl-2 pr-3 py-1 bg-dark-800/80 hover:bg-dark-800 border border-slate-800 hover:border-slate-700 rounded-xl transition-all">
@@ -232,36 +358,72 @@
             </div>
             <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
           </button>
-
-          <!-- Dropdown do Perfil -->
-          <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-60 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-800">
-            <div class="p-3 bg-dark-950/60">
-              <span class="block text-xs font-bold text-white" id="dropdown-user-name">Lucas</span>
-              <span class="block text-[11px] text-slate-400 truncate" id="dropdown-user-email">luckinhasp4@gmail.com</span>
-              <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold rounded-full">Conta Ativa • VIP</span>
-            </div>
-            <div class="p-1 space-y-0.5">
-              <button onclick="switchTab('notifications'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
-                <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Notificações & Sons
-              </button>
-              <button onclick="switchTab('accounts'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
-                <i data-lucide="facebook" class="w-3.5 h-3.5 text-blue-400"></i> Conectar Meta Ads
-              </button>
-              <button onclick="openAuthModal('login'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
-                <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i> Trocar de Conta
-              </button>
-            </div>
-            <div class="p-1">
-              <button onclick="handleLogout()" class="w-full text-left px-3 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-2">
-                <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sair da Conta
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </header>
 
-    <div class="p-4 md:p-6 space-y-6">
+    <!-- Central de Notificações Universal Flutuante (Funciona tanto em Mobile quanto em Desktop) -->
+    <div id="notif-dropdown" class="hidden fixed top-16 right-3 left-3 sm:left-auto sm:right-6 sm:w-96 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-dark-950/80">
+        <div class="flex items-center gap-2">
+          <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
+          <span class="font-bold text-xs text-white">Notificações em Tempo Real</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="markAllNotificationsRead()" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar lidas</button>
+          <button onclick="switchTab('notifications'); closeNotificationDropdown();" class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">Ajustes</button>
+          <button onclick="closeNotificationDropdown()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors" title="Fechar">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+      <div id="notif-list-container" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1">
+        <div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>
+      </div>
+      <div class="p-2.5 border-t border-slate-800 bg-dark-950/50 flex items-center justify-between text-xs">
+        <button onclick="simulateSaleAlert()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+          <i data-lucide="play" class="w-3 h-3"></i> Testar Venda
+        </button>
+        <button onclick="simulatePixAlert()" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
+          <i data-lucide="play" class="w-3 h-3"></i> Testar PIX
+        </button>
+      </div>
+    </div>
+
+    <!-- Dropdown do Perfil Universal Flutuante (Funciona tanto em Mobile quanto em Desktop) -->
+    <div id="profile-dropdown" class="hidden fixed top-16 right-3 left-3 sm:left-auto sm:right-6 sm:w-64 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-800">
+      <div class="p-3 bg-dark-950/80 flex items-center justify-between">
+        <div>
+          <span class="block text-xs font-bold text-white" id="dropdown-user-name">Lucas</span>
+          <span class="block text-[11px] text-slate-400 truncate" id="dropdown-user-email">luckinhasp4@gmail.com</span>
+          <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold rounded-full">Conta Ativa • VIP</span>
+        </div>
+        <button onclick="closeProfileDropdown()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors" title="Fechar">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-1.5 space-y-0.5">
+        <button onclick="switchTab('notifications'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Notificações & Sons
+        </button>
+        <button onclick="switchTab('accounts'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="facebook" class="w-3.5 h-3.5 text-blue-400"></i> Conectar Meta Ads
+        </button>
+        <button onclick="openModal('modal-customize-dashboard'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i> Personalizar Métricas
+        </button>
+        <button onclick="openAuthModal('login'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i> Trocar de Conta
+        </button>
+      </div>
+      <div class="p-1.5">
+        <button onclick="handleLogout()" class="w-full text-left px-3 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-2">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sair da Conta
+        </button>
+      </div>
+    </div>
+
+    <div class="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 pb-24 md:pb-6">
 
       <!-- ==================== TAB 1: DASHBOARD ==================== -->
       <section id="tab-dashboard" class="tab-pane space-y-4 md:space-y-6">
@@ -565,7 +727,7 @@
             <button onclick="switchTab('orders')" class="text-xs font-semibold text-brand-400 hover:text-brand-300">Ver todas →</button>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[600px]">
               <thead class="text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-2.5 px-3">Pedido / Cliente</th>
@@ -756,7 +918,7 @@
         <!-- SUBPANE 1: TABELA DE CAMPANHAS -->
         <div id="camp-subpane-campaigns" class="bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[900px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr id="campaigns-thead-tr">
                   <th class="py-3 px-3 w-8 text-center">
@@ -774,7 +936,7 @@
         <!-- SUBPANE 2: TABELA DE CONJUNTOS DE ANÚNCIO (AD SETS) -->
         <div id="camp-subpane-adsets" class="hidden bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[850px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-3 px-3 w-8 text-center">
@@ -801,7 +963,7 @@
         <!-- SUBPANE 3: TABELA DE ANÚNCIOS (CRIATIVOS) -->
         <div id="camp-subpane-ads" class="hidden bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[850px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-3 px-3 w-8 text-center">
@@ -856,7 +1018,7 @@
             <span class="text-xs text-slate-400">Últimas ativações automáticas</span>
           </div>
           <div class="overflow-x-auto max-h-60 overflow-y-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[650px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-2 px-3">Data / Hora</th>
@@ -891,7 +1053,7 @@
 
         <div class="bg-dark-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[750px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-3 px-4">ID Pedido</th>
@@ -968,7 +1130,7 @@
         <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
           <h3 class="font-bold text-sm text-white">Logs Recentes de Disparos CAPI</h3>
           <div class="overflow-x-auto max-h-60 overflow-y-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[650px]">
               <thead class="bg-dark-850 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
                   <th class="py-2 px-3">Data</th>
@@ -1632,27 +1794,27 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     </div>
   </main>
 
-  <!-- MOBILE BOTTOM NAVIGATION -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around z-30 px-2">
-    <button onclick="switchTab('dashboard')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-dashboard">
+  <!-- MOBILE BOTTOM NAVIGATION (DOCK INFERIOR COMPLETO E FLUIDO) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around z-30 px-1 shadow-2xl">
+    <button onclick="switchTab('dashboard')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-dashboard">
       <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium">Dashboard</span>
     </button>
-    <button onclick="switchTab('campaigns')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-campaigns">
+    <button onclick="switchTab('campaigns')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-campaigns">
       <i data-lucide="target" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium">Campanhas</span>
     </button>
-    <button onclick="switchTab('rules')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-rules">
-      <i data-lucide="cpu" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium">Regras</span>
-    </button>
-    <button onclick="switchTab('orders')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-orders">
+    <button onclick="switchTab('orders')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-orders">
       <i data-lucide="shopping-bag" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium">Vendas</span>
     </button>
-    <button onclick="switchTab('webhooks')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-webhooks">
-      <i data-lucide="webhook" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium">Webhooks</span>
+    <button onclick="switchTab('accounts')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-accounts">
+      <i data-lucide="key-round" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Contas Meta</span>
+    </button>
+    <button onclick="openMobileSidebar()" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors" id="mob-menu">
+      <i data-lucide="menu" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Mais (Menu)</span>
     </button>
   </nav>
 
@@ -3217,18 +3379,24 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
 
     function updateProfileUI(user) {
       if (!user) return;
-      const initial = (user.name || 'U').charAt(0).toUpperCase();
+      const initial = (user.name || 'Lucas').charAt(0).toUpperCase();
       const elAvatar = document.getElementById('user-profile-avatar');
+      const elAvatarMob = document.getElementById('user-profile-avatar-mobile');
       const elHName = document.getElementById('header-user-name');
       const elHEmail = document.getElementById('header-user-email');
       const elDName = document.getElementById('dropdown-user-name');
       const elDEmail = document.getElementById('dropdown-user-email');
+      const elDrawerName = document.getElementById('drawer-user-name');
+      const elDrawerEmail = document.getElementById('drawer-user-email');
 
       if (elAvatar) elAvatar.textContent = initial;
+      if (elAvatarMob) elAvatarMob.textContent = initial;
       if (elHName) elHName.textContent = user.name || 'Lucas';
       if (elHEmail) elHEmail.textContent = user.email || 'luckinhasp4@gmail.com';
       if (elDName) elDName.textContent = user.name || 'Lucas';
       if (elDEmail) elDEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+      if (elDrawerName) elDrawerName.textContent = user.name || 'Lucas';
+      if (elDrawerEmail) elDrawerEmail.textContent = user.email || 'luckinhasp4@gmail.com';
     }
 
     async function checkAuthSession() {
@@ -4272,6 +4440,27 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       setTimeout(() => { Notification.requestPermission(); }, 3000);
     }
 
+    // ==================== CONTROLE DO MENU LATERAL MOBILE (DRAWER) ====================
+    function openMobileSidebar() {
+      const sidebar = document.getElementById('mobile-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (sidebar && backdrop) {
+        backdrop.classList.remove('hidden');
+        sidebar.classList.remove('-translate-x-full');
+        document.body.classList.add('overflow-hidden');
+      }
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('mobile-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (sidebar && backdrop) {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      }
+    }
+
     // ==================== NAVEGAÇÃO DE ABAS ====================
     function switchTab(tabId) {
       currentTab = tabId;
@@ -4280,7 +4469,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         el.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50';
       });
       document.querySelectorAll('.mob-nav').forEach(el => {
-        el.className = 'mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white';
+        el.className = 'mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white py-1 flex-1 transition-colors';
+      });
+      document.querySelectorAll('.drawer-nav-item').forEach(el => {
+        el.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60';
       });
 
       const activePane = document.getElementById('tab-' + tabId);
@@ -4290,9 +4482,19 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       if (activeNav) activeNav.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-500/10 text-brand-400 border border-brand-500/20';
 
       const activeMob = document.getElementById('mob-' + tabId);
-      if (activeMob) activeMob.className = 'mob-nav flex flex-col items-center gap-1 text-brand-400 font-semibold';
+      if (activeMob) {
+        activeMob.className = 'mob-nav flex flex-col items-center gap-1 text-brand-400 font-semibold py-1 flex-1 transition-colors';
+      } else {
+        const mobMenu = document.getElementById('mob-menu');
+        if (mobMenu) mobMenu.className = 'mob-nav flex flex-col items-center gap-1 text-brand-400 font-semibold py-1 flex-1 transition-colors';
+      }
 
+      const activeDrawer = document.getElementById('drawer-nav-' + tabId);
+      if (activeDrawer) activeDrawer.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-brand-500/10 text-brand-400 border border-brand-500/25';
+
+      closeMobileSidebar();
       refreshData();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ==================== MODAIS ====================

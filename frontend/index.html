@@ -2800,13 +2800,14 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       if (token && typeof url === 'string' && url.startsWith('/api')) {
         options.headers = options.headers || {};
         if (options.headers instanceof Headers) {
-          if (!options.headers.has('Authorization')) {
-            options.headers.set('Authorization', `Bearer ${token}`);
-          }
+          if (!options.headers.has('Authorization')) options.headers.set('Authorization', 'Bearer ' + token);
+          if (!options.headers.has('X-User-Token')) options.headers.set('X-User-Token', token);
+        } else if (Array.isArray(options.headers)) {
+          options.headers.push(['Authorization', 'Bearer ' + token]);
+          options.headers.push(['X-User-Token', token]);
         } else {
-          if (!options.headers['Authorization']) {
-            options.headers['Authorization'] = `Bearer ${token}`;
-          }
+          if (!options.headers['Authorization']) options.headers['Authorization'] = 'Bearer ' + token;
+          if (!options.headers['X-User-Token']) options.headers['X-User-Token'] = token;
         }
       }
       return originalFetch(url, options);
@@ -3619,25 +3620,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       if (elDrawerEmail) elDrawerEmail.textContent = user.email || 'luckinhasp4@gmail.com';
     }
 
-        // ==================== INTERCEPTOR GLOBAL DE FETCH (AUTENTICAÇÃO & MULTI-TENANT) ====================
-    const originalFetch = window.fetch;
-    window.fetch = function(url, options = {}) {
-      const token = localStorage.getItem('trackpro_token');
-      if (token && typeof url === 'string' && url.startsWith('/api/')) {
-        options.headers = options.headers || {};
-        if (options.headers instanceof Headers) {
-          if (!options.headers.has('Authorization')) options.headers.set('Authorization', 'Bearer ' + token);
-          if (!options.headers.has('X-User-Token')) options.headers.set('X-User-Token', token);
-        } else if (Array.isArray(options.headers)) {
-          options.headers.push(['Authorization', 'Bearer ' + token]);
-          options.headers.push(['X-User-Token', token]);
-        } else {
-          if (!options.headers['Authorization']) options.headers['Authorization'] = 'Bearer ' + token;
-          if (!options.headers['X-User-Token']) options.headers['X-User-Token'] = token;
-        }
-      }
-      return originalFetch(url, options);
-    };
+
 
     async function checkAuthSession() {
       const token = localStorage.getItem('trackpro_token');
@@ -5007,7 +4990,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
     let isDashboardEditMode = false;
     let dashboardWidgetsOrder = [];
     let dashboardWidgetSettings = {};
-    let lastCachedKpis = {};
+    lastCachedKpis = {};
 
     const DEFAULT_DASHBOARD_ORDER = [
       'metric-faturamento',
@@ -6827,8 +6810,13 @@ async function submitNewPixel() {
       navigator.clipboard.writeText(input.value);
       const originalHtml = btn.innerHTML;
       btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>';
-      lucide.createIcons();
-      setTimeout(() => { btn.innerHTML = originalHtml; lucide.createIcons(); }
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        if (window.lucide) lucide.createIcons();
+      }, 1500);
+    }
+
     // ==================== ABAS DO WEBHOOK UNIVERSAL ====================
     function switchUniversalTab(subtab) {
       ['url', 'script', 'prompt'].forEach(t => {
@@ -6837,7 +6825,7 @@ async function submitNewPixel() {
         if (pane) pane.classList.toggle('hidden', t !== subtab);
         if (btn) {
           if (t === subtab) {
-            btn.className = 'px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 transition-all';
+            btn.className = 'px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 transition-all font-bold';
           } else {
             btn.className = 'px-3 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all';
           }
@@ -6851,12 +6839,12 @@ async function submitNewPixel() {
       navigator.clipboard.writeText(txt).then(() => {
         if (typeof showSaleToast === 'function') {
           showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Copiado para a área de transferência!' });
+        } else if (typeof showToast === 'function') {
+          showToast('Copiado com sucesso!', 'success');
         } else {
           alert('Copiado com sucesso!');
         }
       });
-    }
-, 1500);
     }
 
     function submitSystemUserToken() {

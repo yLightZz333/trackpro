@@ -2653,7 +2653,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
   <!-- ==================== MODAL AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ==================== -->
   <div id="modal-auth" class="modal fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-dark-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
-      <button onclick="closeModal('modal-auth')" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+      <button id="modal-auth-close-btn" onclick="closeModal('modal-auth')" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
 
@@ -3408,6 +3408,11 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
 
     // ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
     function openAuthModal(tab = 'login') {
+      const token = localStorage.getItem('trackpro_token');
+      const closeBtn = document.getElementById('modal-auth-close-btn');
+      if (closeBtn) {
+        closeBtn.style.display = token ? 'block' : 'none';
+      }
       openModal('modal-auth');
       switchAuthTab(tab);
     }
@@ -3485,8 +3490,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
           closeModal('modal-auth');
           updateProfileUI(data.user);
           showToast(`Bem-vindo, ${data.user.name}!`, 'success');
-          refreshData();
-          loadNotifications();
+          initAuthenticatedApp();
         } else {
           showToast(data.error || 'Erro ao fazer login.', 'error');
         }
@@ -3530,8 +3534,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
           closeModal('modal-auth');
           updateProfileUI(data.user);
           showToast(`Conta criada com sucesso! Seja bem-vindo, ${data.user.name}.`, 'success');
-          refreshData();
-          loadNotifications();
+          initAuthenticatedApp();
         } else {
           showToast(data.error || 'Erro ao criar conta.', 'error');
         }
@@ -3559,8 +3562,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
           closeModal('modal-auth');
           updateProfileUI(data.user);
           showToast('Conectado com Google com sucesso!', 'success');
-          refreshData();
-          loadNotifications();
+          initAuthenticatedApp();
         }
       } catch (e) {
         showToast('Erro ao autenticar com Google.', 'error');
@@ -3574,6 +3576,8 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       } catch (e) {}
       localStorage.removeItem('trackpro_token');
       localStorage.removeItem('trackpro_user');
+      isAppInitialized = false;
+      updateProfileUI({ name: 'Visitante', email: 'Não conectado' });
       showToast('Você saiu da sua conta.', 'info');
       openAuthModal('login');
     }
@@ -3648,6 +3652,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
         const data = await res.json();
         if (data.authenticated && data.user) {
           updateProfileUI(data.user);
+          initAuthenticatedApp();
         } else {
           // Token expirado ou inválido: limpa e pede autenticação
           localStorage.removeItem('trackpro_token');
@@ -4765,6 +4770,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
     }
 
     function closeModal(id) {
+      if (id === 'modal-auth' && !localStorage.getItem('trackpro_token')) {
+        showToast('Por favor, faça login ou cadastre-se para acessar o TrackPro.', 'warning');
+        return;
+      }
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     }
@@ -6989,10 +6998,13 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
-    // Inicialização ao carregar
-    window.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
-      checkAuthSession();
+    let isAppInitialized = false;
+    function initAuthenticatedApp() {
+      if (isAppInitialized) {
+        refreshData();
+        return;
+      }
+      isAppInitialized = true;
       checkMetaGlobalStatus();
       loadNotificationSettingsFromBackend();
       loadNotifications();
@@ -7018,6 +7030,12 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
 
       // Polling de vendas e métricas em tempo real a cada 10 segundos
       setInterval(refreshData, 10000);
+    }
+
+    // Inicialização ao carregar
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      checkAuthSession();
     });
   </script>
 </body>

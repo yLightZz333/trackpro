@@ -304,6 +304,28 @@ def init_db():
         redirect_uri TEXT,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS meta_campaign_insights (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        ad_account_id TEXT NOT NULL,
+        campaign_id TEXT NOT NULL,
+        campaign_name TEXT,
+        impressions INTEGER DEFAULT 0,
+        reach INTEGER DEFAULT 0,
+        clicks INTEGER DEFAULT 0,
+        spend_cents INTEGER DEFAULT 0,
+        ctr REAL DEFAULT 0,
+        cpc_cents INTEGER DEFAULT 0,
+        cpm_cents INTEGER DEFAULT 0,
+        frequency REAL DEFAULT 0,
+        conversions INTEGER DEFAULT 0,
+        cost_per_conversion_cents INTEGER DEFAULT 0,
+        date_start TEXT,
+        date_stop TEXT,
+        synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(ad_account_id, campaign_id, date_start, date_stop)
+    );
     """)
 
     # Migrações de colunas
@@ -326,7 +348,19 @@ def init_db():
         ('automated_rules', 'schedule_resume_time', 'TEXT'),
         ('automated_rules', 'action_value', 'REAL DEFAULT 20'),
         ('campaigns', 'ad_account_id', 'TEXT'),
-        ('campaigns', 'external_campaign_id', 'TEXT')
+        ('campaigns', 'external_campaign_id', 'TEXT'),
+        ('campaigns', 'effective_status', 'TEXT'),
+        ('campaigns', 'objective', 'TEXT'),
+        ('campaigns', 'impressions', 'INTEGER DEFAULT 0'),
+        ('campaigns', 'clicks', 'INTEGER DEFAULT 0'),
+        ('campaigns', 'conversions', 'INTEGER DEFAULT 0'),
+        ('campaigns', 'cpa_cents', 'INTEGER DEFAULT 0'),
+        ('facebook_ad_accounts', 'timezone_name', 'TEXT DEFAULT "America/Sao_Paulo"'),
+        ('facebook_ad_accounts', 'account_status', 'INTEGER DEFAULT 1'),
+        ('facebook_ad_accounts', 'is_selected', 'INTEGER DEFAULT 1'),
+        ('facebook_ad_accounts', 'last_sync_at', 'TEXT'),
+        ('facebook_ad_accounts', 'sync_status', 'TEXT DEFAULT "pending"'),
+        ('facebook_ad_accounts', 'sync_error', 'TEXT')
     ]
     for table, col, col_type in migrations:
         try:
@@ -353,6 +387,9 @@ def init_db():
     conn.close()
 
 # ==================== CONFIGURAÇÃO E INTEGRAÇÃO OFICIAL META (OAUTH 2.0) ====================
+META_GRAPH_VERSION = os.environ.get('META_GRAPH_VERSION', 'v19.0')
+META_OAUTH_SCOPES = "ads_read,public_profile"
+
 def get_meta_config(conn=None, host_header=None):
     close_conn = False
     if conn is None:
@@ -378,9 +415,9 @@ def get_meta_config(conn=None, host_header=None):
     if not redirect_uri:
         if host_header:
             scheme = 'http' if ('localhost' in host_header or '127.0.0.1' in host_header) else 'https'
-            redirect_uri = f"{scheme}://{host_header}/api/auth/facebook/callback"
+            redirect_uri = f"{scheme}://{host_header}/api/integrations/meta/callback"
         else:
-            redirect_uri = "https://meutrackpro.onrender.com/api/auth/facebook/callback"
+            redirect_uri = "https://meutrackpro.onrender.com/api/integrations/meta/callback"
             
     if close_conn:
         conn.close()
@@ -393,12 +430,16 @@ def get_meta_config(conn=None, host_header=None):
     }
 
 def call_meta_graph_api(endpoint, method='GET', params=None, body=None, access_token=None):
-    base_url = "https://graph.facebook.com/v19.0"
-    url = f"{base_url}/{endpoint.lstrip('/')}"
+    base_url = f"https://graph.facebook.com/{META_GRAPH_VERSION}"
+    if endpoint.startswith('http://') or endpoint.startswith('https://'):
+        url = endpoint
+    else:
+        url = f"{base_url}/{endpoint.lstrip('/')}"
+        
     query = {}
     if params:
         query.update(params)
-    if access_token:
+    if access_token and 'access_token' not in url and 'access_token' not in query:
         query['access_token'] = access_token
     
     if query:
@@ -406,7 +447,7 @@ def call_meta_graph_api(endpoint, method='GET', params=None, body=None, access_t
     
     headers = {
         'Accept': 'application/json',
-        'User-Agent': 'TrackPro-Tracker/2.5'
+        'User-Agent': 'TrackPro-Marketing-Tracker/3.0'
     }
     
     req_data = None
@@ -421,7 +462,7 @@ def call_meta_graph_api(endpoint, method='GET', params=None, body=None, access_t
             
     req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=20) as resp:
             data = resp.read().decode('utf-8')
             return json.loads(data) if data else {}
     except urllib.error.HTTPError as e:
@@ -431,9 +472,37 @@ def call_meta_graph_api(endpoint, method='GET', params=None, body=None, access_t
             err_msg = err_json.get('error', {}).get('message', str(e))
         except Exception:
             err_msg = err_body or str(e)
-        raise Exception(f"Meta Graph API error ({e.code}): {err_msg}")
+        raise Exception(f"Meta Graph API ({e.code}): {err_msg}")
     except Exception as e:
-        raise Exception(f"Erro de comunicação com Meta Graph API: {str(e)}")
+        raise Exception(f"Erro ao comunicar com Meta Graph API: {str(e)}")
+
+def fetch_all_meta_pages(endpoint, params=None, access_token=None, max_pages=15):
+    all_data = []
+    current_params = dict(params or {})
+    current_endpoint = endpoint
+    
+    for _ in range(max_pages):
+        res = call_meta_graph_api(current_endpoint, params=current_params, access_token=access_token)
+        items = res.get('data', [])
+        if isinstance(items, list):
+            all_data.extend(items)
+        else:
+            break
+            
+        paging = res.get('paging', {})
+        cursors = paging.get('cursors', {})
+        after = cursors.get('after')
+        next_url = paging.get('next')
+        
+        if next_url and after:
+            current_params['after'] = after
+        elif next_url:
+            current_endpoint = next_url
+            current_params = {}
+        else:
+            break
+            
+    return all_data
 
 # ==================== PARSER UNIVERSAL DE WEBHOOKS ====================
 def parse_webhook_payload(headers, body):
@@ -1438,11 +1507,11 @@ class TrackProHandler(BaseHTTPRequestHandler):
             return
 
         # Meta OAuth Status Check
-        if path == '/api/auth/facebook/status':
+        if path in ['/api/integrations/meta/status', '/api/auth/facebook/status']:
             conn = get_db()
             cfg = get_meta_config(conn, self.headers.get('Host'))
             conn_row = conn.execute("SELECT * FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
-            accounts = conn.execute("SELECT account_id, name, currency, status FROM facebook_ad_accounts WHERE user_id = 1").fetchall()
+            accounts = conn.execute("SELECT id, account_id, name, currency, timezone_name, status, account_status, is_selected, last_sync_at, sync_status FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY is_selected DESC, id DESC").fetchall()
             
             perms = []
             if conn_row and conn_row['permissions']:
@@ -1451,23 +1520,37 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 except Exception:
                     perms = [p.strip() for p in conn_row['permissions'].split(',') if p.strip()]
 
+            total_acc = len(accounts)
+            selected_acc = sum(1 for a in accounts if a['is_selected'] == 1)
+
             resp = {
                 "configured": cfg['is_configured'],
-                "app_id": cfg['app_id'][:4] + '***' + cfg['app_id'][-2:] if len(cfg['app_id']) > 6 else cfg['app_id'],
+                "app_id": (cfg['app_id'][:4] + '***' + cfg['app_id'][-2:]) if len(cfg['app_id']) > 6 else cfg['app_id'],
                 "redirect_uri": cfg['redirect_uri'],
                 "connected": bool(conn_row),
                 "meta_user_name": conn_row['meta_user_name'] if conn_row else None,
                 "meta_user_id": conn_row['meta_user_id'] if conn_row else None,
                 "expires_at": conn_row['expires_at'] if conn_row else None,
                 "permissions": perms,
+                "total_accounts": total_acc,
+                "selected_accounts": selected_acc,
                 "ad_accounts": [dict(a) for a in accounts]
             }
             conn.close()
             self._send_json(resp)
             return
 
-        # Iniciar Fluxo Oficial Meta OAuth 2.0
-        if path in ['/api/auth/facebook', '/api/auth/facebook/login']:
+        # Listagem de Contas de Anúncio Meta (com suporte a is_selected)
+        if path in ['/api/integrations/meta/ad-accounts', '/api/facebook/accounts', '/api/adaccounts']:
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT id, account_id, name, currency, timezone_name, status, account_status, is_selected, last_sync_at, sync_status, sync_error FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY is_selected DESC, id DESC").fetchall()
+            conn.close()
+            self._send_json({"accounts": [dict(r) for r in rows]})
+            return
+
+        # Iniciar Fluxo Oficial Meta OAuth 2.0 (Escopos estritos: ads_read, public_profile)
+        if path in ['/api/integrations/meta/connect', '/api/auth/facebook', '/api/auth/facebook/login']:
             conn = get_db()
             cfg = get_meta_config(conn, self.headers.get('Host'))
             
@@ -1485,9 +1568,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
             conn.commit()
             conn.close()
 
-            scopes = "ads_read,ads_management,read_insights,business_management,public_profile"
+            scopes = META_OAUTH_SCOPES
             oauth_url = (
-                f"https://www.facebook.com/v19.0/dialog/oauth?"
+                f"https://www.facebook.com/{META_GRAPH_VERSION}/dialog/oauth?"
                 f"client_id={urllib.parse.quote(cfg['app_id'])}"
                 f"&redirect_uri={urllib.parse.quote(cfg['redirect_uri'])}"
                 f"&state={urllib.parse.quote(state)}"
@@ -1502,7 +1585,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             return
 
         # Callback Oficial da Meta (Facebook OAuth 2.0)
-        if path == '/api/auth/facebook/callback':
+        if path in ['/api/integrations/meta/callback', '/api/auth/facebook/callback']:
             code = params.get('code', [''])[0]
             state = params.get('state', [''])[0]
             error = params.get('error', [''])[0]
@@ -1591,31 +1674,33 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     VALUES (1, ?, ?, ?, ?, ?, 'connected', CURRENT_TIMESTAMP)
                 """, (meta_user_id, meta_user_name, final_token, expires_at, json.dumps(granted_perms)))
 
-                # 6. Busca Contas de Anuncio reais autorizadas
-                ad_accounts_data = call_meta_graph_api('me/adaccounts', params={
-                    'fields': 'id,name,account_id,account_status,currency,amount_spent,business',
+                # 6. Busca TODAS as Contas de Anúncio reais autorizadas com PAGINAÇÃO
+                ad_accounts_data = fetch_all_meta_pages('me/adaccounts', params={
+                    'fields': 'id,name,account_id,account_status,currency,timezone_name,business_name',
                     'limit': '50'
-                }, access_token=final_token)
+                }, access_token=final_token, max_pages=15)
 
                 accounts_saved = 0
-                for acc in ad_accounts_data.get('data', []):
+                for acc in ad_accounts_data:
                     raw_id = acc.get('account_id') or acc.get('id', '').replace('act_', '')
                     name = acc.get('name') or f"Conta {raw_id}"
                     currency = acc.get('currency', 'BRL')
+                    tz = acc.get('timezone_name', 'America/Sao_Paulo')
                     status_code = acc.get('account_status', 1)
                     status_str = 'ACTIVE' if status_code == 1 else 'DISABLED'
                     
                     existing = conn.execute("SELECT id FROM facebook_ad_accounts WHERE account_id = ? AND user_id = 1", (raw_id,)).fetchone()
                     if existing:
                         conn.execute("""
-                            UPDATE facebook_ad_accounts SET name = ?, access_token = ?, currency = ?, status = ?
+                            UPDATE facebook_ad_accounts 
+                            SET name = ?, access_token = ?, currency = ?, timezone_name = ?, account_status = ?, status = ?, is_selected = 1
                             WHERE id = ?
-                        """, (name, final_token, currency, status_str, existing['id']))
+                        """, (name, final_token, currency, tz, status_code, status_str, existing['id']))
                     else:
                         conn.execute("""
-                            INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, status)
-                            VALUES (1, ?, ?, ?, ?, ?)
-                        """, (raw_id, name, final_token, currency, status_str))
+                            INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, timezone_name, account_status, status, is_selected)
+                            VALUES (1, ?, ?, ?, ?, ?, ?, ?, 1)
+                        """, (raw_id, name, final_token, currency, tz, status_code, status_str))
                     accounts_saved += 1
 
                 conn.commit()
@@ -1635,7 +1720,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
     </div>
     <h2 class="text-xl font-bold text-white">Conta Meta Conectada!</h2>
     <p class="text-slate-300 text-xs leading-relaxed">
-      Perfil de <strong>{meta_user_name}</strong> autenticado via OAuth 2.0 oficial. {accounts_saved} conta(s) de anuncio importada(s) com sucesso para o TrackPro.
+      Perfil de <strong>{meta_user_name}</strong> autenticado com sucesso via OAuth 2.0 oficial. {accounts_saved} conta(s) de anúncio importada(s) para o TrackPro.
     </p>
     <button onclick="finishLogin()" class="w-full py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-500/20 transition-all">
       Concluir e Voltar
@@ -1687,6 +1772,94 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(html_fail.encode('utf-8'))
                 return
+
+        # Métricas de Campanhas Meta (com agregação de vendas e ROAS real)
+        if path == '/api/meta/campaigns':
+            conn = get_db()
+            cursor = conn.cursor()
+            sel_rows = cursor.execute("SELECT account_id FROM facebook_ad_accounts WHERE user_id = 1 AND is_selected = 1").fetchall()
+            sel_ids = [r['account_id'] for r in sel_rows]
+            
+            if sel_ids:
+                placeholders = ','.join(['?'] * len(sel_ids))
+                c_rows = cursor.execute(f"SELECT * FROM campaigns WHERE (ad_account_id IN ({placeholders}) OR ad_account_id IS NULL) ORDER BY id DESC", sel_ids).fetchall()
+            else:
+                c_rows = cursor.execute("SELECT * FROM campaigns ORDER BY id DESC").fetchall()
+
+            res_camps = []
+            for c in c_rows:
+                cd = dict(c)
+                spent = (cd.get('total_spent_in_cents') or 0) / 100.0
+                c_name = cd['name']
+                ext_id = cd.get('external_campaign_id') or c_name
+                
+                sales_row = cursor.execute("SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE (utm_campaign = ? OR utm_campaign = ?) AND status = 'paid'", (c_name, ext_id)).fetchone()
+                order_sales = sales_row['cnt'] if sales_row else 0
+                order_rev = (sales_row['rev'] if sales_row else 0) / 100.0
+                
+                meta_convs = cd.get('conversions') or 0
+                tot_convs = max(order_sales, meta_convs)
+                
+                roas = round(order_rev / spent, 2) if spent > 0 else 0.0
+                cpa = round(spent / tot_convs, 2) if tot_convs > 0 else (round((cd.get('cpa_cents') or 0) / 100.0, 2))
+                
+                impr = cd.get('impressions') or 0
+                clicks = cd.get('clicks') or 0
+                ctr = round((clicks / impr * 100.0), 2) if impr > 0 else 0.0
+                cpc = round(spent / clicks, 2) if clicks > 0 else 0.0
+
+                cd['spent'] = spent
+                cd['daily_budget'] = (cd.get('daily_budget_in_cents') or 0) / 100.0
+                cd['sales'] = tot_convs
+                cd['revenue'] = order_rev
+                cd['roas'] = roas
+                cd['cpa'] = cpa
+                cd['impressions'] = impr
+                cd['clicks'] = clicks
+                cd['ctr'] = ctr
+                cd['cpc'] = cpc
+                res_camps.append(cd)
+                
+            conn.close()
+            self._send_json({"campaigns": res_camps})
+            return
+
+        # Insights Agregados da Meta por Período
+        if path == '/api/meta/insights':
+            conn = get_db()
+            cursor = conn.cursor()
+            start_date = params.get('start_date', [''])[0]
+            end_date = params.get('end_date', [''])[0]
+
+            query = "SELECT COALESCE(SUM(spend_cents), 0) as spend, COALESCE(SUM(impressions), 0) as impr, COALESCE(SUM(clicks), 0) as clk, COALESCE(SUM(conversions), 0) as conv FROM meta_campaign_insights WHERE user_id = 1"
+            q_params = []
+            if start_date:
+                query += " AND date_start >= ?"
+                q_params.append(start_date)
+            if end_date:
+                query += " AND date_stop <= ?"
+                q_params.append(end_date)
+
+            row = cursor.execute(query, q_params).fetchone()
+            spent = (row['spend'] if row else 0) / 100.0
+            impr = row['impr'] if row else 0
+            clk = row['clk'] if row else 0
+            conv = row['conv'] if row else 0
+            ctr = round((clk / impr * 100.0), 2) if impr > 0 else 0.0
+            cpc = round(spent / clk, 2) if clk > 0 else 0.0
+            cpa = round(spent / conv, 2) if conv > 0 else 0.0
+
+            conn.close()
+            self._send_json({
+                "spend": spent,
+                "impressions": impr,
+                "clicks": clk,
+                "conversions": conv,
+                "ctr": ctr,
+                "cpc": cpc,
+                "cpa": cpa
+            })
+            return
 
         # Conjuntos de Anúncio isolados com filtro opcional por múltiplas campanhas
         if path in ['/api/facebook/adsets', '/api/adsets']:
@@ -1880,6 +2053,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
         # 404
         self._send_json({"error": "Endpoint não encontrado"}, 404)
+
+    def do_DELETE(self):
+        return self.do_POST()
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -2110,8 +2286,40 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"success": True, "campaign_id": camp_id, "message": f"Campanha {name} criada com sucesso!"})
             return
 
+        # Seleção de Contas de Anúncio da Meta (is_selected)
+        if path in ['/api/integrations/meta/ad-accounts/select', '/api/facebook/accounts/select']:
+            selected_ids = body.get('selected_account_ids')
+            account_id = body.get('account_id')
+            is_selected = body.get('is_selected')
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            if isinstance(selected_ids, list):
+                cursor.execute("UPDATE facebook_ad_accounts SET is_selected = 0 WHERE user_id = 1")
+                cleaned_ids = [str(a).replace('act_', '').strip() for a in selected_ids if a]
+                if cleaned_ids:
+                    placeholders = ','.join(['?'] * len(cleaned_ids))
+                    cursor.execute(f"UPDATE facebook_ad_accounts SET is_selected = 1 WHERE user_id = 1 AND account_id IN ({placeholders})", cleaned_ids)
+                conn.commit()
+                conn.close()
+                self._send_json({"success": True, "message": f"{len(cleaned_ids)} conta(s) selecionada(s) para tracking!"})
+                return
+            elif account_id is not None and is_selected is not None:
+                clean_id = str(account_id).replace('act_', '').strip()
+                val = 1 if is_selected else 0
+                cursor.execute("UPDATE facebook_ad_accounts SET is_selected = ? WHERE user_id = 1 AND account_id = ?", (val, clean_id))
+                conn.commit()
+                conn.close()
+                self._send_json({"success": True, "message": "Conta de anúncio atualizada!"})
+                return
+            else:
+                conn.close()
+                self._send_json({"error": "Parâmetros inválidos. Envie selected_account_ids ou account_id com is_selected."}, 400)
+                return
+
         # Configurar Credenciais Oficiais Meta OAuth
-        if path == '/api/auth/facebook/config':
+        if path in ['/api/integrations/meta/config', '/api/auth/facebook/config']:
             app_id = body.get('app_id', '').strip()
             app_secret = body.get('app_secret', '').strip()
             redirect_uri = body.get('redirect_uri', '').strip()
@@ -2128,8 +2336,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"success": True, "message": "Credenciais Meta salvas com sucesso!"})
             return
 
-        # Desconectar Conta Meta e Revogar Permissoes
-        if path == '/api/auth/facebook/disconnect':
+        # Desconectar Conta Meta e Revogar Permissões
+        if path in ['/api/integrations/meta/disconnect', '/api/auth/facebook/disconnect']:
             conn = get_db()
             conn_row = conn.execute("SELECT access_token FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
             if conn_row and conn_row['access_token']:
@@ -2141,59 +2349,164 @@ class TrackProHandler(BaseHTTPRequestHandler):
             conn.execute("UPDATE facebook_ad_accounts SET access_token = NULL WHERE user_id = 1")
             conn.commit()
             conn.close()
-            self._send_json({"success": True, "message": "Conta Meta desconectada e permissoes revogadas com sucesso."})
+            self._send_json({"success": True, "message": "Conta Meta desconectada e permissões revogadas com sucesso."})
             return
 
-        # Sincronizacao Real de Campanhas e Gastos da Meta Marketing API
-        if path == '/api/facebook/sync':
+        # Sincronização Real de Campanhas e Gastos com Paginação e Insights
+        if path in ['/api/integrations/meta/sync', '/api/facebook/sync']:
             conn = get_db()
             cursor = conn.cursor()
-            accounts = cursor.execute("SELECT account_id, access_token FROM facebook_ad_accounts WHERE user_id = 1 AND access_token IS NOT NULL AND access_token != ''").fetchall()
-            
+
+            conn_row = cursor.execute("SELECT access_token FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
+            fallback_token = conn_row['access_token'] if conn_row else None
+
+            # Contas selecionadas
+            accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = 1 AND is_selected = 1").fetchall()
+            if not accounts:
+                accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = 1 AND status = 'ACTIVE' LIMIT 1").fetchall()
+
             if not accounts:
                 conn.close()
-                self._send_json({"error": "Nenhuma conta Meta conectada com token ativo para sincronizar."}, 400)
+                self._send_json({"error": "Nenhuma conta de anúncio ativa ou selecionada para sincronizar."}, 400)
                 return
 
-            synced_count = 0
+            total_synced_campaigns = 0
+            sync_errors = []
+
             for acc in accounts:
                 acc_id = acc['account_id']
-                token = acc['access_token']
+                token = acc['access_token'] or fallback_token
+                if not token:
+                    continue
+
+                cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'syncing' WHERE id = ?", (acc['id'],))
+                conn.commit()
+
                 try:
-                    camp_data = call_meta_graph_api(f"act_{acc_id}/campaigns", params={
-                        'fields': 'id,name,status,daily_budget,lifetime_budget,insights{spend,clicks,impressions,cpc,cpm,ctr}',
+                    # 1. Busca todas as campanhas com paginação
+                    camps_raw = fetch_all_meta_pages(f"act_{acc_id}/campaigns", params={
+                        'fields': 'id,name,status,effective_status,objective,created_time,updated_time,daily_budget,lifetime_budget',
                         'limit': '50'
-                    }, access_token=token)
+                    }, access_token=token, max_pages=15)
 
-                    for c in camp_data.get('data', []):
-                        c_ext_id = c.get('id')
+                    # 2. Busca insights no nível de campanha com paginação (últimos 30 dias)
+                    insights_raw = fetch_all_meta_pages(f"act_{acc_id}/insights", params={
+                        'level': 'campaign',
+                        'fields': 'campaign_id,campaign_name,impressions,reach,clicks,spend,ctr,cpc,cpm,frequency,actions,cost_per_action_type,date_start,date_stop',
+                        'date_preset': 'last_30d',
+                        'limit': '50'
+                    }, access_token=token, max_pages=15)
+
+                    # Indexa insights por campaign_id
+                    insights_by_camp = {}
+                    for ins in insights_raw:
+                        c_id = ins.get('campaign_id')
+                        if c_id:
+                            insights_by_camp[c_id] = ins
+
+                    for c in camps_raw:
+                        c_ext_id = str(c.get('id', ''))
                         c_name = c.get('name', 'Campanha Meta')
-                        c_status = 'active' if c.get('status') == 'ACTIVE' else 'paused'
-                        daily_budget_cents = int(float(c.get('daily_budget') or 5000))
-                        
-                        insights = (c.get('insights', {}).get('data', [{}])[0]) if c.get('insights') else {}
-                        spend_float = float(insights.get('spend') or 0.0)
-                        spend_cents = int(spend_float * 100)
+                        eff_status = c.get('effective_status') or c.get('status', 'ACTIVE')
+                        c_status = 'active' if eff_status == 'ACTIVE' else 'paused'
+                        objective = c.get('objective', 'OUTCOME_SALES')
+                        daily_b = int(float(c.get('daily_budget') or 5000))
 
+                        ins = insights_by_camp.get(c_ext_id, {})
+                        spend_float = float(ins.get('spend') or 0.0)
+                        spend_cents = int(spend_float * 100)
+                        impressions = int(ins.get('impressions') or 0)
+                        reach = int(ins.get('reach') or 0)
+                        clicks = int(ins.get('clicks') or 0)
+                        ctr = float(ins.get('ctr') or 0.0)
+                        cpc_cents = int(float(ins.get('cpc') or 0.0) * 100)
+                        cpm_cents = int(float(ins.get('cpm') or 0.0) * 100)
+                        freq = float(ins.get('frequency') or 1.0)
+                        d_start = ins.get('date_start')
+                        d_stop = ins.get('date_stop')
+
+                        # Extrai conversões de compra
+                        actions = ins.get('actions', [])
+                        conversions = 0
+                        if isinstance(actions, list):
+                            for act in actions:
+                                act_type = act.get('action_type', '')
+                                if act_type in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase']:
+                                    conversions += int(act.get('value', 0))
+
+                        # Extrai CPA de compra
+                        cpa_cents = 0
+                        cost_actions = ins.get('cost_per_action_type', [])
+                        if isinstance(cost_actions, list):
+                            for ca in cost_actions:
+                                if ca.get('action_type') in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase']:
+                                    cpa_cents = int(float(ca.get('value', 0)) * 100)
+
+                        if conversions > 0 and cpa_cents == 0:
+                            cpa_cents = int(spend_cents / conversions)
+
+                        # Salva / atualiza insights
+                        if d_start and d_stop:
+                            cursor.execute("""
+                                INSERT INTO meta_campaign_insights (
+                                    user_id, ad_account_id, campaign_id, campaign_name, impressions, reach, clicks,
+                                    spend_cents, ctr, cpc_cents, cpm_cents, frequency, conversions, cost_per_conversion_cents,
+                                    date_start, date_stop, synced_at
+                                ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                                ON CONFLICT(ad_account_id, campaign_id, date_start, date_stop) DO UPDATE SET
+                                    impressions = excluded.impressions,
+                                    reach = excluded.reach,
+                                    clicks = excluded.clicks,
+                                    spend_cents = excluded.spend_cents,
+                                    ctr = excluded.ctr,
+                                    cpc_cents = excluded.cpc_cents,
+                                    cpm_cents = excluded.cpm_cents,
+                                    frequency = excluded.frequency,
+                                    conversions = excluded.conversions,
+                                    cost_per_conversion_cents = excluded.cost_per_conversion_cents,
+                                    synced_at = CURRENT_TIMESTAMP
+                            """, (acc_id, c_ext_id, c_name, impressions, reach, clicks, spend_cents, ctr, cpc_cents, cpm_cents, freq, conversions, cpa_cents, d_start, d_stop))
+
+                        # Salva / atualiza tabela campaigns
                         existing_c = cursor.execute("SELECT id FROM campaigns WHERE external_campaign_id = ? OR name = ?", (c_ext_id, c_name)).fetchone()
                         if existing_c:
                             cursor.execute("""
                                 UPDATE campaigns
-                                SET name = ?, status = ?, daily_budget_in_cents = ?, total_spent_in_cents = ?, ad_account_id = ?, external_campaign_id = ?
+                                SET name = ?, status = ?, effective_status = ?, objective = ?, daily_budget_in_cents = ?,
+                                    total_spent_in_cents = ?, ad_account_id = ?, external_campaign_id = ?,
+                                    impressions = ?, clicks = ?, conversions = ?, cpa_cents = ?
                                 WHERE id = ?
-                            """, (c_name, c_status, daily_budget_cents, spend_cents, acc_id, c_ext_id, existing_c['id']))
+                            """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents, existing_c['id']))
                         else:
                             cursor.execute("""
-                                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id, external_campaign_id)
-                                VALUES (1, ?, 'facebook', ?, ?, ?, ?, ?)
-                            """, (c_name, c_status, daily_budget_cents, spend_cents, acc_id, c_ext_id))
-                        synced_count += 1
-                except Exception:
-                    pass
+                                INSERT INTO campaigns (
+                                    user_id, name, platform, status, effective_status, objective, daily_budget_in_cents,
+                                    total_spent_in_cents, ad_account_id, external_campaign_id, impressions, clicks, conversions, cpa_cents
+                                ) VALUES (1, ?, 'facebook', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents))
+
+                        total_synced_campaigns += 1
+
+                    now_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                    cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'ok', sync_error = NULL, last_sync_at = ? WHERE id = ?", (now_str, acc['id']))
+
+                except Exception as e:
+                    err_text = str(e)
+                    sync_errors.append(f"Conta {acc_id}: {err_text}")
+                    cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'error', sync_error = ? WHERE id = ?", (err_text, acc['id']))
 
             conn.commit()
             conn.close()
-            self._send_json({"success": True, "synced_campaigns": synced_count, "message": f"{synced_count} campanha(s) sincronizada(s) da Meta com sucesso!"})
+
+            if sync_errors and total_synced_campaigns == 0:
+                self._send_json({"error": "Erro ao sincronizar com a Meta: " + "; ".join(sync_errors)}, 500)
+            else:
+                self._send_json({
+                    "success": True,
+                    "synced_campaigns": total_synced_campaigns,
+                    "accounts_synced": len(accounts),
+                    "message": f"{total_synced_campaigns} campanha(s) sincronizada(s) da Meta com sucesso!"
+                })
             return
 
         # Ações em Massa (Bulk Actions para Campanhas, Conjuntos e Anúncios)

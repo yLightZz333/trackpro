@@ -777,12 +777,18 @@
       <section id="tab-accounts" class="tab-pane hidden space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-bold text-white">Contas de Anúncio & Conexão Meta</h2>
-            <p class="text-xs text-slate-400">Integração oficial OAuth 2.0 da Meta para gestão de campanhas, orçamentos e métricas</p>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="layers" class="w-5 h-5 text-sky-400"></i>
+              Contas de Anúncio & Conexão Meta
+            </h2>
+            <p class="text-xs text-slate-400">Integração oficial OAuth 2.0 da Meta Marketing API com seleção de contas para tracking e sincronização de métricas</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
               <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
+            </button>
+            <button onclick="openModal('modal-meta-oauth-setup')" class="px-3 py-2 bg-dark-800 hover:bg-dark-750 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5">
+              <i data-lucide="settings" class="w-3.5 h-3.5"></i> Configurar App
             </button>
             <button onclick="openModal('modal-new-account')" class="px-3 py-2 bg-dark-800 hover:bg-dark-750 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium">
               Adicionar Manual
@@ -791,22 +797,43 @@
         </div>
 
         <!-- Card de Status Oficial Meta OAuth 2.0 -->
-        <div id="meta-oauth-status-card" class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div id="meta-oauth-status-card" class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
           <div class="flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-2xl bg-[#1877F2]/20 border border-[#1877F2]/40 text-[#1877F2] flex items-center justify-center font-bold text-lg">
-              <i data-lucide="facebook" class="w-5 h-5"></i>
+            <div class="w-12 h-12 rounded-2xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-[#1877F2] flex items-center justify-center font-bold text-xl shadow-inner">
+              <i data-lucide="facebook" class="w-6 h-6"></i>
             </div>
             <div>
               <div class="flex items-center gap-2">
                 <h4 id="meta-user-name-display" class="font-bold text-sm text-white">Nenhuma Conta Meta Conectada</h4>
-                <span id="meta-connection-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Desconectado</span>
+                <span id="meta-connection-badge" class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Desconectado</span>
               </div>
-              <p id="meta-connection-subtext" class="text-xs text-slate-400 mt-0.5">Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas e orçamentos automaticamente.</p>
+              <p id="meta-connection-subtext" class="text-xs text-slate-400 mt-1">Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas, orçamentos e métricas automaticamente.</p>
+              <div id="meta-permissions-tags" class="flex items-center gap-1.5 mt-2 flex-wrap"></div>
             </div>
           </div>
           <div id="meta-oauth-actions" class="flex items-center gap-2 flex-wrap">
-            <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
+            <button onclick="openFacebookLoginPopup()" class="px-4 py-2.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
               <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de Ações Rápidas e Seleção de Contas -->
+        <div class="bg-dark-950/60 border border-slate-800 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span id="accounts-selection-summary" class="text-xs font-semibold text-slate-300">
+              <strong class="text-white" id="selected-accounts-count">0</strong> contas selecionadas para rastreamento
+            </span>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="selectAllAccounts(true)" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700/60 transition-colors">
+              Marcar Todas
+            </button>
+            <button onclick="selectAllAccounts(false)" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700/60 transition-colors">
+              Desmarcar Todas
+            </button>
+            <button onclick="syncMetaCampaigns()" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar Selecionadas
             </button>
           </div>
         </div>
@@ -2064,24 +2091,24 @@
     // ==================== INTEGRAÇÃO REAL META OAUTH 2.0 ====================
     async function openFacebookLoginPopup() {
       try {
-        const res = await fetch('/api/auth/facebook/status');
+        const res = await fetch('/api/integrations/meta/status');
         const status = await res.json();
         
         if (!status.configured) {
           const redirectInput = document.getElementById('meta-setup-redirect-uri');
           if (redirectInput) {
-            redirectInput.value = status.redirect_uri || (window.location.origin + '/api/auth/facebook/callback');
+            redirectInput.value = status.redirect_uri || (window.location.origin + '/api/integrations/meta/callback');
           }
           openModal('modal-meta-oauth-setup');
           return;
         }
 
-        const width = 600;
-        const height = 720;
+        const width = 640;
+        const height = 750;
         const left = Math.round((window.innerWidth - width) / 2 + window.screenX);
         const top = Math.round((window.innerHeight - height) / 2 + window.screenY);
         const popup = window.open(
-          '/api/auth/facebook/login',
+          '/api/integrations/meta/connect',
           'FacebookOAuthDialog',
           `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
         );
@@ -2109,7 +2136,7 @@
       }
 
       try {
-        const res = await fetch('/api/auth/facebook/config', {
+        const res = await fetch('/api/integrations/meta/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ app_id: appId, app_secret: appSecret, redirect_uri: redirectUri })
@@ -2121,15 +2148,15 @@
         showSaleToast({
           customer: 'Meta Platforms',
           amount: 0,
-          platform: 'Credenciais configuradas! Redirecionando para o Facebook...'
+          platform: 'Credenciais salvas! Redirecionando para o Facebook...'
         });
 
-        const width = 600;
-        const height = 720;
+        const width = 640;
+        const height = 750;
         const left = Math.round((window.innerWidth - width) / 2 + window.screenX);
         const top = Math.round((window.innerHeight - height) / 2 + window.screenY);
         const popup = window.open(
-          '/api/auth/facebook/login',
+          '/api/integrations/meta/connect',
           'FacebookOAuthDialog',
           `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
         );
@@ -2147,7 +2174,7 @@
     async function disconnectMetaAccount() {
       if (!confirm('Deseja realmente desconectar sua conta Meta e revogar as permissões?')) return;
       try {
-        const res = await fetch('/api/auth/facebook/disconnect', { method: 'POST' });
+        const res = await fetch('/api/integrations/meta/disconnect', { method: 'DELETE' });
         const data = await res.json();
         showSaleToast({
           customer: 'Meta Desconectada',
@@ -2156,6 +2183,7 @@
         });
         loadAccountsData();
         refreshData();
+        loadCampaignsData();
       } catch (e) {
         alert('Erro ao desconectar: ' + e.message);
       }
@@ -2168,7 +2196,7 @@
           amount: 0,
           platform: 'Sincronizando campanhas e métricas da Meta...'
         });
-        const res = await fetch('/api/facebook/sync', { method: 'POST' });
+        const res = await fetch('/api/integrations/meta/sync', { method: 'POST' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao sincronizar');
         showSaleToast({
@@ -2178,18 +2206,60 @@
         });
         refreshData();
         loadCampaignsData();
+        loadAccountsData();
       } catch (e) {
         alert('Erro na sincronização: ' + e.message);
       }
     }
 
-        window.addEventListener('message', (event) => {
+    async function toggleAccountSelection(accountId, isSelected) {
+      try {
+        const res = await fetch('/api/integrations/meta/ad-accounts/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ account_id: accountId, is_selected: isSelected })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao atualizar seleção');
+        showSaleToast({
+          customer: 'Contas Meta',
+          amount: 0,
+          platform: isSelected ? 'Conta ativada para rastreamento!' : 'Conta pausada do rastreamento.'
+        });
+        loadAccountsData();
+        refreshData();
+        loadCampaignsData();
+      } catch (err) {
+        alert('Erro ao alterar seleção: ' + err.message);
+      }
+    }
+
+    async function selectAllAccounts(selectBoolean) {
+      try {
+        const res = await fetch('/api/integrations/meta/ad-accounts');
+        const data = await res.json();
+        const accounts = data.accounts || [];
+        const ids = selectBoolean ? accounts.map(a => a.account_id) : [];
+        await fetch('/api/integrations/meta/ad-accounts/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selected_account_ids: ids })
+        });
+        loadAccountsData();
+        refreshData();
+        loadCampaignsData();
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'TRACKPRO_FB_CONNECTED') {
         playKachingSound();
         showSaleToast({
-          customer: 'Facebook Ads',
+          customer: 'Meta Ads Conectada',
           amount: 0,
-          platform: 'Contas do Facebook vinculadas com sucesso!'
+          platform: `Perfil ${event.data.user} vinculado com sucesso!`
         });
         refreshData();
         loadAccountsData();
@@ -3296,27 +3366,37 @@
     async function loadAccountsData() {
       try {
         // Atualiza Status do OAuth da Meta
+        let statusData = { connected: false, configured: false };
         try {
-          const statusRes = await fetch('/api/auth/facebook/status');
-          const statusData = await statusRes.json();
+          const statusRes = await fetch('/api/integrations/meta/status');
+          statusData = await statusRes.json();
           const nameEl = document.getElementById('meta-user-name-display');
           const badgeEl = document.getElementById('meta-connection-badge');
           const subEl = document.getElementById('meta-connection-subtext');
+          const tagsEl = document.getElementById('meta-permissions-tags');
           const actionsEl = document.getElementById('meta-oauth-actions');
 
           if (statusData.connected) {
             if (nameEl) nameEl.textContent = statusData.meta_user_name || 'Conta Meta Conectada';
             if (badgeEl) {
-              badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+              badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
               badgeEl.textContent = 'OAuth 2.0 Ativo';
             }
             if (subEl) {
               const expStr = statusData.expires_at ? statusData.expires_at.substring(0, 10) : '60 dias';
-              subEl.textContent = `Token oficial ativo (Expira em: ${expStr}). Permissões concedidas: ${statusData.permissions ? statusData.permissions.join(', ') : 'ads_read, ads_management'}`;
+              subEl.textContent = `Token oficial de longa duração ativo (Expira em: ${expStr}). ${statusData.selected_accounts || 0} de ${statusData.total_accounts || 0} contas ativas para tracking.`;
+            }
+            if (tagsEl) {
+              const perms = statusData.permissions || ['ads_read', 'public_profile'];
+              tagsEl.innerHTML = perms.map(p => `
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center gap-1">
+                  <i data-lucide="shield" class="w-2.5 h-2.5"></i> ${p}
+                </span>
+              `).join('');
             }
             if (actionsEl) {
               actionsEl.innerHTML = `
-                <button onclick="syncMetaCampaigns()" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700">
+                <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-dark-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700">
                   <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-400"></i> Sincronizar da Meta
                 </button>
                 <button onclick="disconnectMetaAccount()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
@@ -3327,13 +3407,14 @@
           } else {
             if (nameEl) nameEl.textContent = 'Nenhuma Conta Meta Conectada';
             if (badgeEl) {
-              badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+              badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
               badgeEl.textContent = 'Desconectado';
             }
-            if (subEl) subEl.textContent = 'Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas e orçamentos automaticamente.';
+            if (subEl) subEl.textContent = 'Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas, orçamentos e métricas automaticamente.';
+            if (tagsEl) tagsEl.innerHTML = '';
             if (actionsEl) {
               actionsEl.innerHTML = `
-                <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
+                <button onclick="openFacebookLoginPopup()" class="px-4 py-2.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
                   <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
                 </button>
               `;
@@ -3343,37 +3424,63 @@
           console.warn('Erro ao carregar status OAuth:', errStatus);
         }
 
-        const res = await fetch('/api/facebook/accounts');
+        const res = await fetch('/api/integrations/meta/ad-accounts');
         const data = await res.json();
         const grid = document.getElementById('accounts-grid');
+        const countEl = document.getElementById('selected-accounts-count');
         const select = document.getElementById('camp-account-select');
+        const resumeSelect = document.getElementById('filter-ad-account');
         if (!grid) return;
 
-        if (!data.accounts || data.accounts.length === 0) {
-          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhuma conta de anúncio vinculada. Clique em "Conectar conta Meta" acima para autenticar pelo Facebook ou adicione manualmente.</div>';
+        const accounts = data.accounts || [];
+        const selectedCount = accounts.filter(a => a.is_selected == 1).length;
+        if (countEl) countEl.textContent = selectedCount;
+
+        if (accounts.length === 0) {
+          grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl space-y-2"><i data-lucide="folder-x" class="w-8 h-8 mx-auto text-slate-600"></i><p>Nenhuma conta de anúncio vinculada. Clique em "Conectar conta Meta" para importar suas contas automaticamente.</p></div>';
         } else {
-          grid.innerHTML = data.accounts.map(a => `
-            <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
-                  <h4 class="font-bold text-sm text-white">${a.name}</h4>
+          grid.innerHTML = accounts.map(a => `
+            <div class="bg-dark-900 border ${a.is_selected ? 'border-brand-500/30 shadow-lg shadow-brand-500/5' : 'border-slate-800'} rounded-2xl p-4 md:p-5 space-y-3.5 relative transition-all">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-xl ${a.is_selected ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-bold text-xs">
+                    <i data-lucide="${a.is_selected ? 'check-circle' : 'layers'}" class="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-sm text-white">${a.name}</h4>
+                    <p class="text-[11px] text-slate-400 font-mono">${a.account_id}</p>
+                  </div>
                 </div>
-                <button onclick="deleteAccount(${a.id})" class="text-rose-400 hover:text-rose-300 text-xs"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                <button onclick="deleteAccount(${a.id})" class="text-slate-500 hover:text-rose-400 p-1 rounded-lg transition-colors" title="Remover"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
               </div>
-              <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-sky-400 select-all">
-                ${a.account_id}
+
+              <!-- Switch Rastrear Conta -->
+              <label class="flex items-center justify-between p-2.5 rounded-xl ${a.is_selected ? 'bg-brand-500/10 border border-brand-500/20' : 'bg-dark-950 border border-slate-800'} cursor-pointer transition-colors">
+                <span class="text-xs font-semibold ${a.is_selected ? 'text-brand-300' : 'text-slate-400'}">
+                  ${a.is_selected ? 'Rastreamento Ativo' : 'Rastreamento Pausado'}
+                </span>
+                <input type="checkbox" ${a.is_selected ? 'checked' : ''} onchange="toggleAccountSelection('${a.account_id}', this.checked)" class="w-4 h-4 rounded bg-dark-900 border-slate-700 text-brand-500 focus:ring-0 cursor-pointer">
+              </label>
+
+              <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-slate-300">${a.currency || 'BRL'}</span>
+                  <span>•</span>
+                  <span>${a.timezone_name || 'America/Sao_Paulo'}</span>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${a.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'}">${a.status}</span>
               </div>
-              <div class="flex items-center justify-between text-xs text-slate-400">
-                <span>Moeda: <strong>${a.currency}</strong></span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">${a.status}</span>
+
+              <div class="text-[10px] text-slate-500 flex items-center justify-between">
+                <span>Sync: ${a.last_sync_at ? a.last_sync_at.substring(0, 16) : 'Nunca sincronizado'}</span>
+                <span class="text-sky-400 font-medium">${a.sync_status === 'ok' ? 'Sincronizado' : (a.sync_status === 'syncing' ? 'Sincronizando...' : 'Pendente')}</span>
               </div>
             </div>
           `).join('');
 
-          if (select) {
-            select.innerHTML = '<option value="">Conta Padrão</option>' + data.accounts.map(a => `<option value="${a.account_id}">${a.name} (${a.account_id})</option>`).join('');
-          }
+          const optionsHtml = '<option value="">Todas as Contas Selecionadas</option>' + accounts.map(a => `<option value="${a.account_id}">${a.name} (${a.account_id})</option>`).join('');
+          if (select) select.innerHTML = optionsHtml;
+          if (resumeSelect) resumeSelect.innerHTML = '<option value="all">Todas as Contas</option>' + accounts.map(a => `<option value="${a.account_id}">${a.name}</option>`).join('');
         }
         lucide.createIcons();
       } catch (e) {
@@ -3381,7 +3488,7 @@
       }
     }
 
-    async function submitNewAccount() {
+        async function submitNewAccount() {
       const name = document.getElementById('acc-name-input').value;
       const account_id = document.getElementById('acc-id-input').value;
       const access_token = document.getElementById('acc-token-input').value;

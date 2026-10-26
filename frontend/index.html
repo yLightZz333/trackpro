@@ -90,11 +90,7 @@
       <button onclick="switchTab('rules')" id="nav-rules" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="cpu" class="w-4 h-4 text-amber-400"></i> Regras de Automação
       </button>
-      <button onclick="switchTab('notifications')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-notifications">
-      <i data-lucide="bell" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium">Alertas</span>
-    </button>
-    <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+      <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-400"></i> Pedidos com UTM
       </button>
       <button onclick="switchTab('pixels')" id="nav-pixels" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
@@ -402,7 +398,7 @@
             <button onclick="openModal('modal-customize-dashboard')" class="px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm">
               <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i> ⚙️ Personalizar Métricas
             </button>
-            <button onclick="openFacebookLoginPopup()" class="px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <button id="dash-facebook-connect-btn" onclick="openFacebookLoginPopup()" class="px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
               <i data-lucide="facebook" class="w-3.5 h-3.5 text-[#1877F2]"></i> Conectar Facebook (1 Clique)
             </button>
             <button onclick="resetTestData()" class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Zerar todos os dados para começar do zero">
@@ -600,7 +596,7 @@
             <button onclick="openModal('modal-customize-dashboard', 'columns')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
               <i data-lucide="columns" class="w-3.5 h-3.5 text-brand-400"></i> Personalizar Colunas
             </button>
-            <button onclick="openFacebookLoginPopup()" class="px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
+            <button id="camp-facebook-connect-btn" onclick="openFacebookLoginPopup()" class="px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
               <i data-lucide="facebook" class="w-3.5 h-3.5"></i> Conectar Facebook
             </button>
             <button onclick="openModal('modal-new-campaign')" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-brand-500/20">
@@ -994,7 +990,7 @@
       <!-- ==================== TAB 6: CONTAS DE ANÚNCIO FACEBOOK ==================== -->
       <section id="tab-accounts" class="tab-pane hidden space-y-4">
         <!-- ==================== CONEXÃO RÁPIDA FACEBOOK ADS (2 PASSOS SIMPLES) ==================== -->
-        <div class="bg-gradient-to-r from-[#1877F2]/15 via-dark-900 to-dark-900 border border-[#1877F2]/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+        <div id="quick-meta-connect-card" class="bg-gradient-to-r from-[#1877F2]/15 via-dark-900 to-dark-900 border border-[#1877F2]/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-[#1877F2] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/25">
@@ -1014,7 +1010,28 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+          <!-- Banner ativo quando a conta já está conectada -->
+          <div id="quick-meta-connected-banner" class="hidden bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-white">Sua conta do Facebook Ads está vinculada e ativa!</p>
+                <p class="text-[11px] text-slate-300">Campanhas, gastos e métricas estão sendo sincronizados automaticamente em tempo real.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar da Meta
+              </button>
+              <button onclick="toggleQuickMetaInputs()" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
+                <i data-lucide="key" class="w-3.5 h-3.5 text-blue-400"></i> Trocar Token
+              </button>
+            </div>
+          </div>
+
+          <div id="quick-meta-inputs-container" class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
             <!-- Passo 1: Obter Token -->
             <div class="bg-dark-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
               <div class="flex items-center justify-between">
@@ -1060,7 +1077,7 @@
             <p class="text-xs text-slate-400">Integração oficial OAuth 2.0 da Meta Marketing API com seleção de contas para tracking e sincronização de métricas</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
+            <button id="btn-accounts-header-connect" onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
               <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
             </button>
             <button onclick="openModal('modal-system-user-token')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-emerald-600/20">
@@ -2657,30 +2674,36 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       }
     }
 
-    function showMobileNotification(title, body, tag = 'sale-alert') {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification(title, {
-              body: body,
-              icon: '/icon-192.png',
-              badge: '/icon-192.png',
-              vibrate: [250, 100, 250, 100, 250],
-              tag: tag,
-              renotify: true,
-              data: { url: '/' }
-            });
-          });
-        } else {
-          try {
-            new Notification(title, {
-              body: body,
-              icon: '/icon-192.png',
-              badge: '/icon-192.png',
-              tag: tag
-            });
-          } catch (e) {}
+    async function showMobileNotification(title, body, tag = 'sale-alert') {
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
+
+      const options = {
+        body: body,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        vibrate: [250, 100, 250, 100, 250],
+        tag: tag,
+        renotify: true,
+        data: { url: '/' }
+      };
+
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          if (reg && reg.showNotification) {
+            await reg.showNotification(title, options);
+            return;
+          }
+        } catch (swErr) {
+          console.warn('ServiceWorker showNotification falhou:', swErr);
         }
+      }
+
+      try {
+        new Notification(title, options);
+      } catch (e) {
+        console.warn('Notification constructor falhou (esperado em Android/iOS):', e);
       }
     }
 
@@ -3237,6 +3260,164 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       }
     }
 
+    // ==================== CONTROLE GLOBAL DO STATUS DA META ====================
+    function toggleQuickMetaInputs() {
+      const container = document.getElementById('quick-meta-inputs-container');
+      if (container) {
+        container.classList.toggle('hidden');
+      }
+    }
+
+    async function checkMetaGlobalStatus() {
+      try {
+        const res = await fetch('/api/integrations/meta/status');
+        const data = await res.json();
+        updateMetaGlobalStatusUI(data);
+        return data;
+      } catch (e) {
+        console.warn('Erro ao verificar status global da Meta:', e);
+        return { connected: false };
+      }
+    }
+
+    function updateMetaGlobalStatusUI(statusData) {
+      if (!statusData) return;
+      const isConnected = !!statusData.connected;
+      const accountName = statusData.meta_user_name || (statusData.ad_accounts && statusData.ad_accounts[0]?.name) || 'lighttt';
+
+      // 1. Botão no Header do Dashboard
+      const dashBtn = document.getElementById('dash-facebook-connect-btn');
+      if (dashBtn) {
+        if (isConnected) {
+          dashBtn.onclick = () => switchTab('accounts');
+          dashBtn.className = 'px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all';
+          dashBtn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Meta Conectado (${accountName})`;
+          dashBtn.title = 'Conta Meta conectada. Clique para gerenciar.';
+        } else {
+          dashBtn.onclick = () => openFacebookLoginPopup();
+          dashBtn.className = 'px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all';
+          dashBtn.innerHTML = '<i data-lucide="facebook" class="w-3.5 h-3.5 text-[#1877F2]"></i> Conectar Facebook (1 Clique)';
+          dashBtn.title = 'Conectar conta do Facebook Ads';
+        }
+      }
+
+      // 2. Botão no Header de Campanhas
+      const campBtn = document.getElementById('camp-facebook-connect-btn');
+      if (campBtn) {
+        if (isConnected) {
+          campBtn.onclick = () => syncMetaCampaigns();
+          campBtn.className = 'px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg';
+          campBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-400"></i> Sincronizar Meta';
+          campBtn.title = 'Sincronizar métricas e campanhas da Meta agora';
+        } else {
+          campBtn.onclick = () => openFacebookLoginPopup();
+          campBtn.className = 'px-3 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30';
+          campBtn.innerHTML = '<i data-lucide="facebook" class="w-3.5 h-3.5"></i> Conectar Facebook';
+          campBtn.title = 'Conectar conta Meta';
+        }
+      }
+
+      // 3. Tab Contas: Banner e Inputs Rápidos
+      const quickPillText = document.getElementById('quick-meta-status-text');
+      const quickPill = document.getElementById('quick-meta-status-pill');
+      const quickBanner = document.getElementById('quick-meta-connected-banner');
+      const quickInputs = document.getElementById('quick-meta-inputs-container');
+
+      if (quickPillText) {
+        quickPillText.textContent = isConnected ? `Meta Conectado (${accountName})` : 'Desconectado';
+      }
+      if (quickPill) {
+        quickPill.className = isConnected
+          ? 'flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold self-start md:self-auto'
+          : 'flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 rounded-xl text-xs font-bold self-start md:self-auto';
+        const dot = quickPill.querySelector('span:first-child');
+        if (dot) dot.className = isConnected ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse' : 'w-2 h-2 rounded-full bg-slate-500';
+      }
+
+      if (quickBanner && quickInputs) {
+        if (isConnected) {
+          quickBanner.classList.remove('hidden');
+          quickInputs.classList.add('hidden');
+        } else {
+          quickBanner.classList.add('hidden');
+          quickInputs.classList.remove('hidden');
+        }
+      }
+
+      // 4. Tab Contas: Botão do Topo
+      const headerBtn = document.getElementById('btn-accounts-header-connect');
+      if (headerBtn) {
+        if (isConnected) {
+          headerBtn.onclick = () => syncMetaCampaigns();
+          headerBtn.className = 'px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-brand-500/20';
+          headerBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Sincronizar Métricas';
+          headerBtn.title = 'Sincronizar métricas das contas conectadas';
+        } else {
+          headerBtn.onclick = () => openFacebookLoginPopup();
+          headerBtn.className = 'px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30';
+          headerBtn.innerHTML = '<i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta';
+        }
+      }
+
+      // 5. Tab Contas: Card de Status Oficial OAuth
+      const nameEl = document.getElementById('meta-user-name-display');
+      const badgeEl = document.getElementById('meta-connection-badge');
+      const subEl = document.getElementById('meta-connection-subtext');
+      const tagsEl = document.getElementById('meta-permissions-tags');
+      const actionsEl = document.getElementById('meta-oauth-actions');
+
+      if (isConnected) {
+        const isPermanent = statusData.expires_at && statusData.expires_at.startsWith('2099');
+        if (nameEl) nameEl.textContent = `Meta Ads (${accountName})`;
+        if (badgeEl) {
+          badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          badgeEl.textContent = isPermanent ? 'Token Permanente Ativo' : 'OAuth 2.0 Conectado';
+        }
+        if (subEl) {
+          const expStr = isPermanent ? 'Token Permanente de System User (Não expira)' : (statusData.expires_at ? `Expira em: ${statusData.expires_at.substring(0, 10)}` : '60 dias');
+          subEl.textContent = `${expStr} • ${statusData.selected_accounts || 1} de ${statusData.total_accounts || 1} contas ativas para tracking de campanhas e métricas.`;
+        }
+        if (tagsEl) {
+          const perms = statusData.permissions || ['ads_management', 'ads_read', 'public_profile'];
+          tagsEl.innerHTML = perms.map(p => `
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-2.5 h-2.5"></i> ${p}
+            </span>
+          `).join('');
+        }
+        if (actionsEl) {
+          actionsEl.innerHTML = `
+            <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar da Meta
+            </button>
+            <button onclick="openModal('modal-system-user-token')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-emerald-400"></i> Atualizar Token
+            </button>
+            <button onclick="disconnectMetaAccount()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Desconectar
+            </button>
+          `;
+        }
+      } else {
+        if (nameEl) nameEl.textContent = 'Nenhuma Conta Meta Conectada';
+        if (badgeEl) {
+          badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+          badgeEl.textContent = 'Desconectado';
+        }
+        if (subEl) subEl.textContent = 'Conecte sua conta Meta para sincronizar campanhas, orçamentos e métricas automaticamente.';
+        if (tagsEl) tagsEl.innerHTML = '';
+        if (actionsEl) {
+          actionsEl.innerHTML = `
+            <button onclick="openFacebookLoginPopup()" class="px-4 py-2.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
+              <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
+            </button>
+          `;
+        }
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
     // ==================== CONEXÃO RÁPIDA FACEBOOK ADS ====================
     async function connectQuickMetaToken() {
       const input = document.getElementById('quick-meta-token-input');
@@ -3264,11 +3445,10 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
         const data = await res.json();
         if (res.ok && data.success) {
           showToast(`Meta Ads conectado com sucesso! Conta: ${data.account_name || 'lighttt'}`, 'success');
-          const pillText = document.getElementById('quick-meta-status-text');
-          if (pillText) pillText.textContent = `Meta Conectado (${data.account_name || 'lighttt'})`;
           input.value = '';
+          await checkMetaGlobalStatus();
           refreshData();
-          fetchFacebookStatus();
+          if (currentTab === 'accounts') loadAccountsData();
         } else {
           showToast(data.error || 'Token inválido ou sem permissões no Facebook.', 'error');
         }
@@ -4530,7 +4710,15 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           const totalOrders = data.recentOrders.length;
           if (lastOrderCount !== -1 && totalOrders > lastOrderCount) {
             const latest = data.recentOrders[0];
-            playKachingSound();
+            const isPix = (latest.payment_method || '').toLowerCase() === 'pix' && latest.status !== 'paid';
+            if (isPix) {
+              playTrackProSound('pix', 1.0);
+              showMobileNotification('🪙 PIX GERADO!', `PIX de R$ ${Number(latest.amount).toFixed(2).replace('.', ',')} gerado! (${latest.platform || 'Checkout'})`, 'pix');
+            } else {
+              const sound = localStorage.getItem('trackpro_sound_type') || 'kaching';
+              playTrackProSound(sound, 1.0);
+              showMobileNotification('💸 VENDA APROVADA!', `Venda de R$ ${Number(latest.amount).toFixed(2).replace('.', ',')} aprovada via ${latest.payment_method || 'Cartão'}! (${latest.platform || 'Checkout'})`, 'sale');
+            }
             showSaleToast(latest);
           }
           lastOrderCount = totalOrders;
@@ -5593,72 +5781,7 @@ async function submitNewPixel() {
     // ==================== CONTAS DE ANÚNCIO & STATUS META ====================
     async function loadAccountsData() {
       try {
-        // Atualiza Status do OAuth da Meta
-        let statusData = { connected: false, configured: false };
-        try {
-          const statusRes = await fetch('/api/integrations/meta/status');
-          statusData = await statusRes.json();
-          const nameEl = document.getElementById('meta-user-name-display');
-          const badgeEl = document.getElementById('meta-connection-badge');
-          const subEl = document.getElementById('meta-connection-subtext');
-          const tagsEl = document.getElementById('meta-permissions-tags');
-          const actionsEl = document.getElementById('meta-oauth-actions');
-
-          if (statusData.connected) {
-            const isPermanent = statusData.expires_at && statusData.expires_at.startsWith('2099');
-            if (nameEl) nameEl.textContent = statusData.meta_user_name || 'Trackeamento';
-            if (badgeEl) {
-              badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-              badgeEl.textContent = isPermanent ? 'Token Permanente Ativo' : 'OAuth 2.0 Ativo';
-            }
-            if (subEl) {
-              const expStr = isPermanent ? 'Token Permanente de System User (Não expira)' : (statusData.expires_at ? `Expira em: ${statusData.expires_at.substring(0, 10)}` : '60 dias');
-              subEl.textContent = `${expStr}. ${statusData.selected_accounts || 0} de ${statusData.total_accounts || 0} contas ativas para tracking de campanhas e métricas.`;
-            }
-            if (tagsEl) {
-              const perms = statusData.permissions || ['ads_read', 'public_profile'];
-              tagsEl.innerHTML = perms.map(p => `
-                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                  <i data-lucide="shield-check" class="w-2.5 h-2.5"></i> ${p}
-                </span>
-              `).join('');
-            }
-            if (actionsEl) {
-              actionsEl.innerHTML = `
-                <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
-                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar da Meta
-                </button>
-                <button onclick="openModal('modal-system-user-token')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
-                  <i data-lucide="key" class="w-3.5 h-3.5 text-emerald-400"></i> Atualizar Token
-                </button>
-                <button onclick="disconnectMetaAccount()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
-                  <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Desconectar
-                </button>
-              `;
-            }
-            const tokenInput = document.getElementById('system-user-token-input');
-            if (tokenInput && !tokenInput.value) {
-              tokenInput.value = 'EAAP3aw4jAzkBS5ZBSHgj5bnUZAEkmidzcUEdXZCCglpZBykiL8UcgCZAjIUcuY26HEGceD6s3DSHBTZA73ntdZAtGBVvbpeyTNaOd53uFTsJodLtez9ayaK7YBqdrw3nfxAFOsQXUVuKPZAHr5zAqztJQwsLaGVQ4QQLslvkLoZBUbniEv4P0OMRoZATopMBYsWgZDZD';
-            }
-          } else {
-            if (nameEl) nameEl.textContent = 'Nenhuma Conta Meta Conectada';
-            if (badgeEl) {
-              badgeEl.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
-              badgeEl.textContent = 'Desconectado';
-            }
-            if (subEl) subEl.textContent = 'Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas, orçamentos e métricas automaticamente.';
-            if (tagsEl) tagsEl.innerHTML = '';
-            if (actionsEl) {
-              actionsEl.innerHTML = `
-                <button onclick="openFacebookLoginPopup()" class="px-4 py-2.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
-                  <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
-                </button>
-              `;
-            }
-          }
-        } catch (errStatus) {
-          console.warn('Erro ao carregar status OAuth:', errStatus);
-        }
+        await checkMetaGlobalStatus();
 
         const res = await fetch('/api/integrations/meta/ad-accounts');
         const data = await res.json();
@@ -6002,6 +6125,7 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
       checkAuthSession();
+      checkMetaGlobalStatus();
       loadNotificationSettingsFromBackend();
       loadNotifications();
       renderSummaryHoursChips();

@@ -2711,11 +2711,12 @@ class TrackProHandler(BaseHTTPRequestHandler):
             return
 
         # Meta OAuth Status Check
-        if path in ['/api/integrations/meta/status', '/api/auth/facebook/status']:
+        if path in ['/api/integrations/meta/status', '/api/auth/facebook/status', '/api/facebook/status']:
             conn = get_db()
+            user_id = self._get_current_user_id()
             cfg = get_meta_config(conn, self.headers.get('Host'))
-            conn_row = conn.execute("SELECT * FROM facebook_connections WHERE user_id = ? AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
-            accounts = conn.execute("SELECT id, account_id, name, currency, timezone_name, status, account_status, is_selected, last_sync_at, sync_status FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY is_selected DESC, id DESC").fetchall()
+            conn_row = conn.execute("SELECT * FROM facebook_connections WHERE user_id = ? AND status = 'connected' ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+            accounts = conn.execute("SELECT id, account_id, name, currency, timezone_name, status, account_status, is_selected, last_sync_at, sync_status FROM facebook_ad_accounts WHERE user_id = ? ORDER BY is_selected DESC, id DESC", (user_id,)).fetchall()
             
             perms = []
             if conn_row and conn_row['permissions']:

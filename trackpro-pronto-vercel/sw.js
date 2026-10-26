@@ -1,5 +1,5 @@
-// TrackPro PWA Service Worker v2.6 - Notificações em Tempo Real & Auto Purge Cache
-const CACHE_NAME = 'trackpro-v2-6-nocache';
+// TrackPro PWA Service Worker v2.7 - Notificações em Tempo Real & Auto Purge Cache
+const CACHE_NAME = 'trackpro-v2-7-nocache';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

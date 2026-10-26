@@ -1392,6 +1392,110 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- WEBHOOK & SCRIPT UNIVERSAL (QUALQUER PLATAFORMA / CHECKOUT PRÓPRIO) -->
+          <div class="col-span-1 md:col-span-2 bg-gradient-to-r from-purple-900/20 via-dark-900 to-dark-900 border border-purple-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-400 flex items-center justify-center font-bold">
+                  <i data-lucide="globe" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-base text-white">Webhook & Script Universal</h3>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Qualquer Plataforma</span>
+                  </div>
+                  <p class="text-xs text-slate-300">Use para WooCommerce, Shopify, CartPanda, Yampi, Laravel, Node.js ou qualquer checkout personalizado próprio.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Abas da Integração Universal -->
+            <div class="flex items-center gap-2 border-b border-slate-800 pb-2 text-xs font-semibold flex-wrap">
+              <button onclick="switchUniversalTab('url')" id="btn-uni-tab-url" class="px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 transition-all">
+                1. URL do Webhook (POST)
+              </button>
+              <button onclick="switchUniversalTab('script')" id="btn-uni-tab-script" class="px-3 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all">
+                2. Script JavaScript (Página de Obrigado)
+              </button>
+              <button onclick="switchUniversalTab('prompt')" id="btn-uni-tab-prompt" class="px-3 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all">
+                3. Prompt Pronto para IA
+              </button>
+            </div>
+
+            <!-- SUBPANE 1: URL DO WEBHOOK -->
+            <div id="uni-pane-url" class="space-y-2">
+              <label class="block text-xs font-semibold text-slate-300">URL para disparo de Webhook via Backend / API:</label>
+              <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+                <input id="uni-webhook-url" readonly value="" class="webhook-url flex-1 bg-transparent text-[11px] font-mono text-purple-300 focus:outline-none" data-path="/api/webhook/universal">
+                <button onclick="copyWebhook(this)" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-all">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar URL
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400">Envie um <code>POST</code> com JSON contendo: <code>status</code> ('paid'), <code>amount</code> (197.00), <code>customer_name</code>, <code>customer_email</code> e os parâmetros <code>utm_*</code>.</p>
+            </div>
+
+            <!-- SUBPANE 2: SCRIPT JS -->
+            <div id="uni-pane-script" class="hidden space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-300">Script para colocar no seu site / checkout (Thank You Page):</label>
+                <button onclick="copyTextToClipboard(document.getElementById('uni-code-snippet').value)" class="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Script
+                </button>
+              </div>
+              <textarea id="uni-code-snippet" readonly rows="6" class="w-full bg-dark-950 border border-slate-800 rounded-xl p-3 text-[11px] font-mono text-slate-300 focus:outline-none select-all">&lt;!-- TrackPro Universal Conversion Script --&gt;
+&lt;script&gt;
+  function trackproConversion(sale) {
+    var utms = JSON.parse(sessionStorage.getItem('trackpro_utms') || '{}');
+    fetch(window.location.origin + '/api/webhook/universal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: sale.status || 'paid',
+        amount: sale.amount || 0,
+        customer_name: sale.name || '',
+        customer_email: sale.email || '',
+        customer_phone: sale.phone || '',
+        platform: sale.platform || 'Checkout Próprio',
+        utm_source: utms.utm_source || '',
+        utm_campaign: utms.utm_campaign || '',
+        utm_medium: utms.utm_medium || '',
+        utm_content: utms.utm_content || '',
+        utm_term: utms.utm_term || ''
+      })
+    }).catch(function(err){ console.warn(err); });
+  }
+&lt;/script&gt;</textarea>
+            </div>
+
+            <!-- SUBPANE 3: PROMPT PRONTO PARA IA -->
+            <div id="uni-pane-prompt" class="hidden space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-300">Copie e cole este prompt na IA que está criando o seu site:</label>
+                <button onclick="copyTextToClipboard(document.getElementById('uni-ai-prompt').value)" class="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Prompt para IA
+                </button>
+              </div>
+              <textarea id="uni-ai-prompt" readonly rows="6" class="w-full bg-dark-950 border border-slate-800 rounded-xl p-3 text-[11px] font-mono text-slate-300 focus:outline-none select-all">Por favor, instale o rastreamento de conversão do TrackPro neste site/checkout:
+1. No cabeçalho (head) de todas as páginas, capture as UTMs da URL e salve em sessionStorage ('trackpro_utms').
+2. Na confirmação de compra / página de obrigado, envie uma requisição HTTP POST para:
+   URL: https://meutrackpro.onrender.com/api/webhook/universal
+   Corpo JSON:
+   {
+     "status": "paid",
+     "amount": VALOR_TOTAL_VENDA,
+     "customer_name": NOME_CLIENTE,
+     "customer_email": EMAIL_CLIENTE,
+     "customer_phone": TELEFONE_CLIENTE,
+     "platform": "Checkout Customizado",
+     "utm_source": utm_source,
+     "utm_campaign": utm_campaign,
+     "utm_medium": utm_medium,
+     "utm_content": utm_content,
+     "utm_term": utm_term
+   }</textarea>
+            </div>
+          </div>
+
           <!-- KIWIFY -->
           <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
             <div class="flex items-center justify-between">
@@ -3173,6 +3277,35 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       const dd = document.getElementById('notif-dropdown');
       if (dd) dd.classList.add('hidden');
     }
+    // ==================== FECHAR DROPDOWNS AO CLICAR FORA ====================
+    document.addEventListener('click', (e) => {
+      // Dropdown de Notificações
+      const notifDd = document.getElementById('notif-dropdown');
+      const notifBtnDesktop = document.getElementById('notif-bell-desktop');
+      const notifBtnMobile = document.getElementById('notif-bell-mobile');
+      if (notifDd && !notifDd.classList.contains('hidden')) {
+        const clickedInside = notifDd.contains(e.target);
+        const clickedBtnD = notifBtnDesktop && notifBtnDesktop.contains(e.target);
+        const clickedBtnM = notifBtnMobile && notifBtnMobile.contains(e.target);
+        if (!clickedInside && !clickedBtnD && !clickedBtnM) {
+          closeNotificationDropdown();
+        }
+      }
+
+      // Dropdown de Perfil
+      const profDd = document.getElementById('profile-dropdown');
+      const profBtnDesktop = document.getElementById('user-profile-btn-desktop');
+      const profBtnMobile = document.getElementById('user-profile-btn-mobile');
+      if (profDd && !profDd.classList.contains('hidden')) {
+        const clickedInside = profDd.contains(e.target);
+        const clickedBtnD = profBtnDesktop && profBtnDesktop.contains(e.target);
+        const clickedBtnM = profBtnMobile && profBtnMobile.contains(e.target);
+        if (!clickedInside && !clickedBtnD && !clickedBtnM) {
+          closeProfileDropdown();
+        }
+      }
+    });
+
 
     async function markAllNotificationsRead() {
       try {
@@ -3482,36 +3615,49 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       if (elDrawerEmail) elDrawerEmail.textContent = user.email || 'luckinhasp4@gmail.com';
     }
 
+        // ==================== INTERCEPTOR GLOBAL DE FETCH (AUTENTICAÇÃO & MULTI-TENANT) ====================
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      const token = localStorage.getItem('trackpro_token');
+      if (token && typeof url === 'string' && url.startsWith('/api/')) {
+        options.headers = options.headers || {};
+        if (options.headers instanceof Headers) {
+          if (!options.headers.has('Authorization')) options.headers.set('Authorization', 'Bearer ' + token);
+          if (!options.headers.has('X-User-Token')) options.headers.set('X-User-Token', token);
+        } else if (Array.isArray(options.headers)) {
+          options.headers.push(['Authorization', 'Bearer ' + token]);
+          options.headers.push(['X-User-Token', token]);
+        } else {
+          if (!options.headers['Authorization']) options.headers['Authorization'] = 'Bearer ' + token;
+          if (!options.headers['X-User-Token']) options.headers['X-User-Token'] = token;
+        }
+      }
+      return originalFetch(url, options);
+    };
+
     async function checkAuthSession() {
-      let token = localStorage.getItem('trackpro_token');
+      const token = localStorage.getItem('trackpro_token');
       if (!token) {
-        try {
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'luckinhasp4@gmail.com', password: 'yzzjl067_' })
-          });
-          const data = await res.json();
-          if (data.token) {
-            token = data.token;
-            localStorage.setItem('trackpro_token', token);
-            localStorage.setItem('trackpro_user', JSON.stringify(data.user));
-          }
-        } catch (e) {}
+        // Usuário não autenticado em novo dispositivo/navegador: exibe tela de login/cadastro!
+        openAuthModal('login');
+        return;
       }
 
-      if (token) {
-        try {
-          const res = await fetch('/api/auth/me');
-          const data = await res.json();
-          if (data.authenticated && data.user) {
-            updateProfileUI(data.user);
-          }
-        } catch (e) {}
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          updateProfileUI(data.user);
+        } else {
+          // Token expirado ou inválido: limpa e pede autenticação
+          localStorage.removeItem('trackpro_token');
+          localStorage.removeItem('trackpro_user');
+          openAuthModal('login');
+        }
+      } catch (e) {
+        console.warn('Erro ao verificar sessão:', e);
       }
     }
-
-    // ==================== CONTROLE GLOBAL DO STATUS DA META ====================
     function toggleQuickMetaInputs() {
       const container = document.getElementById('quick-meta-inputs-container');
       if (container) {
@@ -3724,7 +3870,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     let cachedRegisteredPixels = [];
 
     // ==================== FUNIL ADAPTATIVO & DINÂMICO ====================
-    function updateFunnelRibbon(f) {
+        function updateFunnelRibbon(f) {
       if (!f) return;
       const clicks = Number(f.clicks || 0);
       const pv = Number(f.pageviews || 0);
@@ -3732,30 +3878,46 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       const ordInit = Number(f.orders_initiated || 0);
       const ordPaid = Number(f.purchases || 0);
 
-      const baseClicks = Math.max(1, clicks);
-      const rPv = clicks > 0 ? (pv / baseClicks) : 0.8;
-      const rIc = clicks > 0 ? (ic / baseClicks) : 0.45;
-      const rInit = clicks > 0 ? (ordInit / baseClicks) : 0.25;
-      const rPaid = clicks > 0 ? (ordPaid / baseClicks) : 0.15;
+      let top0, bot0, top1, bot1, top2, bot2, top3, bot3, top4, bot4;
 
-      // Altura total SVG é 160. Centro y = 80.
-      function getHalfHeight(ratio, count) {
-        if (clicks > 0 && count === 0) return 2; // afina quase a zero se zerou o estágio!
-        const h = Math.max(4, Math.min(136, 136 * Math.pow(Math.max(0.015, ratio), 0.65)));
-        return h / 2;
+      if (clicks <= 0) {
+        // Quando há 0 cliques: toda a fita fica super fina (4px no centro y=80) e cliques marca 0%
+        top0 = 78; bot0 = 82;
+        top1 = 78; bot1 = 82;
+        top2 = 78; bot2 = 82;
+        top3 = 78; bot3 = 82;
+        top4 = 78; bot4 = 82;
+      } else {
+        // Quando há cliques: Stage 0 (Cliques) fica espesso (130px de altura total)
+        const h0 = 65;
+        top0 = 80 - h0;
+        bot0 = 80 + h0;
+
+        // Para os estágios seguintes: se tiver 0 conversões, fica SUPER FINO (2px meia-altura = 4px total)
+        // Se tiver conversões, altura é calculada proporcionalmente ao ratio em relação aos cliques
+        function getHalfHeight(count, ratio) {
+          if (count <= 0) return 2; // super fino se zerou!
+          const minH = 4;
+          const maxH = 65;
+          const computed = maxH * Math.pow(Math.min(1.0, Math.max(0.01, ratio)), 0.6);
+          return Math.max(minH, Math.min(maxH, computed));
+        }
+
+        const rPv = pv / clicks;
+        const rIc = ic / clicks;
+        const rInit = ordInit / clicks;
+        const rPaid = ordPaid / clicks;
+
+        const h1 = getHalfHeight(pv, rPv);
+        const h2 = getHalfHeight(ic, rIc);
+        const h3 = getHalfHeight(ordInit, rInit);
+        const h4 = getHalfHeight(ordPaid, rPaid);
+
+        top1 = 80 - h1; bot1 = 80 + h1;
+        top2 = 80 - h2; bot2 = 80 + h2;
+        top3 = 80 - h3; bot3 = 80 + h3;
+        top4 = 80 - h4; bot4 = 80 + h4;
       }
-
-      const h0 = clicks === 0 ? 55 : 68;
-      const h1 = getHalfHeight(rPv, pv);
-      const h2 = getHalfHeight(rIc, ic);
-      const h3 = getHalfHeight(rInit, ordInit);
-      const h4 = getHalfHeight(rPaid, ordPaid);
-
-      const top0 = 80 - h0, bot0 = 80 + h0;
-      const top1 = 80 - h1, bot1 = 80 + h1;
-      const top2 = 80 - h2, bot2 = 80 + h2;
-      const top3 = 80 - h3, bot3 = 80 + h3;
-      const top4 = 80 - h4, bot4 = 80 + h4;
 
       const pathD = `M 0 ${top0.toFixed(1)} ` +
         `C 100 ${top0.toFixed(1)}, 100 ${top1.toFixed(1)}, 200 ${top1.toFixed(1)} ` +
@@ -3773,33 +3935,43 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       const pathEl = document.getElementById('meta-funnel-path');
       if (pathEl) pathEl.setAttribute('d', pathD);
 
-      const d1 = document.getElementById('funnel-div-1');
-      if (d1) { d1.setAttribute('y1', top1.toFixed(1)); d1.setAttribute('y2', bot1.toFixed(1)); }
-      const d2 = document.getElementById('funnel-div-2');
-      if (d2) { d2.setAttribute('y1', top2.toFixed(1)); d2.setAttribute('y2', bot2.toFixed(1)); }
-      const d3 = document.getElementById('funnel-div-3');
-      if (d3) { d3.setAttribute('y1', top3.toFixed(1)); d3.setAttribute('y2', bot3.toFixed(1)); }
-      const d4 = document.getElementById('funnel-div-4');
-      if (d4) { d4.setAttribute('y1', top4.toFixed(1)); d4.setAttribute('y2', bot4.toFixed(1)); }
+      const setLine = (id, y1, y2) => {
+        const el = document.getElementById(id);
+        if (el) { el.setAttribute('y1', y1.toFixed(1)); el.setAttribute('y2', bot1 ? y2.toFixed(1) : '82'); }
+      };
+      setLine('funnel-div-1', top1, bot1);
+      setLine('funnel-div-2', top2, bot2);
+      setLine('funnel-div-3', top3, bot3);
+      setLine('funnel-div-4', top4, bot4);
 
       const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+      // Cliques: 0% se 0 cliques, 100% se tiver cliques
       setEl('funnel-ribbon-cnt-clicks', clicks.toLocaleString('pt-BR'));
-      setEl('funnel-ribbon-pct-clicks', '100%');
+      setEl('funnel-ribbon-pct-clicks', clicks > 0 ? '100%' : '0%');
 
+      // Vis. Página (atualiza ambos os IDs possíveis para blindar)
+      const pvPct = clicks > 0 ? (pv / clicks * 100).toFixed(1) + '%' : '0.0%';
+      setEl('funnel-ribbon-cnt-views', pv.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-views', pvPct);
       setEl('funnel-ribbon-cnt-pageviews', pv.toLocaleString('pt-BR'));
-      setEl('funnel-ribbon-pct-pageviews', `${(clicks > 0 ? (pv / clicks * 100) : 0).toFixed(1)}%`);
+      setEl('funnel-ribbon-pct-pageviews', pvPct);
 
+      // ICs
+      const icPct = clicks > 0 ? (ic / clicks * 100).toFixed(1) + '%' : '0.0%';
       setEl('funnel-ribbon-cnt-ic', ic.toLocaleString('pt-BR'));
-      setEl('funnel-ribbon-pct-ic', `${(clicks > 0 ? (ic / clicks * 100) : 0).toFixed(1)}%`);
+      setEl('funnel-ribbon-pct-ic', icPct);
 
+      // Vendas Inic.
+      const initPct = clicks > 0 ? (ordInit / clicks * 100).toFixed(1) + '%' : '0.0%';
       setEl('funnel-ribbon-cnt-orders-init', ordInit.toLocaleString('pt-BR'));
-      setEl('funnel-ribbon-pct-orders-init', `${(clicks > 0 ? (ordInit / clicks * 100) : 0).toFixed(1)}%`);
+      setEl('funnel-ribbon-pct-orders-init', initPct);
 
+      // Vendas Apr.
+      const paidPct = clicks > 0 ? (ordPaid / clicks * 100).toFixed(1) + '%' : '0.0%';
       setEl('funnel-ribbon-cnt-orders-paid', ordPaid.toLocaleString('pt-BR'));
-      setEl('funnel-ribbon-pct-orders-paid', `${(clicks > 0 ? (ordPaid / clicks * 100) : 0).toFixed(1)}%`);
+      setEl('funnel-ribbon-pct-orders-paid', paidPct);
     }
-
-    // ==================== GRÁFICOS: HORÁRIO | CANAIS | MÉTODOS DE PAGAMENTO ====================
     function renderRevenueChart(hourlyData) {
       const ctx = document.getElementById('revenueChart');
       if (!ctx) return;
@@ -6647,7 +6819,35 @@ async function submitNewPixel() {
       const originalHtml = btn.innerHTML;
       btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>';
       lucide.createIcons();
-      setTimeout(() => { btn.innerHTML = originalHtml; lucide.createIcons(); }, 1500);
+      setTimeout(() => { btn.innerHTML = originalHtml; lucide.createIcons(); }
+    // ==================== ABAS DO WEBHOOK UNIVERSAL ====================
+    function switchUniversalTab(subtab) {
+      ['url', 'script', 'prompt'].forEach(t => {
+        const pane = document.getElementById('uni-pane-' + t);
+        const btn = document.getElementById('btn-uni-tab-' + t);
+        if (pane) pane.classList.toggle('hidden', t !== subtab);
+        if (btn) {
+          if (t === subtab) {
+            btn.className = 'px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 transition-all';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all';
+          }
+        }
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function copyTextToClipboard(txt) {
+      if (!txt) return;
+      navigator.clipboard.writeText(txt).then(() => {
+        if (typeof showSaleToast === 'function') {
+          showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Copiado para a área de transferência!' });
+        } else {
+          alert('Copiado com sucesso!');
+        }
+      });
+    }
+, 1500);
     }
 
     function submitSystemUserToken() {

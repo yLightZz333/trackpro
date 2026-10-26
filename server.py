@@ -3466,12 +3466,13 @@ self.addEventListener('notificationclick', (e) => {
             conn.commit()
             conn.close()
 
+            cookie = f"trackpro_token={token}; Path=/; Max-Age=7776000; SameSite=Lax"
             self._send_json({
                 "success": True,
                 "token": token,
                 "user": {"id": new_user_id, "name": name, "email": email},
                 "message": "Conta criada com sucesso! Seja bem-vindo ao TrackPro."
-            })
+            }, cookie=cookie)
             return
 
         if path == '/api/auth/login':
@@ -3497,12 +3498,13 @@ self.addEventListener('notificationclick', (e) => {
             conn.commit()
             conn.close()
 
+            cookie = f"trackpro_token={token}; Path=/; Max-Age=7776000; SameSite=Lax"
             self._send_json({
                 "success": True,
                 "token": token,
                 "user": {"id": user['id'], "name": user['name'], "email": user['email']},
                 "message": f"Bem-vindo de volta, {user['name']}!"
-            })
+            }, cookie=cookie)
             return
 
         if path == '/api/auth/google':
@@ -4329,6 +4331,8 @@ self.addEventListener('notificationclick', (e) => {
             '/api/webhook/greenn',
             '/api/webhook/cakto',
             '/api/webhook/wiapy',
+            '/api/webhook/universal',
+            '/api/webhook/custom',
             '/api/orders/webhook/orders'
         ]
         if path in webhook_routes:
@@ -4339,9 +4343,26 @@ self.addEventListener('notificationclick', (e) => {
             elif 'greenn' in p_lower: parsed_order['platform'] = 'Greenn'
             elif 'cakto' in p_lower: parsed_order['platform'] = 'Cakto'
             elif 'wiapy' in p_lower: parsed_order['platform'] = 'Wiapy'
+            elif 'universal' in p_lower or 'custom' in p_lower:
+                parsed_order['platform'] = body.get('platform') or 'Universal'
 
             conn = get_db()
             cursor = conn.cursor()
+
+            # Resolve user_id do webhook (via ?token=, ?user_id=, header ou fallback)
+            target_user_id = self._get_current_user_id()
+            if not target_user_id:
+                token_q = params.get('token', [''])[0].strip() or self.headers.get('X-User-Token', '').strip()
+                if token_q:
+                    r = cursor.execute("SELECT user_id FROM user_sessions WHERE token = ?", (token_q,)).fetchone()
+                    if not r:
+                        r = cursor.execute("SELECT user_id FROM api_credentials WHERE token = ?", (token_q,)).fetchone()
+                    if r: target_user_id = r['user_id']
+            if not target_user_id:
+                uid_q = params.get('user_id', [''])[0].strip()
+                if uid_q.isdigit(): target_user_id = int(uid_q)
+            if not target_user_id:
+                target_user_id = 1
 
             tr = parsed_order.get('tracking', {})
             cursor.execute("""
@@ -4350,8 +4371,8 @@ self.addEventListener('notificationclick', (e) => {
                     customer_email, customer_phone, customer_ip, price_in_cents,
                     utm_source, utm_medium, utm_campaign, utm_content, utm_term,
                     src, sck, fbc, fbp
-                ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (target_user_id,
                 parsed_order['order_id'],
                 parsed_order['platform'],
                 parsed_order['status'],

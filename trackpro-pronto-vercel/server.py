@@ -2038,19 +2038,20 @@ class TrackProHandler(BaseHTTPRequestHandler):
             pending_ord = row_pending['count'] or 0
 
             # 3. Gasto em Anúncios (escopado rigorosamente ao período selecionado)
+            camp_where = ""
+            camp_params = []
+            if ad_account_filter and ad_account_filter != "all":
+                camp_where = "WHERE ad_account_id = ?"
+                camp_params = [ad_account_filter]
+
             s_dash_range, e_dash_range, _ = compute_date_range(period, start_date, end_date)
-            if period == 'all' or not s_dash_range:
-                camp_where = ""
-                camp_params = []
-                if ad_account_filter and ad_account_filter != 'all':
-                    camp_where = "WHERE ad_account_id = ?"
-                    camp_params = [ad_account_filter]
+            if period == "all" or not s_dash_range:
                 row_spent = cursor.execute(f"SELECT COALESCE(SUM(total_spent_in_cents), 0) as total FROM campaigns {camp_where}", camp_params).fetchone()
                 tot_spent = (row_spent['total'] or 0) / 100.0
             else:
                 ins_w = ["date_start >= ?", "date_stop <= ?"]
                 ins_p = [s_dash_range, e_dash_range]
-                if ad_account_filter and ad_account_filter != 'all':
+                if ad_account_filter and ad_account_filter != "all":
                     ins_w.append("ad_account_id = ?")
                     ins_p.append(ad_account_filter)
                 row_spent = cursor.execute(f"SELECT COALESCE(SUM(spend_cents), 0) as total FROM meta_campaign_insights WHERE {' AND '.join(ins_w)}", ins_p).fetchone()

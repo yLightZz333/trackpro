@@ -1819,6 +1819,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
         path = parsed.path
         params = parse_qs(parsed.query)
 
+        if path == '/api/system/version':
+            self._send_json({"version": "v2.5.0-lockdown", "pid": os.getpid(), "file": __file__})
+            return
+
         # Autenticação: Dados do Usuário Logado
         if path == '/api/auth/me':
             user_id = self._get_current_user_id()

@@ -1174,9 +1174,12 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 event_params.append(source_filter)
             event_where = ("WHERE " + " AND ".join(event_conds)) if event_conds else ""
 
-            row_pv = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {('WHERE event_type = \"pageview\"' if not event_where else event_where + ' AND event_type = \"pageview\"')}", event_params).fetchone()
+            pv_where = "WHERE event_type = 'pageview'" if not event_where else (event_where + " AND event_type = 'pageview'")
+            row_pv = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {pv_where}", event_params).fetchone()
             pageviews = (row_pv['count'] or 0)
-            row_ic = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {('WHERE event_type = \"initiate_checkout\"' if not event_where else event_where + ' AND event_type = \"initiate_checkout\"')}", event_params).fetchone()
+
+            ic_where = "WHERE event_type = 'initiate_checkout'" if not event_where else (event_where + " AND event_type = 'initiate_checkout'")
+            row_ic = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {ic_where}", event_params).fetchone()
             initiate_checkout = (row_ic['count'] or 0) or int(paid_ord * 1.8 + pending_ord * 1.2)
             
             cliques = max(int(pageviews * 1.15), int(tot_spent * 1.8))

@@ -1773,13 +1773,14 @@ class TrackProHandler(BaseHTTPRequestHandler):
             try:
                 conn = get_db()
                 row = conn.execute("SELECT user_id, expires_at FROM user_sessions WHERE token = ?", (token,)).fetchone()
+                if not row:
+                    row = conn.execute("SELECT user_id FROM api_credentials WHERE token = ?", (token,)).fetchone()
                 conn.close()
                 if row:
                     return row['user_id']
             except Exception:
                 pass
-        # Fallback seguro para o perfil principal do Lucas (User 1)
-        return 1
+        return None
 
     def _send_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -1819,14 +1820,29 @@ class TrackProHandler(BaseHTTPRequestHandler):
         # Autenticação: Dados do Usuário Logado
         if path == '/api/auth/me':
             user_id = self._get_current_user_id()
+            if not user_id:
+                self._send_json({"authenticated": False, "user": None}, 200)
+                return
             conn = get_db()
             cursor = conn.cursor()
             user = cursor.execute("SELECT id, name, email, company, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
             n_set = cursor.execute("SELECT * FROM notification_settings WHERE user_id = ?", (user_id,)).fetchone()
             conn.close()
             if not user:
-                self._send_json({"authenticated": False, "error": "Usuário não encontrado"}, 404)
+                self._send_json({"authenticated": False, "user": None}, 200)
                 return
+            self._send_json({
+                "authenticated": True,
+                "user": {
+                    "id": user['id'],
+                    "name": user['name'],
+                    "email": user['email'],
+                    "company": user['company'] or '',
+                    "created_at": user['created_at']
+                },
+                "notification_settings": dict(n_set) if n_set else {}
+            })
+            return
             self._send_json({
                 "authenticated": True,
                 "user": {
@@ -2260,6 +2276,26 @@ self.addEventListener('notificationclick', (e) => {
 
         # Dashboard Overview API (com suporte a filtros por período, contas, plataformas e produtos)
         if path in ['/api/dashboard', '/api/dashboard/overview']:
+            user_id = self._get_current_user_id()
+            if not user_id:
+                self._send_json({
+                    "authenticated": False,
+                    "kpis": {
+                        "faturamento": 0, "faturamentoLiquido": 0, "lucroReal": 0, "gastoAds": 0,
+                        "impostos": 0, "roas": 0, "roi": 0, "vendasAprovadas": 0, "cpa": 0,
+                        "ticketMedio": 0, "connectRate": 0, "initiateCheckout": 0, "vendasPendentes": 0,
+                        "cliques": 0, "impressoes": 0, "ctr": 0, "cpc": 0, "cpm": 0
+                    },
+                    "funnel": {
+                        "clicks": 0, "pageviews": 0, "initiate_checkout": 0, "orders_initiated": 0, "purchases": 0
+                    },
+                    "recentOrders": [],
+                    "revenueChart": [],
+                    "sourcesChart": [],
+                    "paymentMethodsChart": [],
+                    "filterOptions": {"ad_accounts": [], "products": [], "platforms": []}
+                })
+                return
             conn = get_db()
             cursor = conn.cursor()
             

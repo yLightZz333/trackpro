@@ -1793,11 +1793,13 @@ class TrackProHandler(BaseHTTPRequestHandler):
         self._send_cors_headers()
         self.end_headers()
 
-    def _send_json(self, data, status=200):
+    def _send_json(self, data, status=200, cookie=None):
         body_bytes = json.dumps(data, ensure_ascii=False).encode('utf-8')
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body_bytes)))
+        if cookie:
+            self.send_header('Set-Cookie', cookie)
         self._send_cors_headers()
         self.end_headers()
         self.wfile.write(body_bytes)
@@ -1838,18 +1840,6 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "name": user['name'],
                     "email": user['email'],
                     "company": user['company'] or '',
-                    "created_at": user['created_at']
-                },
-                "notification_settings": dict(n_set) if n_set else {}
-            })
-            return
-            self._send_json({
-                "authenticated": True,
-                "user": {
-                    "id": user['id'],
-                    "name": user['name'],
-                    "email": user['email'],
-                    "company": user['company'] or 'TrackPro',
                     "created_at": user['created_at']
                 },
                 "notification_settings": dict(n_set) if n_set else {}

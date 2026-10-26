@@ -1225,6 +1225,24 @@ def evaluate_automated_rules():
     return executed_logs
 
 # ==================== HANDLER HTTP ====================
+TRACKPRO_SVG_ICON = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="trackpro-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#trackpro-grad)"/>
+  <g stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="50" cy="50" r="26"/>
+    <line x1="50" y1="14" x2="50" y2="24"/>
+    <line x1="50" y1="76" x2="50" y2="86"/>
+    <line x1="14" y1="50" x2="24" y2="50"/>
+    <line x1="76" y1="50" x2="86" y2="50"/>
+    <circle cx="50" cy="50" r="3" fill="#ffffff"/>
+  </g>
+</svg>"""
+
 class TrackProHandler(BaseHTTPRequestHandler):
     def _send_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -1266,7 +1284,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"status": "ok", "app": "TrackPro Engine v2.5", "version": "2.5.0", "capi": True})
             return
 
-        # PWA Manifest
+                # PWA Manifest
         if path in ['/manifest.webmanifest', '/manifest.json']:
             manifest = {
                 "name": "TrackPro — Rastreamento UTM & Meta CAPI",
@@ -1274,12 +1292,24 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 "start_url": "/",
                 "display": "standalone",
                 "background_color": "#060911",
-                "theme_color": "#10b981",
+                "theme_color": "#060911",
                 "orientation": "portrait-primary",
                 "icons": [
                     {
-                        "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%2310b981'/><text x='50' y='65' font-size='45' font-weight='bold' text-anchor='middle' fill='white'>TP</text></svg>",
-                        "sizes": "192x192 512x512",
+                        "src": "/icon-192.png",
+                        "sizes": "192x192",
+                        "type": "image/png",
+                        "purpose": "any maskable"
+                    },
+                    {
+                        "src": "/icon-512.png",
+                        "sizes": "512x512",
+                        "type": "image/png",
+                        "purpose": "any maskable"
+                    },
+                    {
+                        "src": "/icon.svg",
+                        "sizes": "any",
                         "type": "image/svg+xml",
                         "purpose": "any maskable"
                     }
@@ -1291,6 +1321,48 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(manifest).encode('utf-8'))
             return
+
+        # Favicon e Ícones PWA (Desktop e Mobile)
+        if path in ['/icon.svg', '/favicon.svg']:
+            self.send_response(200)
+            self.send_header('Content-Type', 'image/svg+xml; charset=utf-8')
+            self.send_header('Cache-Control', 'public, max-age=604800')
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(TRACKPRO_SVG_ICON.encode('utf-8'))
+            return
+
+        if path in ['/icon-192.png', '/icon-512.png', '/favicon.png', '/favicon.ico', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png']:
+            filename = path.lstrip('/')
+            cur_dir = os.path.dirname(os.path.abspath(__file__))
+            file_path = os.path.join(cur_dir, filename)
+            if not os.path.exists(file_path):
+                # tenta caminhos alternativos conhecidos
+                for alt in ['favicon.png', 'icon-192.png']:
+                    p = os.path.join(cur_dir, alt)
+                    if os.path.exists(p):
+                        file_path = p
+                        break
+            
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as f:
+                    icon_bytes = f.read()
+                mime = 'image/x-icon' if path.endswith('.ico') else 'image/png'
+                self.send_response(200)
+                self.send_header('Content-Type', mime)
+                self.send_header('Cache-Control', 'public, max-age=604800')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(icon_bytes)
+                return
+            else:
+                self.send_response(200)
+                self.send_header('Content-Type', 'image/svg+xml; charset=utf-8')
+                self.send_header('Cache-Control', 'public, max-age=604800')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(TRACKPRO_SVG_ICON.encode('utf-8'))
+                return
 
         # PWA Service Worker
         if path == '/sw.js':

@@ -1836,6 +1836,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
             campaigns = []
             for c in c_rows:
+                c = dict(c)
                 c_id = c['id']
                 c_name = c['name']
                 ext_id = c.get('external_campaign_id') or c_name

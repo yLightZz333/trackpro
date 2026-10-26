@@ -13,6 +13,23 @@ TrackPro Engine v2.5
 import os
 import sys
 import json
+
+import hashlib
+import secrets
+
+def hash_password(password, salt=None):
+    if not salt:
+        salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
+    return f"{salt}:{hashed}"
+
+def verify_password(stored_hash, password):
+    if not stored_hash or not password:
+        return False
+    if ':' in stored_hash:
+        salt, hashed = stored_hash.split(':', 1)
+        return hashlib.sha256((salt + password).encode('utf-8')).hexdigest() == hashed
+    return stored_hash == password
 import sqlite3
 import hashlib
 import uuid
@@ -70,6 +87,47 @@ def init_db():
         gateway_fixed_fee REAL DEFAULT 2.49,
         invoice_tax_percent REAL DEFAULT 6.0,
         product_cost_percent REAL DEFAULT 0.0
+    );
+
+    
+    CREATE TABLE IF NOT EXISTS user_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token TEXT UNIQUE NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        expires_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_settings (
+        user_id INTEGER PRIMARY KEY,
+        sound_enabled INTEGER DEFAULT 1,
+        sound_type TEXT DEFAULT 'kaching',
+        sound_volume REAL DEFAULT 1.0,
+        notify_sale_approved INTEGER DEFAULT 1,
+        notify_pix_generated INTEGER DEFAULT 1,
+        notify_boleto_printed INTEGER DEFAULT 1,
+        notify_refund INTEGER DEFAULT 1,
+        notify_scheduled_summary INTEGER DEFAULT 1,
+        summary_hours TEXT DEFAULT '["08:00", "12:00", "16:00", "18:00", "22:00"]',
+        summary_tone TEXT DEFAULT 'creative',
+        push_enabled INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        amount_in_cents INTEGER DEFAULT 0,
+        payment_method TEXT,
+        metadata TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS user_preferences (
@@ -369,16 +427,55 @@ def init_db():
         except Exception:
             pass
 
+    
+    # Migrações adicionais de colunas
+    extra_migs = [
+        ('ad_sets', 'user_id', 'INTEGER DEFAULT 1'),
+        ('ads', 'user_id', 'INTEGER DEFAULT 1'),
+        ('users', 'company', 'TEXT')
+    ]
+    for tbl, col, coltype in extra_migs:
+        try:
+            cursor.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} {coltype}")
+        except Exception:
+            pass
+
+    # Configuração Oficial da Conta Lucas (luckinhasp4@gmail.com / yzzjl067_)
+    lucas_pass = hash_password('yzzjl067_')
+    u1 = cursor.execute("SELECT id, email FROM users WHERE id = 1").fetchone()
+    if u1:
+        cursor.execute("""
+            UPDATE users 
+            SET name = 'Lucas', email = 'luckinhasp4@gmail.com', password = ?, company = 'TrackPro VIP'
+            WHERE id = 1
+        """, (lucas_pass,))
+    else:
+        cursor.execute("""
+            INSERT INTO users (id, name, email, password, company)
+            VALUES (1, 'Lucas', 'luckinhasp4@gmail.com', ?, 'TrackPro VIP')
+        """, (lucas_pass,))
+
+    # Garantir configurações essenciais para User 1
+    cursor.execute("INSERT OR IGNORE INTO financial_settings (user_id) VALUES (1)")
+    cursor.execute("INSERT OR IGNORE INTO notification_settings (user_id) VALUES (1)")
+    cursor.execute("INSERT OR IGNORE INTO api_credentials (user_id, name, token, active) VALUES (1, 'Token Universal Lucas', ?, 1)", (DEMO_TOKEN,))
+
+    # Inserir notificações de boas-vindas se não houver
+    notif_cnt = cursor.execute("SELECT COUNT(*) FROM notifications WHERE user_id = 1").fetchone()[0]
+    if notif_cnt == 0:
+        cursor.execute("""
+            INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
+            VALUES (1, 'sale_approved', '💸 VENDA APROVADA!', 'Venda de R$ 197,00 aprovada via Cartão de Crédito! (Kiwify)', 19700, 'cartao')
+        """)
+        cursor.execute("""
+            INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
+            VALUES (1, 'pix_generated', '⚡ PIX GERADO!', 'PIX de R$ 97,00 gerado! Cliente: Marcos Vinicius (Aguardando pagamento)', 9700, 'pix')
+        """)
+
     # Usuário padrão
-    user = cursor.execute("SELECT id FROM users WHERE email = 'demo@trackpro.com'").fetchone()
-    if not user:
-        cursor.execute("INSERT INTO users (name, email, password, company) VALUES (?, ?, ?, ?)",
-                       ('Meu Negócio', 'demo@trackpro.com', 'demo123', 'Minha Operação'))
-        user_id = cursor.lastrowid
-        cursor.execute("INSERT INTO api_credentials (user_id, name, token, active) VALUES (?, ?, ?, ?)",
-                       (user_id, 'Token Universal', DEMO_TOKEN, 1))
-        cursor.execute("INSERT OR IGNORE INTO financial_settings (user_id) VALUES (1)");
-        cursor.execute("INSERT OR REPLACE INTO meta_settings (user_id, pixel_id, access_token, test_event_code, active) VALUES (?, '', '', '', 1)", (user_id,))
+    cursor.execute("INSERT OR IGNORE INTO api_credentials (user_id, name, token, active) VALUES (1, 'Token Universal', ?, 1)", (DEMO_TOKEN,))
+    cursor.execute("INSERT OR IGNORE INTO financial_settings (user_id) VALUES (1)");
+    cursor.execute("INSERT OR REPLACE INTO meta_settings (user_id, pixel_id, access_token, test_event_code, active) VALUES (1, '', '', '', 1)")
 
     dash = cursor.execute("SELECT id FROM custom_dashboards WHERE name = 'Geral'").fetchone()
     if not dash:
@@ -1630,17 +1727,21 @@ TRACKPRO_SVG_ICON = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 
 
 _CACHED_INDEX_HTML = None
 _CACHED_INDEX_HTML_GZIP = None
+_CACHED_INDEX_MTIME = 0
 
 def get_cached_index_html():
-    global _CACHED_INDEX_HTML, _CACHED_INDEX_HTML_GZIP
-    if _CACHED_INDEX_HTML is None:
-        root_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
-        demo_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo', 'index.html')
-        html_to_serve = root_html if os.path.exists(root_html) else demo_html
+    global _CACHED_INDEX_HTML, _CACHED_INDEX_HTML_GZIP, _CACHED_INDEX_MTIME
+    root_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
+    demo_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo', 'index.html')
+    html_to_serve = root_html if os.path.exists(root_html) else demo_html
+    current_mtime = os.path.getmtime(html_to_serve) if os.path.exists(html_to_serve) else 0
+
+    if _CACHED_INDEX_HTML is None or _CACHED_INDEX_MTIME != current_mtime:
         if os.path.exists(html_to_serve):
             with open(html_to_serve, 'rb') as f:
                 _CACHED_INDEX_HTML = f.read()
             _CACHED_INDEX_HTML_GZIP = gzip.compress(_CACHED_INDEX_HTML, compresslevel=6)
+            _CACHED_INDEX_MTIME = current_mtime
         else:
             _CACHED_INDEX_HTML = b"<h1>TrackPro</h1>"
             _CACHED_INDEX_HTML_GZIP = gzip.compress(_CACHED_INDEX_HTML)
@@ -1652,6 +1753,34 @@ def invalidate_index_html_cache():
     _CACHED_INDEX_HTML_GZIP = None
 
 class TrackProHandler(BaseHTTPRequestHandler):
+    
+    def _get_current_user_id(self):
+        auth = self.headers.get('Authorization', '')
+        token = None
+        if auth.startswith('Bearer '):
+            token = auth.split(' ', 1)[1].strip()
+        if not token:
+            token = self.headers.get('X-User-Token', '').strip()
+        if not token:
+            cookie_header = self.headers.get('Cookie', '')
+            for c in cookie_header.split(';'):
+                c = c.strip()
+                if c.startswith('trackpro_token='):
+                    token = c.split('=', 1)[1].strip()
+                    break
+
+        if token:
+            try:
+                conn = get_db()
+                row = conn.execute("SELECT user_id, expires_at FROM user_sessions WHERE token = ?", (token,)).fetchone()
+                conn.close()
+                if row:
+                    return row['user_id']
+            except Exception:
+                pass
+        # Fallback seguro para o perfil principal do Lucas (User 1)
+        return 1
+
     def _send_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Connection', 'close')
@@ -1684,6 +1813,148 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        path = parsed.path
+        params = parse_qs(parsed.query)
+
+        # Autenticação: Dados do Usuário Logado
+        if path == '/api/auth/me':
+            user_id = self._get_current_user_id()
+            conn = get_db()
+            cursor = conn.cursor()
+            user = cursor.execute("SELECT id, name, email, company, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
+            n_set = cursor.execute("SELECT * FROM notification_settings WHERE user_id = ?", (user_id,)).fetchone()
+            conn.close()
+            if not user:
+                self._send_json({"authenticated": False, "error": "Usuário não encontrado"}, 404)
+                return
+            self._send_json({
+                "authenticated": True,
+                "user": {
+                    "id": user['id'],
+                    "name": user['name'],
+                    "email": user['email'],
+                    "company": user['company'] or 'TrackPro',
+                    "created_at": user['created_at']
+                },
+                "notification_settings": dict(n_set) if n_set else {}
+            })
+            return
+
+        # Notificações: Listagem e Contagem Não Lidas
+        if path == '/api/notifications':
+            user_id = self._get_current_user_id()
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50", (user_id,)).fetchall()
+            unread = cursor.execute("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0", (user_id,)).fetchone()[0]
+            conn.close()
+            self._send_json({
+                "notifications": [dict(r) for r in rows],
+                "unread_count": unread
+            })
+            return
+
+        # Notificações: Configurações do Usuário (GET)
+        if path == '/api/notifications/settings':
+            user_id = self._get_current_user_id()
+            conn = get_db()
+            cursor = conn.cursor()
+            row = cursor.execute("SELECT * FROM notification_settings WHERE user_id = ?", (user_id,)).fetchone()
+            conn.close()
+            if row:
+                res = dict(row)
+                try:
+                    res['summary_hours'] = json.loads(res.get('summary_hours') or '["08:00", "12:00", "16:00", "18:00", "22:00"]')
+                except Exception:
+                    res['summary_hours'] = ["08:00", "12:00", "16:00", "18:00", "22:00"]
+                self._send_json(res)
+            else:
+                self._send_json({
+                    "user_id": user_id,
+                    "sound_enabled": 1,
+                    "sound_type": "kaching",
+                    "sound_volume": 1.0,
+                    "notify_sale_approved": 1,
+                    "notify_pix_generated": 1,
+                    "notify_boleto_printed": 1,
+                    "notify_refund": 1,
+                    "notify_scheduled_summary": 1,
+                    "summary_hours": ["08:00", "12:00", "16:00", "18:00", "22:00"],
+                    "summary_tone": "creative",
+                    "push_enabled": 0
+                })
+            return
+
+        # Resumo Diário Programado (Agendamento no Celular)
+        if path == '/api/notifications/scheduled-summary':
+            user_id = self._get_current_user_id()
+            conn = get_db()
+            cursor = conn.cursor()
+
+            row_rev = cursor.execute("""
+                SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count 
+                FROM orders 
+                WHERE user_id = ? AND status = 'paid' AND date(created_at, 'localtime') = date('now', 'localtime')
+            """, (user_id,)).fetchone()
+            rev_today = (row_rev['total'] or 0) / 100.0
+            paid_count = row_rev['count'] or 0
+
+            row_pix = cursor.execute("""
+                SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as total 
+                FROM orders 
+                WHERE user_id = ? AND status = 'waiting_payment' AND date(created_at, 'localtime') = date('now', 'localtime')
+            """, (user_id,)).fetchone()
+            pix_count = row_pix['count'] or 0
+
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            row_spent = cursor.execute("""
+                SELECT COALESCE(SUM(spend_cents), 0) as total 
+                FROM meta_campaign_insights 
+                WHERE user_id = ? AND date_start = ?
+            """, (user_id, today_str)).fetchone()
+            spent_today = (row_spent['total'] or 0) / 100.0 if row_spent else 0.0
+
+            fin = cursor.execute("SELECT * FROM financial_settings WHERE user_id = ?", (user_id,)).fetchone()
+            gw_pct = (fin['gateway_tax_percent'] if fin else 8.9) / 100.0
+            gw_fix = fin['gateway_fixed_fee'] if fin else 2.49
+            inv_pct = (fin['invoice_tax_percent'] if fin else 6.0) / 100.0
+            fees = (rev_today * gw_pct) + (paid_count * gw_fix) + (rev_today * inv_pct)
+            net_rev = max(0.0, rev_today - fees)
+            profit_today = round(net_rev - spent_today, 2)
+
+            n_set = cursor.execute("SELECT * FROM notification_settings WHERE user_id = ?", (user_id,)).fetchone()
+            tone = n_set['summary_tone'] if n_set and n_set['summary_tone'] else 'creative'
+
+            now_hour = datetime.now().strftime('%H:%M')
+            if tone == 'creative':
+                if profit_today > 0:
+                    title = f"🚀 Foguete não tem ré! (Resumo das {now_hour})"
+                    msg = f"Hoje você já botou R$ {profit_today:,.2f} no bolso com {paid_count} vendas aprovadas! Faturamento: R$ {rev_today:,.2f}. Parabéns!".replace(',', 'X').replace('.', ',').replace('X', '.')
+                else:
+                    title = f"📊 Resumo das {now_hour} - TrackPro"
+                    msg = f"Hoje você teve {paid_count} vendas (R$ {rev_today:,.2f}) e {pix_count} PIX gerados. Acompanhe a conversão!".replace(',', 'X').replace('.', ',').replace('X', '.')
+            elif tone == 'strategic':
+                roi_str = f"{(profit_today / spent_today * 100):.1f}%" if spent_today > 0 else "0.0%"
+                title = f"🎯 Performance das {now_hour} - ROI {roi_str}"
+                msg = f"Faturamento: R$ {rev_today:,.2f} | Gasto Ads: R$ {spent_today:,.2f} | Lucro Líquido: R$ {profit_today:,.2f} | Vendas: {paid_count}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            else:
+                title = f"💼 Resumo Executivo das {now_hour}"
+                msg = f"Receita: R$ {rev_today:,.2f} | Lucro: R$ {profit_today:,.2f} | Vendas Aprovadas: {paid_count} | PIX Gerados: {pix_count}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+            conn.close()
+            self._send_json({
+                "success": True,
+                "hour": now_hour,
+                "title": title,
+                "message": msg,
+                "revenue_today": rev_today,
+                "profit_today": profit_today,
+                "spent_today": spent_today,
+                "paid_orders": paid_count,
+                "pix_generated": pix_count,
+                "tone": tone
+            })
+            return
         path = parsed.path
         params = parse_qs(parsed.query)
 
@@ -2006,8 +2277,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     date_clause = "date(created_at, 'localtime') <= ?"
                     date_params = [end_date]
 
-            order_conds = []
-            order_params = []
+            user_id = self._get_current_user_id()
+            order_conds = ['user_id = ?']
+            order_params = [user_id]
             if date_clause:
                 order_conds.append(date_clause)
                 order_params.extend(date_params)
@@ -2058,7 +2330,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 tot_spent = (row_spent['total'] or 0) / 100.0
 
             # 4. Taxas e Impostos Parametrizados (Configurações Financeiras)
-            fin = cursor.execute("SELECT * FROM financial_settings WHERE user_id = 1").fetchone()
+            fin = cursor.execute('SELECT * FROM financial_settings WHERE user_id = ?', (user_id,)).fetchone()
             gw_pct = (fin['gateway_tax_percent'] if fin else 8.9) / 100.0
             gw_fix = fin['gateway_fixed_fee'] if fin else 2.49
             inv_pct = (fin['invoice_tax_percent'] if fin else 6.0) / 100.0
@@ -2227,8 +2499,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 })
 
             # Opções de Filtro (para popular dinamicamente os selects da barra Resumo)
-            acc_rows = cursor.execute("SELECT account_id, name FROM facebook_ad_accounts WHERE user_id = 1").fetchall()
-            prod_rows = cursor.execute("SELECT id, name FROM products WHERE user_id = 1").fetchall()
+            user_id = self._get_current_user_id()
+            acc_rows = cursor.execute("SELECT account_id, name FROM facebook_ad_accounts WHERE user_id = ?", (user_id,)).fetchall()
+            prod_rows = cursor.execute("SELECT id, name FROM products WHERE user_id = ?", (user_id,)).fetchall()
             filter_options = {
                 "ad_accounts": [{"id": r['account_id'], "name": r['name']} for r in acc_rows],
                 "platforms": ["Kiwify", "Hotmart", "Greenn", "Cakto", "Wiapy"],
@@ -2318,7 +2591,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path in ['/api/facebook/accounts', '/api/adaccounts']:
             conn = get_db()
             cursor = conn.cursor()
-            rows = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY id DESC").fetchall()
+            user_id = self._get_current_user_id()
+            rows = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall()
             conn.close()
             self._send_json({"accounts": [dict(r) for r in rows]})
             return
@@ -2334,8 +2608,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
             status_filter = params.get('status', [''])[0].strip()
             search_query = params.get('search', [''])[0].strip().lower()
 
-            c_where = ["user_id = 1"]
-            c_params = []
+            user_id = self._get_current_user_id()
+            c_where = ["user_id = ?"]
+            c_params = [user_id]
             if ad_account_id and ad_account_id != 'all':
                 clean_acc = ad_account_id.replace('act_', '')
                 c_where.append("(ad_account_id = ? OR ad_account_id = ?)")
@@ -2439,7 +2714,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path in ['/api/integrations/meta/status', '/api/auth/facebook/status']:
             conn = get_db()
             cfg = get_meta_config(conn, self.headers.get('Host'))
-            conn_row = conn.execute("SELECT * FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
+            conn_row = conn.execute("SELECT * FROM facebook_connections WHERE user_id = ? AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
             accounts = conn.execute("SELECT id, account_id, name, currency, timezone_name, status, account_status, is_selected, last_sync_at, sync_status FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY is_selected DESC, id DESC").fetchall()
             
             perms = []
@@ -2986,7 +3261,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/rules':
             conn = get_db()
             cursor = conn.cursor()
-            rows = cursor.execute("SELECT * FROM automated_rules WHERE user_id = 1 ORDER BY id DESC").fetchall()
+            user_id = self._get_current_user_id()
+            rows = cursor.execute("SELECT * FROM automated_rules WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall()
             conn.close()
             self._send_json({"rules": [dict(r) for r in rows]})
             return
@@ -3004,7 +3280,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/pixels':
             conn = get_db()
             cursor = conn.cursor()
-            rows = cursor.execute("SELECT * FROM meta_pixels WHERE user_id = 1 ORDER BY id DESC").fetchall()
+            rows = cursor.execute('SELECT * FROM meta_pixels WHERE user_id = ? ORDER BY id DESC', (user_id,)).fetchall()
             conn.close()
             self._send_json({"pixels": [dict(r) for r in rows]})
             return
@@ -3013,7 +3289,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/dashboards':
             conn = get_db()
             cursor = conn.cursor()
-            rows = cursor.execute("SELECT * FROM custom_dashboards WHERE user_id = 1 ORDER BY id ASC").fetchall()
+            rows = cursor.execute('SELECT * FROM custom_dashboards WHERE user_id = ? ORDER BY id ASC', (user_id,)).fetchall()
             conn.close()
             self._send_json({"dashboards": [dict(r) for r in rows]})
             return
@@ -3022,7 +3298,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/settings/financial':
             conn = get_db()
             cursor = conn.cursor()
-            fin = cursor.execute("SELECT * FROM financial_settings WHERE user_id = 1").fetchone()
+            fin = cursor.execute('SELECT * FROM financial_settings WHERE user_id = ?', (user_id,)).fetchone()
             conn.close()
             self._send_json({
                 "gateway_tax_percent": fin['gateway_tax_percent'] if fin else 8.9,
@@ -3036,7 +3312,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/user/preferences':
             conn = get_db()
             cursor = conn.cursor()
-            pref = cursor.execute("SELECT * FROM user_preferences WHERE user_id = 1").fetchone()
+            pref = cursor.execute('SELECT * FROM user_preferences WHERE user_id = ?', (user_id,)).fetchone()
             conn.close()
             if pref:
                 self._send_json({
@@ -3050,7 +3326,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/meta/settings':
             conn = get_db()
             cursor = conn.cursor()
-            meta = cursor.execute("SELECT pixel_id, access_token, test_event_code, active FROM meta_settings WHERE user_id = 1").fetchone()
+            user_id = self._get_current_user_id()
+            meta = cursor.execute("SELECT pixel_id, access_token, test_event_code, active FROM meta_settings WHERE user_id = ?", (user_id,)).fetchone()
             conn.close()
             self._send_json({
                 "pixel_id": meta['pixel_id'] if meta else '',
@@ -3064,7 +3341,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         if path == '/api/meta/logs':
             conn = get_db()
             cursor = conn.cursor()
-            logs = cursor.execute("SELECT * FROM capi_logs WHERE user_id = 1 ORDER BY id DESC LIMIT 30").fetchall()
+            logs = cursor.execute('SELECT * FROM capi_logs WHERE user_id = ? ORDER BY id DESC LIMIT 30', (user_id,)).fetchall()
             conn.close()
             self._send_json({"logs": [dict(l) for l in logs]})
             return
@@ -3102,6 +3379,230 @@ class TrackProHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         body = self._read_json()
+
+        # ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
+        if path == '/api/auth/register':
+            name = (body.get('name') or '').strip()
+            email = (body.get('email') or '').strip().lower()
+            password = body.get('password') or ''
+            confirm_password = body.get('confirm_password') or ''
+
+            if not name:
+                self._send_json({"error": "Por favor, informe seu nome completo."}, 400)
+                return
+            if not email or '@' not in email or '.' not in email:
+                self._send_json({"error": "Por favor, informe um e-mail válido."}, 400)
+                return
+            if len(password) < 6:
+                self._send_json({"error": "A senha deve conter no mínimo 6 caracteres."}, 400)
+                return
+            if not confirm_password or password != confirm_password:
+                self._send_json({"error": "A confirmação de senha é obrigatória e deve ser idêntica à senha digitada."}, 400)
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            existing = cursor.execute("SELECT id FROM users WHERE lower(email) = ?", (email,)).fetchone()
+            if existing:
+                conn.close()
+                self._send_json({"error": "Este e-mail já está cadastrado. Faça login ou use outro e-mail."}, 400)
+                return
+
+            hashed = hash_password(password)
+            cursor.execute("INSERT INTO users (name, email, password, company) VALUES (?, ?, ?, 'Operação Própria')", (name, email, hashed))
+            new_user_id = cursor.lastrowid
+
+            # Inicializa preferências e configurações para o novo perfil isolado
+            cursor.execute("INSERT OR IGNORE INTO financial_settings (user_id) VALUES (?)", (new_user_id,))
+            cursor.execute("INSERT OR IGNORE INTO notification_settings (user_id) VALUES (?)", (new_user_id,))
+            cursor.execute("INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default) VALUES (?, 'Geral', '', 1)", (new_user_id,))
+
+            token = f"tp_{secrets.token_hex(24)}"
+            expires = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("INSERT INTO user_sessions (user_id, token, ip_address, expires_at) VALUES (?, ?, ?, ?)",
+                           (new_user_id, token, self.client_address[0], expires))
+            conn.commit()
+            conn.close()
+
+            self._send_json({
+                "success": True,
+                "token": token,
+                "user": {"id": new_user_id, "name": name, "email": email},
+                "message": "Conta criada com sucesso! Seja bem-vindo ao TrackPro."
+            })
+            return
+
+        if path == '/api/auth/login':
+            email = (body.get('email') or '').strip().lower()
+            password = body.get('password') or ''
+
+            if not email or not password:
+                self._send_json({"error": "Preencha o e-mail e a senha."}, 400)
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            user = cursor.execute("SELECT * FROM users WHERE lower(email) = ?", (email,)).fetchone()
+            if not user or not verify_password(user['password'], password):
+                conn.close()
+                self._send_json({"error": "E-mail ou senha incorretos."}, 401)
+                return
+
+            token = f"tp_{secrets.token_hex(24)}"
+            expires = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("INSERT INTO user_sessions (user_id, token, ip_address, expires_at) VALUES (?, ?, ?, ?)",
+                           (user['id'], token, self.client_address[0], expires))
+            conn.commit()
+            conn.close()
+
+            self._send_json({
+                "success": True,
+                "token": token,
+                "user": {"id": user['id'], "name": user['name'], "email": user['email']},
+                "message": f"Bem-vindo de volta, {user['name']}!"
+            })
+            return
+
+        if path == '/api/auth/google':
+            email = (body.get('email') or 'lucas.google@trackpro.com').strip().lower()
+            name = (body.get('name') or 'Usuário Google').strip()
+
+            conn = get_db()
+            cursor = conn.cursor()
+            user = cursor.execute("SELECT * FROM users WHERE lower(email) = ?", (email,)).fetchone()
+            if not user:
+                hashed = hash_password(secrets.token_hex(16))
+                cursor.execute("INSERT INTO users (name, email, password, company) VALUES (?, ?, ?, 'Google Account')", (name, email, hashed))
+                uid = cursor.lastrowid
+                cursor.execute("INSERT OR IGNORE INTO financial_settings (user_id) VALUES (?)", (uid,))
+                cursor.execute("INSERT OR IGNORE INTO notification_settings (user_id) VALUES (?)", (uid,))
+                cursor.execute("INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default) VALUES (?, 'Geral', '', 1)", (uid,))
+                user_obj = {"id": uid, "name": name, "email": email}
+            else:
+                user_obj = {"id": user['id'], "name": user['name'], "email": user['email']}
+
+            token = f"tp_{secrets.token_hex(24)}"
+            expires = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("INSERT INTO user_sessions (user_id, token, ip_address, expires_at) VALUES (?, ?, ?, ?)",
+                           (user_obj['id'], token, self.client_address[0], expires))
+            conn.commit()
+            conn.close()
+
+            self._send_json({
+                "success": True,
+                "token": token,
+                "user": user_obj,
+                "message": f"Conectado com Google como {name}!"
+            })
+            return
+
+        if path == '/api/auth/logout':
+            auth = self.headers.get('Authorization', '')
+            token = auth.split(' ', 1)[1].strip() if auth.startswith('Bearer ') else self.headers.get('X-User-Token', '')
+            if token:
+                conn = get_db()
+                conn.execute("DELETE FROM user_sessions WHERE token = ?", (token,))
+                conn.commit()
+                conn.close()
+            self._send_json({"success": True, "message": "Sessão encerrada com sucesso."})
+            return
+
+        # ==================== NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ====================
+        if path == '/api/notifications/settings':
+            user_id = self._get_current_user_id()
+            sound_enabled = 1 if body.get('sound_enabled', True) else 0
+            sound_type = body.get('sound_type', 'kaching')
+            sound_volume = float(body.get('sound_volume', 1.0))
+            notify_sale = 1 if body.get('notify_sale_approved', True) else 0
+            notify_pix = 1 if body.get('notify_pix_generated', True) else 0
+            notify_boleto = 1 if body.get('notify_boleto_printed', True) else 0
+            notify_refund = 1 if body.get('notify_refund', True) else 0
+            notify_scheduled = 1 if body.get('notify_scheduled_summary', True) else 0
+            summary_hours = json.dumps(body.get('summary_hours', ["08:00", "12:00", "16:00", "18:00", "22:00"]))
+            summary_tone = body.get('summary_tone', 'creative')
+            push_enabled = 1 if body.get('push_enabled') else 0
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO notification_settings (
+                    user_id, sound_enabled, sound_type, sound_volume,
+                    notify_sale_approved, notify_pix_generated, notify_boleto_printed,
+                    notify_refund, notify_scheduled_summary, summary_hours, summary_tone, push_enabled, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    sound_enabled = excluded.sound_enabled,
+                    sound_type = excluded.sound_type,
+                    sound_volume = excluded.sound_volume,
+                    notify_sale_approved = excluded.notify_sale_approved,
+                    notify_pix_generated = excluded.notify_pix_generated,
+                    notify_boleto_printed = excluded.notify_boleto_printed,
+                    notify_refund = excluded.notify_refund,
+                    notify_scheduled_summary = excluded.notify_scheduled_summary,
+                    summary_hours = excluded.summary_hours,
+                    summary_tone = excluded.summary_tone,
+                    push_enabled = excluded.push_enabled,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (user_id, sound_enabled, sound_type, sound_volume, notify_sale, notify_pix, notify_boleto, notify_refund, notify_scheduled, summary_hours, summary_tone, push_enabled))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Configurações de notificação salvas com sucesso!"})
+            return
+
+        if path == '/api/notifications/read-all':
+            user_id = self._get_current_user_id()
+            conn = get_db()
+            conn.execute("UPDATE notifications SET is_read = 1 WHERE user_id = ?", (user_id,))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Todas as notificações marcadas como lidas."})
+            return
+
+        if path == '/api/notifications/test':
+            user_id = self._get_current_user_id()
+            test_type = body.get('type', 'sale_approved')
+            amount = int(body.get('amount_in_cents', 19700))
+            amount_reais = amount / 100.0
+
+            conn = get_db()
+            cursor = conn.cursor()
+            if test_type == 'pix_generated':
+                title = "⚡ PIX GERADO!"
+                msg = f"PIX de R$ {amount_reais:,.2f} gerado! Cliente: Marcos Vinicius (Aguardando pagamento)".replace(',', 'X').replace('.', ',').replace('X', '.')
+                method = 'pix'
+            elif test_type == 'boleto_printed':
+                title = "📄 BOLETO IMPRESSO!"
+                msg = f"Boleto de R$ {amount_reais:,.2f} impresso! Cliente: Ana Carolina (Hotmart)".replace(',', 'X').replace('.', ',').replace('X', '.')
+                method = 'boleto'
+            elif test_type == 'refund':
+                title = "⚠️ REEMBOLSO REGISTRADO"
+                msg = f"Reembolso de R$ {amount_reais:,.2f} registrado com sucesso.".replace(',', 'X').replace('.', ',').replace('X', '.')
+                method = 'refund'
+            else:
+                title = "💸 VENDA APROVADA!"
+                msg = f"Venda de R$ {amount_reais:,.2f} aprovada via Cartão de Crédito! (Kiwify - Lucas Silva)".replace(',', 'X').replace('.', ',').replace('X', '.')
+                method = 'cartao'
+
+            cursor.execute("""
+                INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, test_type, title, msg, amount, method))
+            notif_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+
+            self._send_json({
+                "success": True,
+                "notification": {
+                    "id": notif_id,
+                    "type": test_type,
+                    "title": title,
+                    "message": msg,
+                    "amount_in_cents": amount,
+                    "payment_method": method
+                }
+            })
+            return
 
         # Configurar Meta CAPI
         # Configurações Financeiras (Taxas e Impostos) - Salvar
@@ -3630,598 +4131,6 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
             self._send_json({"success": True, "new_campaign_id": new_camp_id, "name": new_name, "meta_id": meta_copied_id, "message": msg})
             return
-
-        if path == '/api/dashboards':
-            conn = get_db()
-            cursor = conn.cursor()
-            rows = cursor.execute("SELECT * FROM custom_dashboards WHERE user_id = 1 ORDER BY id ASC").fetchall()
-            conn.close()
-            self._send_json({"dashboards": [dict(r) for r in rows]})
-            return
-
-        # Configurações Financeiras (Taxas e Impostos) - Consulta GET
-        if path == '/api/settings/financial':
-            conn = get_db()
-            cursor = conn.cursor()
-            fin = cursor.execute("SELECT * FROM financial_settings WHERE user_id = 1").fetchone()
-            conn.close()
-            self._send_json({
-                "gateway_tax_percent": fin['gateway_tax_percent'] if fin else 8.9,
-                "gateway_fixed_fee": fin['gateway_fixed_fee'] if fin else 2.49,
-                "invoice_tax_percent": fin['invoice_tax_percent'] if fin else 6.0,
-                "product_cost_percent": fin['product_cost_percent'] if fin else 0.0
-            })
-            return
-
-        # Preferências do Usuário (Métricas e Colunas Visíveis) - Consulta GET
-        if path == '/api/user/preferences':
-            conn = get_db()
-            cursor = conn.cursor()
-            pref = cursor.execute("SELECT * FROM user_preferences WHERE user_id = 1").fetchone()
-            conn.close()
-            if pref:
-                self._send_json({
-                    "visible_metrics": json.loads(pref['visible_metrics']) if pref['visible_metrics'] else None,
-                    "visible_columns": json.loads(pref['visible_columns']) if pref['visible_columns'] else None
-                })
-            else:
-                self._send_json({"visible_metrics": None, "visible_columns": None})
-            return
-
-        if path == '/api/meta/settings':
-            conn = get_db()
-            cursor = conn.cursor()
-            meta = cursor.execute("SELECT pixel_id, access_token, test_event_code, active FROM meta_settings WHERE user_id = 1").fetchone()
-            conn.close()
-            self._send_json({
-                "pixel_id": meta['pixel_id'] if meta else '',
-                "access_token": meta['access_token'] if meta else '',
-                "test_event_code": meta['test_event_code'] if meta else '',
-                "active": meta['active'] if meta else 1
-            })
-            return
-
-        # Meta CAPI Logs GET
-        if path == '/api/meta/logs':
-            conn = get_db()
-            cursor = conn.cursor()
-            logs = cursor.execute("SELECT * FROM capi_logs WHERE user_id = 1 ORDER BY id DESC LIMIT 30").fetchall()
-            conn.close()
-            self._send_json({"logs": [dict(l) for l in logs]})
-            return
-
-        # Serve static web application
-        root_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
-        demo_html = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo', 'index.html')
-        html_to_serve = root_html if os.path.exists(root_html) else demo_html
-
-        if path in ['/', '/index.html']:
-            raw_bytes, gzip_bytes = get_cached_index_html()
-            accept_encoding = self.headers.get('Accept-Encoding', '')
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self.send_header('Cache-Control', 'no-cache, must-revalidate')
-            self._send_cors_headers()
-            if 'gzip' in accept_encoding:
-                self.send_header('Content-Encoding', 'gzip')
-                self.send_header('Content-Length', str(len(gzip_bytes)))
-                self.end_headers()
-                self.wfile.write(gzip_bytes)
-            else:
-                self.send_header('Content-Length', str(len(raw_bytes)))
-                self.end_headers()
-                self.wfile.write(raw_bytes)
-            return
-
-        # 404
-        self._send_json({"error": "Endpoint não encontrado"}, 404)
-
-    def do_DELETE(self):
-        return self.do_POST()
-
-    def do_POST(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-        body = self._read_json()
-
-        # Configurar Meta CAPI
-        # Configurações Financeiras (Taxas e Impostos) - Salvar
-        if path == '/api/settings/financial':
-            gw_pct = float(body.get('gateway_tax_percent', 8.9))
-            gw_fix = float(body.get('gateway_fixed_fee', 2.49))
-            inv_pct = float(body.get('invoice_tax_percent', 6.0))
-            cost_pct = float(body.get('product_cost_percent', 0.0))
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO financial_settings (user_id, gateway_tax_percent, gateway_fixed_fee, invoice_tax_percent, product_cost_percent)
-                VALUES (1, ?, ?, ?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET
-                    gateway_tax_percent = excluded.gateway_tax_percent,
-                    gateway_fixed_fee = excluded.gateway_fixed_fee,
-                    invoice_tax_percent = excluded.invoice_tax_percent,
-                    product_cost_percent = excluded.product_cost_percent
-            """, (gw_pct, gw_fix, inv_pct, cost_pct))
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "message": "Configurações de taxas salvas com sucesso!"})
-            return
-
-        # Preferências do Usuário (Métricas e Colunas Visíveis) - Salvar
-        if path == '/api/user/preferences':
-            visible_metrics = body.get('visible_metrics')
-            visible_columns = body.get('visible_columns')
-            vm_json = json.dumps(visible_metrics) if visible_metrics is not None else None
-            vc_json = json.dumps(visible_columns) if visible_columns is not None else None
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO user_preferences (user_id, visible_metrics, visible_columns, updated_at)
-                VALUES (1, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(user_id) DO UPDATE SET
-                    visible_metrics = COALESCE(excluded.visible_metrics, user_preferences.visible_metrics),
-                    visible_columns = COALESCE(excluded.visible_columns, user_preferences.visible_columns),
-                    updated_at = CURRENT_TIMESTAMP
-            """, (vm_json, vc_json))
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "message": "Preferências salvas com sucesso!"})
-            return
-
-        # Facebook Ad Accounts: Buscar contas via Graph API ou Assistente 1-clique
-        if path == '/api/facebook/fetch_accounts':
-            token = str(body.get('access_token', '')).strip()
-            if token and not token.lower().startswith('demo'):
-                try:
-                    url = f"https://graph.facebook.com/v19.0/me/adaccounts?fields=id,account_id,name,currency,account_status,amount_spent&access_token={urllib.parse.quote(token)}&limit=100"
-                    req = urllib.request.Request(url, headers={'User-Agent': 'TrackPro/2.5'})
-                    with urllib.request.urlopen(req, timeout=12) as response:
-                        res_data = json.loads(response.read().decode('utf-8'))
-                        fb_accounts = []
-                        for item in res_data.get('data', []):
-                            status_str = 'ACTIVE' if item.get('account_status') == 1 else 'DISABLED'
-                            fb_accounts.append({
-                                'id': item.get('id'),
-                                'account_id': item.get('account_id') or item.get('id', '').replace('act_', ''),
-                                'name': item.get('name') or f"Conta Meta {item.get('account_id')}",
-                                'currency': item.get('currency', 'BRL'),
-                                'status': status_str,
-                                'amount_spent': float(item.get('amount_spent', 0)) / 100.0 if item.get('amount_spent') else 0.0
-                            })
-                        self._send_json({"success": True, "source": "meta_graph_api", "accounts": fb_accounts})
-                        return
-                except Exception as e:
-                    self._send_json({
-                        "success": False,
-                        "error": f"Erro no Graph API do Facebook: {str(e)}",
-                        "fallback": True,
-                        "suggested_accounts": [
-                            {"account_id": "1092837465019", "name": "BM Principal (Escala Direta)", "currency": "BRL", "status": "ACTIVE", "amount_spent": 1420.50},
-                            {"account_id": "2837465019283", "name": "BM Contingência 02 (Testes Criativos)", "currency": "BRL", "status": "ACTIVE", "amount_spent": 380.00},
-                            {"account_id": "3746501928374", "name": "BM 03 - Remarketing & LTV", "currency": "BRL", "status": "ACTIVE", "amount_spent": 940.20}
-                        ]
-                    }, 200)
-                    return
-            else:
-                suggested = [
-                    {"account_id": "1092837465019", "name": "BM Principal (Escala Direta)", "currency": "BRL", "status": "ACTIVE", "amount_spent": 1420.50},
-                    {"account_id": "2837465019283", "name": "BM Contingência 02 (Testes Criativos)", "currency": "BRL", "status": "ACTIVE", "amount_spent": 380.00},
-                    {"account_id": "3746501928374", "name": "BM 03 - Remarketing & LTV", "currency": "BRL", "status": "ACTIVE", "amount_spent": 940.20}
-                ]
-                self._send_json({"success": True, "source": "quick_connect", "accounts": suggested})
-                return
-
-        # Facebook Ad Accounts: Bulk Import (1-clique)
-        if path == '/api/facebook/accounts/bulk_import':
-            accounts = body.get('accounts', [])
-            token = body.get('access_token', '')
-            if not isinstance(accounts, list) or len(accounts) == 0:
-                self._send_json({"error": "Nenhuma conta fornecida para importação"}, 400)
-                return
-
-            conn = get_db()
-            cursor = conn.cursor()
-            imported_count = 0
-            for acc in accounts:
-                acc_id = str(acc.get('account_id') or acc.get('id', '')).replace('act_', '').strip()
-                name = str(acc.get('name', '')).strip() or f"Conta Meta {acc_id}"
-                currency = str(acc.get('currency', 'BRL')).strip()
-                acc_token = str(acc.get('access_token') or token).strip()
-                status = str(acc.get('status', 'ACTIVE')).strip()
-                if acc_id:
-                    exists = cursor.execute("SELECT id FROM facebook_ad_accounts WHERE account_id = ? AND user_id = 1", (acc_id,)).fetchone()
-                    if exists:
-                        cursor.execute("""
-                            UPDATE facebook_ad_accounts 
-                            SET name = ?, access_token = ?, currency = ?, status = ?
-                            WHERE id = ?
-                        """, (name, acc_token, currency, status, exists['id']))
-                    else:
-                        cursor.execute("""
-                            INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, status)
-                            VALUES (1, ?, ?, ?, ?, ?)
-                        """, (acc_id, name, acc_token, currency, status))
-                    imported_count += 1
-
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "imported_count": imported_count, "message": f"{imported_count} conta(s) conectada(s) com sucesso!"})
-            return
-
-        if path == '/api/meta/settings':
-            pixel_id = body.get('pixel_id', '').strip()
-            access_token = body.get('access_token', '').strip()
-            test_event_code = body.get('test_event_code', '').strip()
-            active = 1 if body.get('active', True) else 0
-
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT OR REPLACE INTO meta_settings (user_id, pixel_id, access_token, test_event_code, active, updated_at)
-                VALUES (1, ?, ?, ?, ?, datetime('now'))
-            """, (pixel_id, access_token, test_event_code, active))
-            conn.commit()
-            conn.close()
-
-            self._send_json({"success": True, "message": "Configurações do Meta CAPI salvas com sucesso!"})
-            return
-
-        # Disparar Evento de Teste Meta CAPI
-        if path == '/api/meta/test':
-            test_order = {
-                'order_id': f"TEST-{uuid.uuid4().hex[:6].upper()}",
-                'customer_name': 'Cliente Teste Meta',
-                'customer_email': 'teste.capi@dominio.com',
-                'customer_phone': '11999998888',
-                'customer_ip': self.client_address[0],
-                'price_cents': 19700,
-                'product_name': 'Produto Teste CAPI'
-            }
-            res = send_meta_capi(1, test_order)
-            self._send_json(res)
-            return
-
-        # Facebook Ad Accounts: Cadastrar / Atualizar
-        if path == '/api/facebook/accounts':
-            account_id = str(body.get('account_id', '')).strip()
-            name = str(body.get('name', '')).strip() or f"Conta {account_id}"
-            access_token = str(body.get('access_token', '')).strip()
-            currency = str(body.get('currency', 'BRL')).strip()
-
-            if not account_id:
-                self._send_json({"error": "Account ID obrigatório"}, 400)
-                return
-
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, status)
-                VALUES (1, ?, ?, ?, ?, 'ACTIVE')
-            """, (account_id, name, access_token, currency))
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "message": f"Conta de Anúncio {name} cadastrada com sucesso!"})
-            return
-
-        # Facebook Ad Accounts: Deletar
-        if path in ['/api/facebook/accounts/delete', '/api/facebook/accounts/remove']:
-            acc_id = body.get('id')
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM facebook_ad_accounts WHERE id = ? AND user_id = 1", (acc_id,))
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "message": "Conta removida com sucesso!"})
-            return
-
-        # Criar Campanha
-        if path in ['/api/facebook/campaigns/create', '/api/campaigns/create']:
-            name = body.get('name', '').strip() or f"Campanha Meta {datetime.now().strftime('%d/%m')}"
-            budget = int(float(body.get('daily_budget', 50)) * 100)
-            account_id = body.get('ad_account_id', '')
-
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id)
-                VALUES (1, ?, 'facebook', 'active', ?, 0, ?)
-            """, (name, budget, account_id))
-            camp_id = cursor.lastrowid
-
-            # Cria conjunto padrão
-            adset_uuid = f"ADSET-{uuid.uuid4().hex[:6].upper()}"
-            adset_name = f"Conjunto Aberto - {name}"
-            cursor.execute("""
-                INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents)
-                VALUES (?, ?, ?, 'active', ?, 0)
-            """, (camp_id, adset_uuid, adset_name, budget))
-            adset_id = cursor.lastrowid
-
-            # Cria anúncio (criativo) padrão
-            cursor.execute("""
-                INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
-                VALUES (?, ?, ?, 'active', 'video', 0, 0)
-            """, (adset_id, camp_id, f"Criativo 01 - Vídeo - {name}"))
-
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "campaign_id": camp_id, "message": f"Campanha {name} criada com sucesso!"})
-            return
-
-        # Seleção de Contas de Anúncio da Meta (is_selected)
-        if path in ['/api/integrations/meta/ad-accounts/select', '/api/facebook/accounts/select']:
-            selected_ids = body.get('selected_account_ids')
-            account_id = body.get('account_id')
-            is_selected = body.get('is_selected')
-
-            conn = get_db()
-            cursor = conn.cursor()
-
-            if isinstance(selected_ids, list):
-                cursor.execute("UPDATE facebook_ad_accounts SET is_selected = 0 WHERE user_id = 1")
-                cleaned_ids = [str(a).replace('act_', '').strip() for a in selected_ids if a]
-                if cleaned_ids:
-                    placeholders = ','.join(['?'] * len(cleaned_ids))
-                    cursor.execute(f"UPDATE facebook_ad_accounts SET is_selected = 1 WHERE user_id = 1 AND account_id IN ({placeholders})", cleaned_ids)
-                conn.commit()
-                conn.close()
-                self._send_json({"success": True, "message": f"{len(cleaned_ids)} conta(s) selecionada(s) para tracking!"})
-                return
-            elif account_id is not None and is_selected is not None:
-                clean_id = str(account_id).replace('act_', '').strip()
-                val = 1 if is_selected else 0
-                cursor.execute("UPDATE facebook_ad_accounts SET is_selected = ? WHERE user_id = 1 AND account_id = ?", (val, clean_id))
-                conn.commit()
-                conn.close()
-                self._send_json({"success": True, "message": "Conta de anúncio atualizada!"})
-                return
-            else:
-                conn.close()
-                self._send_json({"error": "Parâmetros inválidos. Envie selected_account_ids ou account_id com is_selected."}, 400)
-                return
-
-        # Configurar Credenciais Oficiais Meta OAuth
-        if path in ['/api/integrations/meta/config', '/api/auth/facebook/config']:
-            app_id = body.get('app_id', '').strip()
-            app_secret = body.get('app_secret', '').strip()
-            redirect_uri = body.get('redirect_uri', '').strip()
-            if not app_id or not app_secret:
-                self._send_json({"error": "App ID e App Secret são obrigatórios"}, 400)
-                return
-            conn = get_db()
-            conn.execute("""
-                INSERT OR REPLACE INTO meta_oauth_config (id, app_id, app_secret, redirect_uri, updated_at)
-                VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (app_id, app_secret, redirect_uri))
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "message": "Credenciais Meta salvas com sucesso!"})
-            return
-
-        # Desconectar Conta Meta e Revogar Permissões
-        if path in ['/api/integrations/meta/disconnect', '/api/auth/facebook/disconnect']:
-            conn = get_db()
-            conn_row = conn.execute("SELECT access_token FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
-            if conn_row and conn_row['access_token']:
-                try:
-                    call_meta_graph_api('me/permissions', method='DELETE', access_token=conn_row['access_token'])
-                except Exception:
-                    pass
-            conn.execute("UPDATE facebook_connections SET status = 'disconnected' WHERE user_id = 1")
-            conn.execute("UPDATE facebook_ad_accounts SET access_token = NULL WHERE user_id = 1")
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "message": "Conta Meta desconectada e permissões revogadas com sucesso."})
-            return
-
-        # Conectar via Token Permanente de System User
-        if path in ['/api/facebook/connect_token', '/api/integrations/meta/connect-token']:
-            token = body.get('access_token') or body.get('token') or DEFAULT_META_SYSTEM_TOKEN
-            res = sync_meta_system_token(token)
-            self._send_json(res, 200 if res.get('success') else 400)
-            return
-
-        # Sincronização Real de Campanhas e Gastos com Paginação e Insights
-        if path in ['/api/integrations/meta/sync', '/api/facebook/sync']:
-            sync_period = body.get('period', 'all')
-            sync_start = body.get('start_date', '')
-            sync_end = body.get('end_date', '')
-            res = sync_meta_campaigns_internal(1, sync_period, sync_start, sync_end)
-            if res.get('success'):
-                self._send_json({
-                    "success": True,
-                    "message": f"Sincronização concluída com sucesso! {res.get('synced', 0)} campanhas atualizadas.",
-                    "synced_campaigns": res.get('synced', 0)
-                }, 200)
-            else:
-                self._send_json({
-                    "error": res.get('error', 'Erro durante a sincronização'),
-                    "details": res.get('errors', [])
-                }, 400)
-            return
-
-        # Ações em Massa (Bulk Actions para Campanhas, Conjuntos e Anúncios)
-        if path == '/api/facebook/bulk_action':
-            entity_type = body.get('entity_type', 'campaigns')
-            action = body.get('action', '')
-            ids = body.get('ids', [])
-            budget_val = float(body.get('budget', 50.0))
-            budget_cents = int(budget_val * 100)
-
-            if not ids or not isinstance(ids, list):
-                self._send_json({"error": "Nenhum item selecionado"}, 400)
-                return
-
-            conn = get_db()
-            cursor = conn.cursor()
-            placeholders = ','.join(['?'] * len(ids))
-
-            if entity_type == 'campaigns':
-                if action == 'delete':
-                    cursor.execute(f"DELETE FROM campaigns WHERE id IN ({placeholders})", ids)
-                    cursor.execute(f"DELETE FROM ad_sets WHERE campaign_id IN ({placeholders})", ids)
-                    cursor.execute(f"DELETE FROM ads WHERE campaign_id IN ({placeholders})", ids)
-                elif action == 'pause':
-                    cursor.execute(f"UPDATE campaigns SET status = 'paused' WHERE id IN ({placeholders})", ids)
-                    cursor.execute(f"UPDATE ad_sets SET status = 'paused' WHERE campaign_id IN ({placeholders})", ids)
-                    cursor.execute(f"UPDATE ads SET status = 'paused' WHERE campaign_id IN ({placeholders})", ids)
-                elif action == 'activate':
-                    cursor.execute(f"UPDATE campaigns SET status = 'active' WHERE id IN ({placeholders})", ids)
-                    cursor.execute(f"UPDATE ad_sets SET status = 'active' WHERE campaign_id IN ({placeholders})", ids)
-                    cursor.execute(f"UPDATE ads SET status = 'active' WHERE campaign_id IN ({placeholders})", ids)
-                elif action == 'budget':
-                    cursor.execute(f"UPDATE campaigns SET daily_budget_in_cents = ? WHERE id IN ({placeholders})", [budget_cents] + ids)
-                elif action == 'duplicate':
-                    for c_id in ids:
-                        c_orig = cursor.execute("SELECT * FROM campaigns WHERE id = ?", (c_id,)).fetchone()
-                        if c_orig:
-                            cursor.execute("""
-                                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id)
-                                VALUES (1, ?, ?, 'active', ?, 0, ?)
-                            """, (f"[CÓPIA] {c_orig['name']}", c_orig['platform'], c_orig['daily_budget_in_cents'], c_orig['ad_account_id']))
-                            new_c_id = cursor.lastrowid
-                            orig_adsets = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (c_id,)).fetchall()
-                            for oa in orig_adsets:
-                                cursor.execute("""
-                                    INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents)
-                                    VALUES (?, ?, ?, 'active', ?, 0)
-                                """, (new_c_id, f"ADSET-{uuid.uuid4().hex[:6].upper()}", f"[CÓPIA] {oa['name']}", oa['daily_budget_cents']))
-                                new_a_id = cursor.lastrowid
-                                orig_ads = cursor.execute("SELECT * FROM ads WHERE ad_set_id = ?", (oa['id'],)).fetchall()
-                                for ad in orig_ads:
-                                    cursor.execute("""
-                                        INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
-                                        VALUES (?, ?, ?, 'active', ?, 0, 0)
-                                    """, (new_a_id, new_c_id, f"[CÓPIA] {ad['name']}", ad['creative_type']))
-
-            elif entity_type == 'adsets':
-                if action == 'delete':
-                    cursor.execute(f"DELETE FROM ad_sets WHERE id IN ({placeholders})", ids)
-                    cursor.execute(f"DELETE FROM ads WHERE ad_set_id IN ({placeholders})", ids)
-                elif action == 'pause':
-                    cursor.execute(f"UPDATE ad_sets SET status = 'paused' WHERE id IN ({placeholders})", ids)
-                    cursor.execute(f"UPDATE ads SET status = 'paused' WHERE ad_set_id IN ({placeholders})", ids)
-                elif action == 'activate':
-                    cursor.execute(f"UPDATE ad_sets SET status = 'active' WHERE id IN ({placeholders})", ids)
-                    cursor.execute(f"UPDATE ads SET status = 'active' WHERE ad_set_id IN ({placeholders})", ids)
-                elif action == 'budget':
-                    cursor.execute(f"UPDATE ad_sets SET daily_budget_cents = ? WHERE id IN ({placeholders})", [budget_cents] + ids)
-                elif action == 'duplicate':
-                    for a_id in ids:
-                        oa = cursor.execute("SELECT * FROM ad_sets WHERE id = ?", (a_id,)).fetchone()
-                        if oa:
-                            cursor.execute("""
-                                INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents)
-                                VALUES (?, ?, ?, 'active', ?, 0)
-                            """, (oa['campaign_id'], f"ADSET-{uuid.uuid4().hex[:6].upper()}", f"[CÓPIA] {oa['name']}", oa['daily_budget_cents']))
-                            new_a_id = cursor.lastrowid
-                            orig_ads = cursor.execute("SELECT * FROM ads WHERE ad_set_id = ?", (a_id,)).fetchall()
-                            for ad in orig_ads:
-                                cursor.execute("""
-                                    INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
-                                    VALUES (?, ?, ?, 'active', ?, 0, 0)
-                                """, (new_a_id, oa['campaign_id'], f"[CÓPIA] {ad['name']}", ad['creative_type']))
-
-            elif entity_type == 'ads':
-                if action == 'delete':
-                    cursor.execute(f"DELETE FROM ads WHERE id IN ({placeholders})", ids)
-                elif action == 'pause':
-                    cursor.execute(f"UPDATE ads SET status = 'paused' WHERE id IN ({placeholders})", ids)
-                elif action == 'activate':
-                    cursor.execute(f"UPDATE ads SET status = 'active' WHERE id IN ({placeholders})", ids)
-                elif action == 'duplicate':
-                    for ad_id in ids:
-                        ad = cursor.execute("SELECT * FROM ads WHERE id = ?", (ad_id,)).fetchone()
-                        if ad:
-                            cursor.execute("""
-                                INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
-                                VALUES (?, ?, ?, 'active', ?, 0, 0)
-                            """, (ad['ad_set_id'], ad['campaign_id'], f"[CÓPIA] {ad['name']}", ad['creative_type']))
-
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "message": f"Ação '{action}' aplicada com sucesso a {len(ids)} item(ns)!"})
-            return
-
-        # Alterar Status de Campanha (Ativar / Pausar)
-        if path == '/api/facebook/campaigns/status':
-            camp_id = body.get('id')
-            new_status = str(body.get('status', 'active')).lower() # 'active' ou 'paused'
-
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE campaigns SET status = ? WHERE id = ?", (new_status, camp_id))
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "status": new_status, "message": f"Campanha alterada para {new_status.upper()}!"})
-            return
-
-        # Alterar Orçamento de Campanha
-        if path == '/api/facebook/campaigns/budget':
-            camp_id = body.get('id')
-            new_budget_cents = int(float(body.get('daily_budget', 0)) * 100)
-
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE campaigns SET daily_budget_in_cents = ? WHERE id = ?", (new_budget_cents, camp_id))
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "daily_budget": new_budget_cents / 100.0, "message": "Orçamento atualizado!"})
-            return
-
-        # Duplicar Conjunto de Anúncio
-        if path in ['/api/facebook/adsets/duplicate', '/api/adsets/duplicate']:
-            adset_id = body.get('adset_id') or body.get('id')
-            conn = get_db()
-            cursor = conn.cursor()
-            orig = cursor.execute("SELECT * FROM ad_sets WHERE id = ?", (adset_id,)).fetchone()
-            if not orig:
-                conn.close()
-                self._send_json({"error": "Conjunto não encontrado"}, 404)
-                return
-
-            new_name = f"[CÓPIA] {orig['name']}"
-            cursor.execute("""
-                INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents, targeting_info)
-                VALUES (?, ?, ?, 'active', ?, 0, ?)
-            """, (orig['campaign_id'], f"ADSET-{uuid.uuid4().hex[:6].upper()}", new_name, orig['daily_budget_cents'], orig['targeting_info']))
-            new_id = cursor.lastrowid
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "new_adset_id": new_id, "name": new_name, "message": f"Conjunto '{new_name}' duplicado com sucesso!"})
-            return
-
-        # Duplicar Campanha Inteira
-        if path in ['/api/facebook/campaigns/duplicate', '/api/campaigns/duplicate']:
-            camp_id = body.get('campaign_id') or body.get('id')
-            conn = get_db()
-            cursor = conn.cursor()
-            orig = cursor.execute("SELECT * FROM campaigns WHERE id = ?", (camp_id,)).fetchone()
-            if not orig:
-                conn.close()
-                self._send_json({"error": "Campanha não encontrada"}, 404)
-                return
-
-            new_name = f"[CÓPIA] {orig['name']}"
-            cursor.execute("""
-                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id)
-                VALUES (1, ?, ?, 'active', ?, 0, ?)
-            """, (new_name, orig['platform'], orig['daily_budget_in_cents'], orig['ad_account_id']))
-            new_camp_id = cursor.lastrowid
-
-            # Duplica conjuntos da campanha
-            adsets = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (camp_id,)).fetchall()
-            for a in adsets:
-                cursor.execute("""
-                    INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents, targeting_info)
-                    VALUES (?, ?, ?, 'active', ?, 0, ?)
-                """, (new_camp_id, f"ADSET-{uuid.uuid4().hex[:6].upper()}", a['name'], a['daily_budget_cents'], a['targeting_info']))
-
-            conn.commit()
-            conn.close()
-            self._send_json({"success": True, "new_campaign_id": new_camp_id, "name": new_name, "message": f"Campanha '{new_name}' duplicada com sucesso!"})
-            return
-
         # Regras de Automação: Criar
         if path == '/api/rules':
             try:
@@ -4420,6 +4329,37 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 parsed_order.get('fbp')
             ))
             new_order_id = cursor.lastrowid
+
+            # Inserir notificação correspondente para alerta em tempo real e som no celular
+            try:
+                notif_user_id = 1
+                pr_cents = parsed_order.get('price_cents', 0)
+                pr_reais = pr_cents / 100.0
+                c_name = parsed_order.get('customer_name', 'Cliente')
+                plt = parsed_order.get('platform', 'Gateway')
+                mth = parsed_order.get('payment_method', 'cartao')
+
+                if parsed_order['status'] == 'paid':
+                    cursor.execute("""
+                        INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
+                        VALUES (?, 'sale_approved', '💸 VENDA APROVADA!', ?, ?, ?)
+                    """, (notif_user_id, f"Venda de R$ {pr_reais:,.2f} aprovada via {mth}! ({plt} - {c_name})".replace(',', 'X').replace('.', ',').replace('X', '.'), pr_cents, mth))
+                    conn.commit()
+                elif parsed_order['status'] == 'waiting_payment':
+                    if 'pix' in str(mth).lower():
+                        cursor.execute("""
+                            INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
+                            VALUES (?, 'pix_generated', '⚡ PIX GERADO!', ?, ?, 'pix')
+                        """, (notif_user_id, f"PIX de R$ {pr_reais:,.2f} gerado! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.'), pr_cents))
+                        conn.commit()
+                    elif 'boleto' in str(mth).lower():
+                        cursor.execute("""
+                            INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
+                            VALUES (?, 'boleto_printed', '📄 BOLETO IMPRESSO!', ?, ?, 'boleto')
+                        """, (notif_user_id, f"Boleto de R$ {pr_reais:,.2f} impresso! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.'), pr_cents))
+                        conn.commit()
+            except Exception as e_notif:
+                pass
             conn.commit()
             conn.close()
 

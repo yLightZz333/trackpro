@@ -29,6 +29,863 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <script>
+
+    // ==================== TRACKPRO AUTH & MULTI-TENANT FETCH INTERCEPTOR ====================
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      const token = localStorage.getItem('trackpro_token');
+      if (token && typeof url === 'string' && url.startsWith('/api')) {
+        options.headers = options.headers || {};
+        if (options.headers instanceof Headers) {
+          if (!options.headers.has('Authorization')) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          }
+        } else {
+          if (!options.headers['Authorization']) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+          }
+        }
+      }
+      return originalFetch(url, options);
+    };
+
+    // ==================== AUDIO SYNTHESIZER (WEB AUDIO API - ZERO LATÊNCIA) ====================
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTrackProSound(soundType, customVol) {
+      const isEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      if (!isEnabled && customVol === undefined) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const vol = customVol !== undefined ? customVol : (parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0'));
+      const chosenSound = soundType || localStorage.getItem('trackpro_sound_type') || 'kaching';
+
+      try {
+        const now = ctx.currentTime;
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(Math.min(1.0, Math.max(0.05, vol)), now);
+        masterGain.connect(ctx.destination);
+
+        if (chosenSound === 'kaching') {
+          // 1. Som Clássico Ka-Ching (Caixa Registradora UTMify)
+          const clickOsc = ctx.createOscillator();
+          const clickGain = ctx.createGain();
+          clickOsc.type = 'triangle';
+          clickOsc.frequency.setValueAtTime(320, now);
+          clickOsc.frequency.exponentialRampToValueAtTime(80, now + 0.04);
+          clickGain.gain.setValueAtTime(0.4, now);
+          clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          clickOsc.connect(clickGain);
+          clickGain.connect(masterGain);
+          clickOsc.start(now);
+          clickOsc.stop(now + 0.05);
+
+          const bells = [
+            { f: 987.77, start: now + 0.03, dur: 1.1, vol: 0.6 },
+            { f: 1318.51, start: now + 0.03, dur: 0.9, vol: 0.5 },
+            { f: 2637.02, start: now + 0.03, dur: 0.5, vol: 0.25 },
+            { f: 3136.00, start: now + 0.03, dur: 0.4, vol: 0.2 }
+          ];
+          bells.forEach(b => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(b.f, b.start);
+            g.gain.setValueAtTime(b.vol, b.start);
+            g.gain.exponentialRampToValueAtTime(0.0001, b.start + b.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(b.start);
+            osc.stop(b.start + b.dur);
+          });
+
+          const coins = [
+            { f: 2400, delay: 0.18, dur: 0.35, v: 0.35 },
+            { f: 3100, delay: 0.26, dur: 0.35, v: 0.3 },
+            { f: 2750, delay: 0.34, dur: 0.4, v: 0.25 }
+          ];
+          coins.forEach(c => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(c.f, now + c.delay);
+            g.gain.setValueAtTime(c.v, now + c.delay);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + c.delay + c.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(now + c.delay);
+            osc.stop(now + c.delay + c.dur);
+          });
+
+        } else if (chosenSound === 'coins') {
+          // 2. Moedas Caindo (LowTrack Style)
+          const freqs = [1960, 2400, 2800, 3250, 3600, 2200];
+          freqs.forEach((freq, idx) => {
+            const start = now + idx * 0.06;
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+            g.gain.setValueAtTime(0.4, start);
+            g.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(start);
+            osc.stop(start + 0.35);
+          });
+
+        } else if (chosenSound === 'bell') {
+          // 3. Sino de Conquista (Modern Chime)
+          const notes = [
+            { f: 523.25, start: now, dur: 0.8 },
+            { f: 659.25, start: now + 0.08, dur: 0.9 },
+            { f: 783.99, start: now + 0.16, dur: 1.0 },
+            { f: 1046.50, start: now + 0.24, dur: 1.2 }
+          ];
+          notes.forEach(n => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(n.f, n.start);
+            g.gain.setValueAtTime(0.45, n.start);
+            g.gain.exponentialRampToValueAtTime(0.0005, n.start + n.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(n.start);
+            osc.stop(n.start + n.dur);
+          });
+
+        } else if (chosenSound === 'pop') {
+          // 4. Pop Digital (Fintech Alert)
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(1400, now + 0.09);
+          g.gain.setValueAtTime(0.5, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.18);
+
+        } else if (chosenSound === 'pix') {
+          // 5. PIX Gerado (Som Suave de Confirmação)
+          const pings = [
+            { f: 880, start: now, dur: 0.25 },
+            { f: 1174.66, start: now + 0.12, dur: 0.4 }
+          ];
+          pings.forEach(p => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(p.f, p.start);
+            g.gain.setValueAtTime(0.35, p.start);
+            g.gain.exponentialRampToValueAtTime(0.001, p.start + p.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(p.start);
+            osc.stop(p.start + p.dur);
+          });
+        }
+      } catch (e) {
+        console.warn('Erro ao reproduzir Web Audio:', e);
+      }
+    }
+
+    function selectSoundType(type) {
+      localStorage.setItem('trackpro_sound_type', type);
+      const radio = document.getElementById('sound-' + type);
+      if (radio) radio.checked = true;
+      playTrackProSound(type, 1.0);
+      saveNotificationSettingsToServer();
+    }
+
+    function testSelectedSound() {
+      const type = localStorage.getItem('trackpro_sound_type') || 'kaching';
+      playTrackProSound(type, 1.0);
+    }
+
+    function handleVolumeChange(val) {
+      const pct = Math.round(val * 100);
+      const display = document.getElementById('volume-val-display');
+      if (display) display.textContent = pct + '%';
+      localStorage.setItem('trackpro_sound_volume', val);
+      playTrackProSound(null, parseFloat(val));
+      saveNotificationSettingsToServer();
+    }
+
+    function handleSoundToggleChange(checked) {
+      soundEnabled = checked;
+      localStorage.setItem('trackpro_sound_enabled', checked);
+      updateSoundUI();
+      if (checked) testSelectedSound();
+      saveNotificationSettingsToServer();
+    }
+
+    // ==================== PUSH NOTIFICATIONS & MOBILE ALERTS ====================
+    async function requestPushNotificationPermission() {
+      getAudioContext(); // desbloqueia Web Audio com gesto do usuário
+      if (!('Notification' in window)) {
+        showToast('Notificações push não suportadas neste navegador.', 'error');
+        return;
+      }
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          showToast('🔔 Permissão concedida! Você receberá alertas de vendas em tempo real no celular.', 'success');
+          const btnText = document.getElementById('btn-enable-push-text');
+          if (btnText) btnText.textContent = '✔ Alertas no Celular Ativos';
+          playTrackProSound('kaching', 1.0);
+          showMobileNotification('🎉 Notificações Ativadas!', 'TrackPro está pronto para alertar suas vendas no celular.', 'welcome');
+          saveNotificationSettingsToServer();
+        } else {
+          showToast('Permissão de notificações foi negada no navegador.', 'warning');
+        }
+      } catch (e) {
+        showToast('Erro ao solicitar permissão de notificações.', 'error');
+      }
+    }
+
+    function showMobileNotification(title, body, tag = 'sale-alert') {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, {
+              body: body,
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
+              vibrate: [250, 100, 250, 100, 250],
+              tag: tag,
+              renotify: true,
+              data: { url: '/' }
+            });
+          });
+        } else {
+          try {
+            new Notification(title, {
+              body: body,
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
+              tag: tag
+            });
+          } catch (e) {}
+        }
+      }
+    }
+
+    // ==================== SIMULADOR DE ALERTAS ====================
+    async function simulateSaleAlert() {
+      playTrackProSound('kaching', 1.0);
+      showMobileNotification('💸 VENDA APROVADA!', 'Venda de R$ 197,00 aprovada via Cartão de Crédito! (Kiwify)', 'sale');
+      showSaleToast({
+        customer: 'Lucas Silva (Simulação)',
+        amount: 197.00,
+        platform: 'Kiwify',
+        source: 'facebook'
+      });
+      try {
+        await fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'sale_approved', amount_in_cents: 19700 })
+        });
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    async function simulatePixAlert() {
+      playTrackProSound('pix', 1.0);
+      showMobileNotification('⚡ PIX GERADO!', 'PIX de R$ 97,00 gerado! Aguardando pagamento do cliente.', 'pix');
+      showToast('⚡ PIX GERADO: R$ 97,00! Cliente aguardando pagamento.', 'info');
+      try {
+        await fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'pix_generated', amount_in_cents: 9700 })
+        });
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    // ==================== RESUMO DIÁRIO PROGRAMADO ====================
+    let configuredSummaryHours = ["08:00", "12:00", "16:00", "18:00", "22:00"];
+
+    function renderSummaryHoursChips() {
+      const container = document.getElementById('summary-hours-chips');
+      if (!container) return;
+      container.innerHTML = configuredSummaryHours.map(h => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold">
+          <span>${h}</span>
+          <button type="button" onclick="removeSummaryHour('${h}')" class="text-indigo-400 hover:text-rose-400 transition-colors ml-0.5">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
+        </span>
+      `).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function addNewSummaryHour() {
+      const input = document.getElementById('new-summary-hour-input');
+      if (!input || !input.value) return;
+      const h = input.value.trim();
+      if (!configuredSummaryHours.includes(h)) {
+        configuredSummaryHours.push(h);
+        configuredSummaryHours.sort();
+        renderSummaryHoursChips();
+        saveNotificationSettingsToServer();
+        showToast(`Horário ${h} adicionado aos resumos diários!`, 'success');
+      }
+    }
+
+    function removeSummaryHour(h) {
+      configuredSummaryHours = configuredSummaryHours.filter(item => item !== h);
+      renderSummaryHoursChips();
+      saveNotificationSettingsToServer();
+    }
+
+    async function triggerScheduledSummaryTest() {
+      try {
+        const res = await fetch('/api/notifications/scheduled-summary');
+        const data = await res.json();
+        if (data.success) {
+          playTrackProSound('bell', 1.0);
+          showMobileNotification(data.title, data.message, 'daily-summary');
+          showToast(`🔔 ${data.title}: ${data.message}`, 'info');
+          loadNotifications();
+        }
+      } catch (e) {
+        showToast('Erro ao testar envio de resumo diário.', 'error');
+      }
+    }
+
+    async function checkScheduledSummaries() {
+      const toggle = document.getElementById('toggle-scheduled-summary');
+      if (toggle && !toggle.checked) return;
+
+      const now = new Date();
+      const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      const todayDate = now.toISOString().slice(0, 10);
+
+      if (configuredSummaryHours.includes(currentHHMM)) {
+        const key = `trackpro_summary_fired_${todayDate}_${currentHHMM}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'true');
+          try {
+            const res = await fetch('/api/notifications/scheduled-summary');
+            const data = await res.json();
+            if (data.success) {
+              playTrackProSound('bell', 1.0);
+              showMobileNotification(data.title, data.message, 'daily-summary');
+              showToast(`📊 ${data.title}: ${data.message}`, 'info');
+              loadNotifications();
+            }
+          } catch (e) {
+            console.warn('Erro ao disparar resumo diário:', e);
+          }
+        }
+      }
+    }
+
+    // ==================== CENTRAL DE NOTIFICAÇÕES & FEED ====================
+    let cachedNotifications = [];
+
+    async function loadNotifications() {
+      try {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        cachedNotifications = data.notifications || [];
+        updateNotificationBadges(data.unread_count || 0);
+        renderNotificationDropdownList(cachedNotifications);
+        renderFullNotificationsTable(cachedNotifications);
+      } catch (e) {
+        console.warn('Erro ao carregar notificações:', e);
+      }
+    }
+
+    function updateNotificationBadges(count) {
+      const bDesktop = document.getElementById('notif-badge-desktop');
+      const bMobile = document.getElementById('notif-badge-mobile');
+      [bDesktop, bMobile].forEach(el => {
+        if (!el) return;
+        if (count > 0) {
+          el.textContent = count > 99 ? '99+' : count;
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    function renderNotificationDropdownList(list) {
+      const container = document.getElementById('notif-list-container');
+      if (!container) return;
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>';
+        return;
+      }
+      container.innerHTML = list.slice(0, 8).map(n => {
+        const isSale = n.type === 'sale_approved';
+        const isPix = n.type === 'pix_generated';
+        const icon = isSale ? 'check-circle-2' : (isPix ? 'zap' : 'bell');
+        const iconColor = isSale ? 'text-emerald-400' : (isPix ? 'text-sky-400' : 'text-amber-400');
+        const bgBadge = isSale ? 'bg-emerald-500/10' : (isPix ? 'bg-sky-500/10' : 'bg-amber-500/10');
+        return `
+          <div class="p-3 hover:bg-dark-950/70 transition-colors flex items-start gap-2.5 ${n.is_read ? 'opacity-70' : 'bg-dark-950/30'}">
+            <div class="w-7 h-7 rounded-lg ${bgBadge} ${iconColor} flex items-center justify-center shrink-0 mt-0.5">
+              <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white truncate">${n.title}</span>
+                <span class="text-[9px] text-slate-500 font-mono">${(n.created_at || '').slice(11, 16)}</span>
+              </div>
+              <p class="text-[11px] text-slate-300 line-clamp-2 mt-0.5">${n.message}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderFullNotificationsTable(list) {
+      const container = document.getElementById('full-notifications-table');
+      if (!container) return;
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-xs text-slate-500">Nenhuma notificação registrada na conta.</div>';
+        return;
+      }
+      container.innerHTML = list.map(n => {
+        const isSale = n.type === 'sale_approved';
+        const isPix = n.type === 'pix_generated';
+        const icon = isSale ? 'shopping-bag' : (isPix ? 'zap' : 'bell');
+        const color = isSale ? 'emerald' : (isPix ? 'sky' : 'amber');
+        return `
+          <div class="p-3.5 rounded-xl bg-dark-950/70 border border-slate-800 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-${color}-500/15 text-${color}-400 flex items-center justify-center font-bold">
+                <i data-lucide="${icon}" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-xs text-white">${n.title}</span>
+                  <span class="text-[10px] text-slate-500 font-mono">${n.created_at}</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-0.5">${n.message}</p>
+              </div>
+            </div>
+            ${n.amount_in_cents > 0 ? `<span class="text-xs font-bold text-${color}-400 font-mono">R$ ${(n.amount_in_cents / 100).toFixed(2).replace('.', ',')}</span>` : ''}
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleNotificationDropdown() {
+      const dd = document.getElementById('notif-dropdown');
+      if (!dd) return;
+      dd.classList.toggle('hidden');
+      if (!dd.classList.contains('hidden')) {
+        closeProfileDropdown();
+        loadNotifications();
+      }
+    }
+
+    function closeNotificationDropdown() {
+      const dd = document.getElementById('notif-dropdown');
+      if (dd) dd.classList.add('hidden');
+    }
+
+    async function markAllNotificationsRead() {
+      try {
+        await fetch('/api/notifications/read-all', { method: 'POST' });
+        updateNotificationBadges(0);
+        showToast('Notificações marcadas como lidas.', 'info');
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    // ==================== SALVAR CONFIGURAÇÕES DE NOTIFICAÇÃO NO SERVIDOR ====================
+    async function saveNotificationSettingsToServer() {
+      const soundType = localStorage.getItem('trackpro_sound_type') || 'kaching';
+      const soundVol = parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0');
+      const soundEn = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      const notifySale = document.getElementById('toggle-notify-sale')?.checked ?? true;
+      const notifyPix = document.getElementById('toggle-notify-pix')?.checked ?? true;
+      const notifyBoleto = document.getElementById('toggle-notify-boleto')?.checked ?? true;
+      const notifyRefund = document.getElementById('toggle-notify-refund')?.checked ?? true;
+      const notifySched = document.getElementById('toggle-scheduled-summary')?.checked ?? true;
+      const tone = document.getElementById('summary-tone-select')?.value || 'creative';
+
+      try {
+        await fetch('/api/notifications/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sound_enabled: soundEn,
+            sound_type: soundType,
+            sound_volume: soundVol,
+            notify_sale_approved: notifySale,
+            notify_pix_generated: notifyPix,
+            notify_boleto_printed: notifyBoleto,
+            notify_refund: notifyRefund,
+            notify_scheduled_summary: notifySched,
+            summary_hours: configuredSummaryHours,
+            summary_tone: tone
+          })
+        });
+      } catch (e) {}
+    }
+
+    async function loadNotificationSettingsFromBackend() {
+      try {
+        const res = await fetch('/api/notifications/settings');
+        const data = await res.json();
+        if (data && data.sound_type) {
+          localStorage.setItem('trackpro_sound_type', data.sound_type);
+          const radio = document.getElementById('sound-' + data.sound_type);
+          if (radio) radio.checked = true;
+
+          if (data.sound_volume !== undefined) {
+            localStorage.setItem('trackpro_sound_volume', data.sound_volume);
+            const slider = document.getElementById('notif-volume-slider');
+            if (slider) slider.value = data.sound_volume;
+            const display = document.getElementById('volume-val-display');
+            if (display) display.textContent = Math.round(data.sound_volume * 100) + '%';
+          }
+
+          if (data.sound_enabled !== undefined) {
+            const soundEn = data.sound_enabled === 1;
+            localStorage.setItem('trackpro_sound_enabled', soundEn);
+            const tSound = document.getElementById('notif-sound-toggle');
+            if (tSound) tSound.checked = soundEn;
+          }
+
+          if (Array.isArray(data.summary_hours)) {
+            configuredSummaryHours = data.summary_hours;
+            renderSummaryHoursChips();
+          }
+
+          if (data.summary_tone) {
+            const tSelect = document.getElementById('summary-tone-select');
+            if (tSelect) tSelect.value = data.summary_tone;
+          }
+
+          if (data.notify_sale_approved !== undefined) {
+            const el = document.getElementById('toggle-notify-sale');
+            if (el) el.checked = data.notify_sale_approved === 1;
+          }
+          if (data.notify_pix_generated !== undefined) {
+            const el = document.getElementById('toggle-notify-pix');
+            if (el) el.checked = data.notify_pix_generated === 1;
+          }
+          if (data.notify_boleto_printed !== undefined) {
+            const el = document.getElementById('toggle-notify-boleto');
+            if (el) el.checked = data.notify_boleto_printed === 1;
+          }
+          if (data.notify_refund !== undefined) {
+            const el = document.getElementById('toggle-notify-refund');
+            if (el) el.checked = data.notify_refund === 1;
+          }
+          if (data.notify_scheduled_summary !== undefined) {
+            const el = document.getElementById('toggle-scheduled-summary');
+            if (el) el.checked = data.notify_scheduled_summary === 1;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
+    function openAuthModal(tab = 'login') {
+      openModal('modal-auth');
+      switchAuthTab(tab);
+    }
+
+    function switchAuthTab(tab) {
+      const loginBtn = document.getElementById('auth-tab-login-btn');
+      const regBtn = document.getElementById('auth-tab-register-btn');
+      const formLogin = document.getElementById('form-login');
+      const formReg = document.getElementById('form-register');
+
+      if (tab === 'login') {
+        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
+        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
+        if (formLogin) formLogin.classList.remove('hidden');
+        if (formReg) formReg.classList.add('hidden');
+      } else {
+        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
+        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
+        if (formReg) formReg.classList.remove('hidden');
+        if (formLogin) formLogin.classList.add('hidden');
+      }
+    }
+
+    function togglePasswordVisibility(inputId) {
+      const inp = document.getElementById(inputId);
+      if (inp) {
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      }
+    }
+
+    function validatePasswordsMatch() {
+      const p1 = document.getElementById('reg-password')?.value || '';
+      const p2 = document.getElementById('reg-confirm-password')?.value || '';
+      const msg = document.getElementById('reg-password-match-msg');
+      if (!msg) return;
+
+      if (!p1 && !p2) {
+        msg.textContent = '';
+      } else if (p1 === p2 && p1.length >= 6) {
+        msg.textContent = '✔ Senhas conferem';
+        msg.className = 'text-[10px] font-semibold text-emerald-400';
+      } else if (p2.length > 0 && p1 !== p2) {
+        msg.textContent = '✖ As senhas não coincidem';
+        msg.className = 'text-[10px] font-semibold text-rose-400';
+      } else {
+        msg.textContent = '';
+      }
+    }
+
+    function fillLucasCredentials() {
+      const em = document.getElementById('login-email');
+      const pw = document.getElementById('login-password');
+      if (em) em.value = 'luckinhasp4@gmail.com';
+      if (pw) pw.value = 'yzzjl067_';
+      showToast('Credenciais do Lucas preenchidas!', 'info');
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const em = document.getElementById('login-email').value.trim();
+      const pw = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-login-submit');
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: em, password: pw })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast(`Bem-vindo, ${data.user.name}!`, 'success');
+          refreshData();
+          loadNotifications();
+        } else {
+          showToast(data.error || 'Erro ao fazer login.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão ao fazer login.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleRegisterSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = document.getElementById('reg-confirm-password').value;
+      const btn = document.getElementById('btn-reg-submit');
+
+      if (password !== confirmPassword) {
+        showToast('A confirmação de senha é obrigatória e deve ser idêntica à senha.', 'error');
+        document.getElementById('reg-confirm-password').focus();
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            password: password,
+            confirm_password: confirmPassword
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast(`Conta criada com sucesso! Seja bem-vindo, ${data.user.name}.`, 'success');
+          refreshData();
+          loadNotifications();
+        } else {
+          showToast(data.error || 'Erro ao criar conta.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão ao criar conta.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleGoogleAuth() {
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Lucas (Google)',
+            email: 'luckinhasp4@gmail.com'
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast('Conectado com Google com sucesso!', 'success');
+          refreshData();
+          loadNotifications();
+        }
+      } catch (e) {
+        showToast('Erro ao autenticar com Google.', 'error');
+      }
+    }
+
+    async function handleLogout() {
+      closeProfileDropdown();
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch (e) {}
+      localStorage.removeItem('trackpro_token');
+      localStorage.removeItem('trackpro_user');
+      showToast('Você saiu da sua conta.', 'info');
+      openAuthModal('login');
+    }
+
+    function toggleProfileDropdown() {
+      const dd = document.getElementById('profile-dropdown');
+      if (dd) {
+        dd.classList.toggle('hidden');
+        if (!dd.classList.contains('hidden')) {
+          closeNotificationDropdown();
+        }
+      }
+    }
+
+    function closeProfileDropdown() {
+      const dd = document.getElementById('profile-dropdown');
+      if (dd) dd.classList.add('hidden');
+    }
+
+    function updateProfileUI(user) {
+      if (!user) return;
+      const initial = (user.name || 'U').charAt(0).toUpperCase();
+      const elAvatar = document.getElementById('user-profile-avatar');
+      const elHName = document.getElementById('header-user-name');
+      const elHEmail = document.getElementById('header-user-email');
+      const elDName = document.getElementById('dropdown-user-name');
+      const elDEmail = document.getElementById('dropdown-user-email');
+
+      if (elAvatar) elAvatar.textContent = initial;
+      if (elHName) elHName.textContent = user.name || 'Lucas';
+      if (elHEmail) elHEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+      if (elDName) elDName.textContent = user.name || 'Lucas';
+      if (elDEmail) elDEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+    }
+
+    async function checkAuthSession() {
+      let token = localStorage.getItem('trackpro_token');
+      if (!token) {
+        // Auto-login no perfil VIP do Lucas caso nenhum token exista no storage
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'luckinhasp4@gmail.com', password: 'yzzjl067_' })
+          });
+          const data = await res.json();
+          if (data.token) {
+            token = data.token;
+            localStorage.setItem('trackpro_token', token);
+            localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          }
+        } catch (e) {}
+      }
+
+      if (token) {
+        try {
+          const res = await fetch('/api/auth/me');
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            updateProfileUI(data.user);
+          }
+        } catch (e) {}
+      }
+    }
+
+    // ==================== CONEXÃO RÁPIDA FACEBOOK ADS ====================
+    async function connectQuickMetaToken() {
+      const input = document.getElementById('quick-meta-token-input');
+      const btn = document.getElementById('btn-quick-connect-meta');
+      const token = (input?.value || '').trim();
+
+      if (!token) {
+        showToast('Cole o token de acesso da Meta antes de continuar.', 'warning');
+        if (input) input.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Conectando...';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch('/api/facebook/connect_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Meta Ads conectado com sucesso! Conta: ${data.account_name || 'lighttt'}`, 'success');
+          const pillText = document.getElementById('quick-meta-status-text');
+          if (pillText) pillText.textContent = `Meta Conectado (${data.account_name || 'lighttt'})`;
+          input.value = '';
+          refreshData();
+          fetchFacebookStatus();
+        } else {
+          showToast(data.error || 'Token inválido ou sem permissões no Facebook.', 'error');
+        }
+      } catch (e) {
+        showToast('Erro ao validar token com o Facebook.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="zap" class="w-3.5 h-3.5"></i> Conectar';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    }
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -90,7 +947,11 @@
       <button onclick="switchTab('rules')" id="nav-rules" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="cpu" class="w-4 h-4 text-amber-400"></i> Regras de Automação
       </button>
-      <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+      <button onclick="switchTab('notifications')" class="mob-nav flex flex-col items-center gap-1 text-slate-400 hover:text-white" id="mob-notifications">
+      <i data-lucide="bell" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Alertas</span>
+    </button>
+    <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-400"></i> Pedidos com UTM
       </button>
       <button onclick="switchTab('pixels')" id="nav-pixels" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
@@ -98,6 +959,9 @@
       </button>
       <button onclick="switchTab('accounts')" id="nav-accounts" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="key-round" class="w-4 h-4 text-sky-400"></i> Contas de Anúncio
+      </button>
+      <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i> Notificações & Sons
       </button>
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
@@ -127,6 +991,10 @@
       <select id="mobile-dash-select" onchange="changeDashboard(this.value)" class="bg-dark-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none">
         <option value="">Geral</option>
       </select>
+      <button onclick="toggleNotificationDropdown()" id="notif-bell-mobile" class="relative p-1.5 bg-dark-800 text-amber-400 rounded-lg hover:text-amber-300" title="Notificações">
+        <i data-lucide="bell" class="w-4 h-4"></i>
+        <span id="notif-badge-mobile" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
+      </button>
       <button onclick="toggleSound()" id="sound-btn-mobile" class="p-1.5 bg-dark-800 text-emerald-400 rounded-lg" title="Som de Venda">
         <i data-lucide="volume-2" class="w-4 h-4"></i>
       </button>
@@ -170,6 +1038,40 @@
           <span class="hidden xl:inline">Personalizar</span>
         </button>
         <!-- Som de Venda Ka-ching Toggle -->
+        <!-- Sino de Notificações com Dropdown -->
+        <div class="relative">
+          <button onclick="toggleNotificationDropdown()" id="notif-bell-desktop" class="relative p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white transition-colors" title="Central de Notificações">
+            <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
+            <span id="notif-badge-desktop" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
+          </button>
+          
+          <!-- Dropdown Central de Notificações -->
+          <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+            <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-dark-950/80">
+              <div class="flex items-center gap-2">
+                <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
+                <span class="font-bold text-xs text-white">Notificações em Tempo Real</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="markAllNotificationsRead()" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar lidas</button>
+                <button onclick="switchTab('notifications'); closeNotificationDropdown();" class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">Ajustes</button>
+              </div>
+            </div>
+            <div id="notif-list-container" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1">
+              <!-- Notificações carregadas via API -->
+              <div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação pendente.</div>
+            </div>
+            <div class="p-2.5 border-t border-slate-800 bg-dark-950/50 flex items-center justify-between text-xs">
+              <button onclick="simulateSaleAlert()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+                <i data-lucide="play" class="w-3 h-3"></i> Testar Venda
+              </button>
+              <button onclick="simulatePixAlert()" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
+                <i data-lucide="play" class="w-3 h-3"></i> Testar PIX
+              </button>
+            </div>
+          </div>
+        </div>
+
         <button onclick="toggleSound()" id="sound-btn-desktop" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
           <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
           <span>Som de Venda Ativo</span>
@@ -180,6 +1082,45 @@
         <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors">
           <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
         </button>
+        <!-- Menu de Perfil do Usuário Lucas / Multi-Tenant -->
+        <div class="relative ml-2">
+          <button onclick="toggleProfileDropdown()" id="user-profile-btn" class="flex items-center gap-2.5 pl-2 pr-3 py-1 bg-dark-800/80 hover:bg-dark-800 border border-slate-800 hover:border-slate-700 rounded-xl transition-all">
+            <div id="user-profile-avatar" class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+              L
+            </div>
+            <div class="text-left hidden lg:block">
+              <span id="header-user-name" class="block text-xs font-bold text-white leading-tight">Lucas</span>
+              <span id="header-user-email" class="block text-[10px] text-slate-400 leading-tight">luckinhasp4@gmail.com</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+          </button>
+
+          <!-- Dropdown do Perfil -->
+          <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-60 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-800">
+            <div class="p-3 bg-dark-950/60">
+              <span class="block text-xs font-bold text-white" id="dropdown-user-name">Lucas</span>
+              <span class="block text-[11px] text-slate-400 truncate" id="dropdown-user-email">luckinhasp4@gmail.com</span>
+              <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold rounded-full">Conta Ativa • VIP</span>
+            </div>
+            <div class="p-1 space-y-0.5">
+              <button onclick="switchTab('notifications'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+                <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Notificações & Sons
+              </button>
+              <button onclick="switchTab('accounts'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+                <i data-lucide="facebook" class="w-3.5 h-3.5 text-blue-400"></i> Conectar Meta Ads
+              </button>
+              <button onclick="openAuthModal('login'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+                <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i> Trocar de Conta
+              </button>
+            </div>
+            <div class="p-1">
+              <button onclick="handleLogout()" class="w-full text-left px-3 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-2">
+                <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sair da Conta
+              </button>
+            </div>
+          </div>
+        </div>
+        
       </div>
     </header>
 
@@ -911,6 +1852,64 @@
 
       <!-- ==================== TAB 6: CONTAS DE ANÚNCIO FACEBOOK ==================== -->
       <section id="tab-accounts" class="tab-pane hidden space-y-4">
+        <!-- ==================== CONEXÃO RÁPIDA FACEBOOK ADS (2 PASSOS SIMPLES) ==================== -->
+        <div class="bg-gradient-to-r from-[#1877F2]/15 via-dark-900 to-dark-900 border border-[#1877F2]/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-[#1877F2] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/25">
+                <i data-lucide="facebook" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <span>Conectar Facebook Ads em 2 Passos Simples</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Super Fácil</span>
+                </h3>
+                <p class="text-xs text-slate-300">Sincronize gastos, métricas e campanhas em tempo real sem precisar abrir o Gerenciador da Meta.</p>
+              </div>
+            </div>
+            <div id="quick-meta-status-pill" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold self-start md:self-auto">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="quick-meta-status-text">Meta Conectado (lighttt)</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+            <!-- Passo 1: Obter Token -->
+            <div class="bg-dark-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[11px] font-bold">1</span>
+                  Pegue seu Token Permanente no Facebook
+                </span>
+                <button onclick="openModal('modal-system-user-token')" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1">
+                  <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Ver Guia Passo a Passo
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400">
+                Acesse o Gerenciador de Negócios da Meta > Usuários do Sistema > Gerar Novo Token (com permissões <strong class="text-slate-300">ads_read</strong> e <strong class="text-slate-300">ads_management</strong>).
+              </p>
+              <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-semibold pt-1">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Abrir Meta Business Suite
+              </a>
+            </div>
+
+            <!-- Passo 2: Colar Token -->
+            <div class="bg-dark-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-bold">2</span>
+                Cole seu Token de Acesso
+              </span>
+              <div class="flex gap-2">
+                <input type="password" id="quick-meta-token-input" placeholder="Cole o token permanente aqui (EAAP...)" class="flex-1 bg-dark-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono">
+                <button onclick="connectQuickMetaToken()" id="btn-quick-connect-meta" class="px-4 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all whitespace-nowrap">
+                  <i data-lucide="zap" class="w-3.5 h-3.5"></i> Conectar
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-500">O token é validado instantaneamente e salvo de forma criptografada para a sua conta.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
@@ -1225,7 +2224,255 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       </section>
 
     </div>
-  </main>
+  
+      <!-- ==================== TAB: NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ==================== -->
+      <section id="tab-notifications" class="tab-pane hidden space-y-4 md:space-y-6">
+        <!-- Banner Principal -->
+        <div class="bg-gradient-to-r from-amber-500/15 via-dark-900 to-dark-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-gradient-to-tr from-amber-600 to-amber-400 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
+                <i data-lucide="bell-ring" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-xl font-extrabold text-white tracking-tight">Notificações & Sons no Celular</h2>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Estilo UTMify & LowTrack</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-0.5">Sons de venda aprovada, alertas de PIX gerado, notificações push e resumos programados por horário.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <button onclick="requestPushNotificationPermission()" id="btn-enable-push" class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                <span id="btn-enable-push-text">Ativar Alertas no Celular</span>
+              </button>
+              <button onclick="testSelectedSound()" class="px-3.5 py-2.5 bg-dark-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors">
+                <i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
+                <span>Testar Som Selecionado</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grade de Configurações -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          
+          <!-- COLUNA 1: SELEÇÃO DE SOM & VOLUME -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="music" class="w-4 h-4 text-emerald-400"></i>
+                <h3 class="font-bold text-sm text-white">Efeito Sonoro de Venda</h3>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="notif-sound-toggle" onchange="handleSoundToggleChange(this.checked)" checked class="sr-only peer">
+                <div class="w-9 h-5 bg-dark-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 border border-slate-700"></div>
+              </label>
+            </div>
+
+            <!-- Volume Slider -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-400 font-medium">Volume do Som</span>
+                <span id="volume-val-display" class="font-bold text-white font-mono">100%</span>
+              </div>
+              <input type="range" id="notif-volume-slider" min="0" max="1" step="0.05" value="1.0" oninput="handleVolumeChange(this.value)" class="w-full h-1.5 bg-dark-950 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+            </div>
+
+            <!-- Opções de Sons com Botão Ouvir -->
+            <div class="space-y-2 pt-1">
+              <label class="text-xs font-semibold text-slate-300">Escolha o Toque de Sucesso:</label>
+              
+              <!-- 1. Ka-Ching Clássico -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('kaching')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-kaching" value="kaching" checked class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Ka-Ching Clássico</span>
+                    <span class="text-[10px] text-slate-400 block">Caixa Registradora (Oficial UTMify)</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('kaching', 1.0);" class="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- 2. Moedas Caindo -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('coins')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-coins" value="coins" class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Moedas Caindo</span>
+                    <span class="text-[10px] text-slate-400 block">Tilintar Metálico (Estilo LowTrack)</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('coins', 1.0);" class="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- 3. Sino de Sucesso -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('bell')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-bell" value="bell" class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Sino de Conquista</span>
+                    <span class="text-[10px] text-slate-400 block">Chime Moderno & Elegante</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('bell', 1.0);" class="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- 4. Pop Digital -->
+              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('pop')">
+                <div class="flex items-center gap-3">
+                  <input type="radio" name="sound_type_radio" id="sound-pop" value="pop" class="text-emerald-500 focus:ring-0">
+                  <div>
+                    <span class="font-bold text-xs text-white block">Pop Digital</span>
+                    <span class="text-[10px] text-slate-400 block">Alerta Fintech Energético</span>
+                  </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); playTrackProSound('pop', 1.0);" class="p-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUNA 2: TIPOS DE EVENTOS & GATILHOS -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center gap-2 border-b border-slate-800/80 pb-3">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+              <h3 class="font-bold text-sm text-white">Gatilhos em Tempo Real</h3>
+            </div>
+
+            <div class="space-y-3">
+              <!-- Gatilho 1: Venda Aprovada -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>💸 Venda Aprovada (Pago)</span>
+                    <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.2 rounded">Ka-Ching</span>
+                  </span>
+                  <p class="text-[11px] text-slate-400">Cartão de Crédito, PIX pago e saldo na plataforma. Dispara som e notificação push.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-sale" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+
+              <!-- Gatilho 2: PIX Gerado -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>⚡ PIX Gerado</span>
+                    <span class="text-[9px] bg-sky-500/20 text-sky-400 font-bold px-1.5 py-0.2 rounded">Aguardando</span>
+                  </span>
+                  <p class="text-[11px] text-slate-400">Alerta com valor emitido para você acompanhar e converter o lead.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-pix" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+
+              <!-- Gatilho 3: Boleto Impresso -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white">📄 Boleto Bancário Impresso</span>
+                  <p class="text-[11px] text-slate-400">Notificação quando o cliente emitir o código de barras do boleto.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-boleto" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+
+              <!-- Gatilho 4: Reembolso / Estorno -->
+              <div class="flex items-start justify-between p-3 rounded-xl bg-dark-950/60 border border-slate-800/80">
+                <div class="space-y-0.5 pr-2">
+                  <span class="text-xs font-bold text-white">⚠️ Reembolsos & Estornos</span>
+                  <p class="text-[11px] text-slate-400">Alerta caso ocorra devolução para ajuste imediato da margem.</p>
+                </div>
+                <input type="checkbox" id="toggle-notify-refund" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0 mt-1">
+              </div>
+            </div>
+
+            <!-- Botões de Teste Rápido -->
+            <div class="pt-2 border-t border-slate-800/80 space-y-2">
+              <span class="text-[11px] font-semibold text-slate-400 block">Simular Evento Agora:</span>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="simulateSaleAlert()" class="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i> Venda (R$ 197)
+                </button>
+                <button type="button" onclick="simulatePixAlert()" class="px-3 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i> PIX (R$ 97)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUNA 3: RESUMO DIÁRIO PROGRAMADO (HORÁRIOS & TOM) -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="calendar-clock" class="w-4 h-4 text-indigo-400"></i>
+                <h3 class="font-bold text-sm text-white">Resumo Programado</h3>
+              </div>
+              <input type="checkbox" id="toggle-scheduled-summary" onchange="saveNotificationSettingsToServer()" checked class="rounded border-slate-700 text-brand-500 focus:ring-0">
+            </div>
+
+            <p class="text-xs text-slate-300">
+              Receba no seu celular um resumo automático com o <strong class="text-white">lucro líquido</strong>, <strong class="text-white">faturamento</strong> e <strong class="text-white">vendas do dia</strong> nos horários estratégicos escolhidos.
+            </p>
+
+            <!-- Horários Programados -->
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Horários de Disparo:</label>
+              <div id="summary-hours-chips" class="flex flex-wrap gap-2">
+                <!-- Chips de horários carregados dinamicamente -->
+              </div>
+
+              <!-- Adicionar Novo Horário -->
+              <div class="flex gap-2 pt-1">
+                <input type="time" id="new-summary-hour-input" value="14:00" class="bg-dark-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
+                <button type="button" onclick="addNewSummaryHour()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-md shadow-indigo-600/20 transition-all">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar
+                </button>
+              </div>
+            </div>
+
+            <!-- Estilo / Tom do Resumo -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-800/80">
+              <label class="text-xs font-semibold text-slate-300">Estilo da Notificação:</label>
+              <select id="summary-tone-select" onchange="saveNotificationSettingsToServer()" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <option value="creative" selected>🚀 Criativo & Motivacional ("Foguete não tem ré! Hoje você lucrou R$ X...")</option>
+                <option value="direct">💼 Direto & Executivo ("Resumo das 18:00: Receita R$ X | Lucro R$ Y...")</option>
+                <option value="strategic">🎯 Estratégico / ROI ("Performance: Lucro R$ Y | ROI 3.2x...")</option>
+              </select>
+            </div>
+
+            <!-- Botão Testar Resumo Agora -->
+            <button type="button" onclick="triggerScheduledSummaryTest()" class="w-full py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              <span>Testar Envio do Resumo Agora</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Histórico Recente de Notificações -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
+              <h3 class="font-bold text-sm text-white">Histórico de Notificações Recebidas</h3>
+            </div>
+            <button onclick="markAllNotificationsRead()" class="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar Todas como Lidas</button>
+          </div>
+          <div id="full-notifications-table" class="space-y-2">
+            <!-- Linhas de notificações injetadas via JavaScript -->
+          </div>
+        </div>
+      </section>
+
+    </main>
 
   <!-- MOBILE BOTTOM NAVIGATION -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around z-30 px-2">
@@ -1897,7 +3144,147 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
   </div>
 
   <!-- TOAST NOTIFICATION CONTAINER -->
-  <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <div 
+  <!-- ==================== MODAL AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ==================== -->
+  <div id="modal-auth" class="modal fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-dark-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+      <button onclick="closeModal('modal-auth')" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="text-center space-y-2">
+        <div class="inline-flex w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl items-center justify-center shadow-lg shadow-brand-500/25">
+          <i data-lucide="crosshair" class="w-6 h-6 text-white"></i>
+        </div>
+        <h3 class="text-xl font-extrabold text-white">Track<span class="text-brand-400">Pro</span></h3>
+        <p class="text-xs text-slate-400">Acesse sua conta ou crie um perfil seguro com dados 100% isolados</p>
+      </div>
+
+      <!-- Abas Entrar / Criar Conta -->
+      <div class="flex bg-dark-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+        <button id="auth-tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all">
+          Entrar na Conta
+        </button>
+        <button id="auth-tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all">
+          Criar Nova Conta
+        </button>
+      </div>
+
+      <!-- Formulário LOGIN -->
+      <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-3.5">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Seu E-mail</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="email" id="login-email" required placeholder="ex: luckinhasp4@gmail.com" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Sua Senha</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+            <button type="button" onclick="togglePasswordVisibility('login-password')" class="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1">
+          <label class="flex items-center gap-2 cursor-pointer text-slate-400">
+            <input type="checkbox" id="login-remember" checked class="rounded border-slate-700 text-brand-500 focus:ring-0">
+            <span>Lembrar de mim</span>
+          </label>
+          <button type="button" onclick="fillLucasCredentials()" class="text-brand-400 hover:text-brand-300 font-semibold">Preencher Conta Lucas</button>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="w-full py-2.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
+          <i data-lucide="log-in" class="w-4 h-4"></i> Entrar no TrackPro
+        </button>
+
+        <div class="relative flex items-center justify-center pt-2">
+          <span class="absolute inset-x-0 h-px bg-slate-800"></span>
+          <span class="relative bg-dark-900 px-3 text-[11px] text-slate-500 font-medium">OU CONTINUE COM</span>
+        </div>
+
+        <button type="button" onclick="handleGoogleAuth()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2.5 shadow-md">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"/></svg>
+          Entrar com Google
+        </button>
+      </form>
+
+      <!-- Formulário CADASTRO (com confirmação de senha OBRIGATÓRIA) -->
+      <form id="form-register" onsubmit="handleRegisterSubmit(event)" class="space-y-3.5 hidden">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Nome Completo</label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="text" id="reg-name" required placeholder="Seu Nome ou Operação" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">E-mail Profissional</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="email" id="reg-email" required placeholder="seu@email.com" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Criar Senha (mín. 6 caracteres)</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="password" id="reg-password" oninput="validatePasswordsMatch()" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+            <button type="button" onclick="togglePasswordVisibility('reg-password')" class="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirmação de Senha Obrigatória -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-300">Confirmar Senha <span class="text-rose-400 font-bold">*</span></label>
+            <span id="reg-password-match-msg" class="text-[10px] font-semibold text-slate-500"></span>
+          </div>
+          <div class="relative">
+            <i data-lucide="check-check" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="password" id="reg-confirm-password" oninput="validatePasswordsMatch()" required minlength="6" placeholder="Repita exatamente a mesma senha" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+            <button type="button" onclick="togglePasswordVisibility('reg-confirm-password')" class="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-dark-950 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
+          <div class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>Ambiente 100% Seguro & Isolado</span>
+          </div>
+          <p>Cada conta criada possui sua própria base de campanhas, pixels e relatórios sem misturar dados.</p>
+        </div>
+
+        <button type="submit" id="btn-reg-submit" class="w-full py-2.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4"></i> Criar Minha Conta Grátis
+        </button>
+
+        <div class="relative flex items-center justify-center pt-2">
+          <span class="absolute inset-x-0 h-px bg-slate-800"></span>
+          <span class="relative bg-dark-900 px-3 text-[11px] text-slate-500 font-medium">OU</span>
+        </div>
+
+        <button type="button" onclick="handleGoogleAuth()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2.5 shadow-md">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"/></svg>
+          Cadastrar com Google
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- ==================== LOGICA JAVASCRIPT ==================== -->
   <script>
@@ -4619,6 +6006,12 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
     // Inicialização ao carregar
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      checkAuthSession();
+      loadNotificationSettingsFromBackend();
+      loadNotifications();
+      renderSummaryHoursChips();
+      setInterval(checkScheduledSummaries, 30000);
+      setInterval(loadNotifications, 45000);
       updateSoundUI();
       initWebhooksAndScript();
       loadDashboardsList();

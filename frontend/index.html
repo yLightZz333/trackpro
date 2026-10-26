@@ -502,6 +502,101 @@
           </div>
         </div>
 
+        <!-- Barra de Período e Filtros do Gerenciador de Campanhas -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3.5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400"></i>
+                Período de Visualização de Anúncios
+              </h3>
+              <span id="camp-active-period-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">Hoje</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="syncCampaignsCurrentPeriod()" id="btn-sync-camp-period" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar Período
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- 1. Período -->
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-slate-300">Data / Período:</label>
+              <div class="relative">
+                <select id="camp-filter-period" onchange="handleCampaignPeriodChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="today" selected>Hoje</option>
+                  <option value="yesterday">Ontem</option>
+                  <option value="last_7_days">Últimos 7 dias</option>
+                  <option value="last_week">Semana passada</option>
+                  <option value="this_month">Este mês</option>
+                  <option value="last_month">Mês passado</option>
+                  <option value="custom">📅 Personalizado (Escolher datas)</option>
+                  <option value="all">Todo o período</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- 2. Conta de Anúncios -->
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-slate-300">Conta de Anúncio:</label>
+              <div class="relative">
+                <select id="camp-account-select" onchange="handleCampaignPeriodChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="">Todas as Contas</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- 3. Status -->
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-slate-300">Status:</label>
+              <div class="relative">
+                <select id="camp-filter-status" onchange="handleCampaignPeriodChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="all">Todos os Status</option>
+                  <option value="active">Somente Ativos</option>
+                  <option value="paused">Somente Pausados</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- 4. Busca por Nome -->
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-slate-300">Buscar por Nome:</label>
+              <div class="relative">
+                <input type="text" id="camp-search-input" oninput="handleCampaignSearch()" placeholder="Filtrar campanhas..." class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs rounded-xl px-3 py-2.5 pl-8 focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seletor de Datas Personalizado das Campanhas -->
+          <div id="camp-custom-date-row" class="hidden pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-950/70 p-3 rounded-xl border border-blue-500/25">
+            <div class="flex items-center gap-2 text-xs font-semibold text-blue-400">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+              <span>Selecione o intervalo de datas para análise:</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5 bg-dark-900 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs">
+                <span class="text-slate-400 font-medium">De:</span>
+                <input type="date" id="camp-start-date" onchange="handleCampaignPeriodChange()" class="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer [color-scheme:dark]">
+              </div>
+              <span class="text-slate-500 text-xs font-bold">até</span>
+              <div class="flex items-center gap-1.5 bg-dark-900 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs">
+                <span class="text-slate-400 font-medium">Até:</span>
+                <input type="date" id="camp-end-date" onchange="handleCampaignPeriodChange()" class="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer [color-scheme:dark]">
+              </div>
+              <button onclick="loadCampaignsData()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Aplicar Datas</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- SUB-ABAS NO ESTILO GERENCIADOR DE ANÚNCIOS (CAMPANHAS | CONJUNTOS | ANÚNCIOS) -->
         <div class="flex items-center border-b border-slate-800 gap-2 pb-2 overflow-x-auto text-xs font-bold">
           <button onclick="switchCampaignSubtab('campaigns')" id="camp-subtab-campaigns-btn" class="px-4 py-2.5 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/30 flex items-center gap-2 transition-all">
@@ -2630,35 +2725,142 @@
       }
     }
 
+    // ==================== GERENCIADOR DE CAMPANHAS & FILTRO DE PERÍODO ====================
+    let campaignSearchTimer = null;
+
+    function handleCampaignPeriodChange() {
+      const periodSel = document.getElementById('camp-filter-period');
+      const customRow = document.getElementById('camp-custom-date-row');
+      const badge = document.getElementById('camp-active-period-badge');
+
+      if (periodSel) {
+        const val = periodSel.value;
+        if (val === 'custom') {
+          if (customRow) customRow.classList.remove('hidden');
+          const startInp = document.getElementById('camp-start-date');
+          const endInp = document.getElementById('camp-end-date');
+          const today = new Date().toISOString().split('T')[0];
+          if (endInp && !endInp.value) endInp.value = today;
+          if (startInp && !startInp.value) {
+            const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            startInp.value = firstDay;
+          }
+          if (badge) badge.textContent = `${startInp ? startInp.value : ''} até ${endInp ? endInp.value : ''}`;
+        } else {
+          if (customRow) customRow.classList.add('hidden');
+          const labels = {
+            'today': 'Hoje',
+            'yesterday': 'Ontem',
+            'last_7_days': 'Últimos 7 dias',
+            'last_week': 'Semana passada',
+            'this_month': 'Este mês',
+            'last_month': 'Mês passado',
+            'all': 'Todo o período'
+          };
+          if (badge) badge.textContent = labels[val] || val;
+        }
+      }
+      loadCampaignsData();
+    }
+
+    function handleCampaignSearch() {
+      if (campaignSearchTimer) clearTimeout(campaignSearchTimer);
+      campaignSearchTimer = setTimeout(() => {
+        loadCampaignsData();
+      }, 350);
+    }
+
+    async function syncCampaignsCurrentPeriod() {
+      const btn = document.getElementById('btn-sync-camp-period');
+      const period = document.getElementById('camp-filter-period')?.value || 'today';
+      const startDate = document.getElementById('camp-start-date')?.value || '';
+      const endDate = document.getElementById('camp-end-date')?.value || '';
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Sincronizando...';
+      }
+
+      try {
+        showSaleToast({
+          customer: 'Meta Ads',
+          amount: 0,
+          platform: 'Sincronizando métricas do período selecionado...'
+        });
+
+        const res = await fetch('/api/integrations/meta/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ period: period, start_date: startDate, end_date: endDate })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao sincronizar');
+
+        showSaleToast({
+          customer: 'Meta Ads',
+          amount: 0,
+          platform: data.message || 'Métricas do período sincronizadas com sucesso!'
+        });
+        loadCampaignsData();
+        refreshData();
+      } catch (err) {
+        alert('Erro ao sincronizar período: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar Período';
+          lucide.createIcons();
+        }
+      }
+    }
+
     // ==================== CARREGAMENTO DE DADOS DAS CAMPANHAS ====================
     async function loadCampaignsData() {
       try {
-        // 1. Sempre carrega e conta campanhas
-        const resCamp = await fetch('/api/campaigns');
+        const period = document.getElementById('camp-filter-period')?.value || 'today';
+        const accId = document.getElementById('camp-account-select')?.value || '';
+        const status = document.getElementById('camp-filter-status')?.value || 'all';
+        const search = document.getElementById('camp-search-input')?.value || '';
+        const startDate = document.getElementById('camp-start-date')?.value || '';
+        const endDate = document.getElementById('camp-end-date')?.value || '';
+
+        const qParams = new URLSearchParams();
+        if (period) qParams.append('period', period);
+        if (period === 'custom') {
+          if (startDate) qParams.append('start_date', startDate);
+          if (endDate) qParams.append('end_date', endDate);
+        }
+        if (accId) qParams.append('ad_account_id', accId);
+        if (status && status !== 'all') qParams.append('status', status);
+        if (search) qParams.append('search', search);
+
+        const qStr = qParams.toString() ? ('?' + qParams.toString()) : '';
+
+        // 1. Sempre carrega e conta campanhas com filtros de período
+        const resCamp = await fetch('/api/campaigns' + qStr);
         const dataCamp = await resCamp.json();
         lastCachedCampaigns = dataCamp.campaigns || [];
         const campBadge = document.getElementById('badge-campaigns-count');
         if (campBadge) campBadge.textContent = lastCachedCampaigns.length;
 
         // 2. Sempre carrega conjuntos (com ou sem filtro de campanha selecionada)
-        let adsetsUrl = '/api/facebook/adsets';
+        let adsetsParams = new URLSearchParams(qParams);
         if (currentCampaignSubtab === 'adsets' && selectedCampaignIds.size > 0) {
-          adsetsUrl += '?campaign_ids=' + Array.from(selectedCampaignIds).join(',');
+          adsetsParams.append('campaign_ids', Array.from(selectedCampaignIds).join(','));
         }
-        const resAdsets = await fetch(adsetsUrl);
+        const resAdsets = await fetch('/api/facebook/adsets?' + adsetsParams.toString());
         const dataAdsets = await resAdsets.json();
         lastCachedAdsets = dataAdsets.adsets || [];
         const adsetsBadge = document.getElementById('badge-adsets-count');
         if (adsetsBadge) adsetsBadge.textContent = lastCachedAdsets.length;
 
         // 3. Sempre carrega anúncios (com ou sem filtro)
-        let adsParams = [];
+        let adsParams = new URLSearchParams(qParams);
         if (currentCampaignSubtab === 'ads') {
-          if (selectedCampaignIds.size > 0) adsParams.push('campaign_ids=' + Array.from(selectedCampaignIds).join(','));
-          if (selectedAdsetIds.size > 0) adsParams.push('adset_ids=' + Array.from(selectedAdsetIds).join(','));
+          if (selectedCampaignIds.size > 0) adsParams.append('campaign_ids', Array.from(selectedCampaignIds).join(','));
+          if (selectedAdsetIds.size > 0) adsParams.append('adset_ids', Array.from(selectedAdsetIds).join(','));
         }
-        const adsUrl = '/api/facebook/ads' + (adsParams.length > 0 ? '?' + adsParams.join('&') : '');
-        const resAds = await fetch(adsUrl);
+        const resAds = await fetch('/api/facebook/ads?' + adsParams.toString());
         const dataAds = await resAds.json();
         lastCachedAds = dataAds.ads || [];
         const adsBadge = document.getElementById('badge-ads-count');
@@ -2679,8 +2881,7 @@
       }
     }
 
-    // ==================== RENDERIZADORES DAS 3 TABELAS ====================
-    function renderCampaignsTable(campaigns) {
+        function renderCampaignsTable(campaigns) {
       const theadTr = document.getElementById('campaigns-thead-tr');
       const tbody = document.getElementById('campaigns-tbody');
       if (!tbody) return;

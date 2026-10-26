@@ -20,7 +20,7 @@ import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Garante saída UTF-8 no Windows
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -503,6 +503,62 @@ def fetch_all_meta_pages(endpoint, params=None, access_token=None, max_pages=15)
             break
             
     return all_data
+
+def compute_date_range(period, start_date='', end_date=''):
+    today_dt = datetime.now()
+    if period == 'today':
+        d_str = today_dt.strftime('%Y-%m-%d')
+        return d_str, d_str, 'today'
+    elif period == 'yesterday':
+        yest_str = (today_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+        return yest_str, yest_str, 'yesterday'
+    elif period == 'last_7_days':
+        s_str = (today_dt - timedelta(days=7)).strftime('%Y-%m-%d')
+        e_str = today_dt.strftime('%Y-%m-%d')
+        return s_str, e_str, 'last_7d'
+    elif period == 'last_week':
+        s_str = (today_dt - timedelta(days=14)).strftime('%Y-%m-%d')
+        e_str = (today_dt - timedelta(days=7)).strftime('%Y-%m-%d')
+        return s_str, e_str, 'last_week_mon_sun'
+    elif period == 'this_month':
+        s_str = today_dt.strftime('%Y-%m-01')
+        e_str = today_dt.strftime('%Y-%m-%d')
+        return s_str, e_str, 'this_month'
+    elif period == 'last_month':
+        first_this = today_dt.replace(day=1)
+        last_month_end = first_this - timedelta(days=1)
+        s_str = last_month_end.strftime('%Y-%m-01')
+        e_str = last_month_end.strftime('%Y-%m-%d')
+        return s_str, e_str, 'last_month'
+    elif period == 'custom' and start_date and end_date:
+        return start_date, end_date, None
+    elif period == 'all':
+        return None, None, 'maximum'
+    else:
+        d_str = today_dt.strftime('%Y-%m-%d')
+        return d_str, d_str, 'today'
+
+def get_order_date_condition(period, start_date='', end_date='', col='created_at'):
+    if period == 'today':
+        return f"date({col}, 'localtime') = date('now', 'localtime')", []
+    elif period == 'yesterday':
+        return f"date({col}, 'localtime') = date('now', 'localtime', '-1 day')", []
+    elif period == 'last_7_days':
+        return f"{col} >= datetime('now', 'localtime', '-7 days')", []
+    elif period == 'last_week':
+        return f"{col} >= datetime('now', 'localtime', '-14 days') AND {col} < datetime('now', 'localtime', '-7 days')", []
+    elif period == 'this_month':
+        return f"strftime('%Y-%m', {col}, 'localtime') = strftime('%Y-%m', 'now', 'localtime')", []
+    elif period == 'last_month':
+        return f"strftime('%Y-%m', {col}, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')", []
+    elif period == 'custom':
+        if start_date and end_date:
+            return f"date({col}, 'localtime') >= ? AND date({col}, 'localtime') <= ?", [start_date, end_date]
+        elif start_date:
+            return f"date({col}, 'localtime') >= ?", [start_date]
+        elif end_date:
+            return f"date({col}, 'localtime') <= ?", [end_date]
+    return "", []
 
 # ==================== PARSER UNIVERSAL DE WEBHOOKS ====================
 def parse_webhook_payload(headers, body):
@@ -1464,46 +1520,108 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"accounts": [dict(r) for r in rows]})
             return
 
-        # Campanhas e Conjuntos
+        # Campanhas e Conjuntos com Filtro de Período, Conta e Status
         if path in ['/api/campaigns', '/api/facebook/campaigns']:
             conn = get_db()
             cursor = conn.cursor()
-            c_rows = cursor.execute("SELECT * FROM campaigns WHERE user_id = 1 ORDER BY id DESC").fetchall()
-            
+            period = params.get('period', [''])[0].strip()
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
+            ad_account_id = params.get('ad_account_id', [''])[0].strip()
+            status_filter = params.get('status', [''])[0].strip()
+            search_query = params.get('search', [''])[0].strip().lower()
+
+            c_where = ["user_id = 1"]
+            c_params = []
+            if ad_account_id and ad_account_id != 'all':
+                clean_acc = ad_account_id.replace('act_', '')
+                c_where.append("(ad_account_id = ? OR ad_account_id = ?)")
+                c_params.extend([ad_account_id, clean_acc])
+            if status_filter and status_filter != 'all':
+                c_where.append("status = ?")
+                c_params.append(status_filter)
+            if search_query:
+                c_where.append("LOWER(name) LIKE ?")
+                c_params.append(f"%{search_query}%")
+
+            where_str = " WHERE " + " AND ".join(c_where)
+            c_rows = cursor.execute(f"SELECT * FROM campaigns{where_str} ORDER BY id DESC", c_params).fetchall()
+
+            # Condição de data para pedidos
+            order_date_clause, order_date_params = get_order_date_condition(period, start_date, end_date, col='created_at')
+
+            # Range de data para meta_campaign_insights
+            s_range, e_range, _ = compute_date_range(period, start_date, end_date)
+
             campaigns = []
             for c in c_rows:
                 c_id = c['id']
+                c_name = c['name']
+                ext_id = c.get('external_campaign_id') or c_name
                 adsets = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (c_id,)).fetchall()
-                
-                # Calcula ROAS e vendas da campanha
-                order_calc = cursor.execute("""
-                    SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as rev
-                    FROM orders WHERE utm_campaign = ? AND status = 'paid'
-                """, (c['name'],)).fetchone()
-                
-                vendas = order_calc['count'] if order_calc else 0
+
+                # 1. Calcula pedidos vinculados à campanha no período
+                order_q = "SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE (utm_campaign = ? OR utm_campaign = ?) AND status = 'paid'"
+                order_p = [c_name, ext_id]
+                if order_date_clause:
+                    order_q += f" AND {order_date_clause}"
+                    order_p.extend(order_date_params)
+                order_calc = cursor.execute(order_q, order_p).fetchone()
+                order_vendas = order_calc['count'] if order_calc else 0
                 faturamento = (order_calc['rev'] if order_calc else 0) / 100.0
+
+                # 2. Calcula gasto e métricas da Meta no período
                 gasto = (c['total_spent_in_cents'] or 0) / 100.0
-                roas = round(faturamento / gasto, 2) if gasto > 0 else 0
-                cpa = round(gasto / vendas, 2) if vendas > 0 else 0
+                impressoes = c.get('impressions') or 0
+                cliques = c.get('clicks') or 0
+                meta_convs = c.get('conversions') or 0
+
+                if s_range and e_range and period != 'all':
+                    ins_q = """
+                        SELECT COALESCE(SUM(spend_cents), 0) as spend,
+                               COALESCE(SUM(impressions), 0) as impr,
+                               COALESCE(SUM(clicks), 0) as clk,
+                               COALESCE(SUM(conversions), 0) as conv
+                        FROM meta_campaign_insights
+                        WHERE (campaign_id = ? OR campaign_name = ?)
+                          AND date_start >= ? AND date_stop <= ?
+                    """
+                    ins_row = cursor.execute(ins_q, (ext_id, c_name, s_range, e_range)).fetchone()
+                    if ins_row and (ins_row['spend'] > 0 or ins_row['impr'] > 0):
+                        gasto = ins_row['spend'] / 100.0
+                        impressoes = ins_row['impr']
+                        cliques = ins_row['clk']
+                        meta_convs = ins_row['conv']
+
+                vendas = max(order_vendas, meta_convs)
+                roas = round(faturamento / gasto, 2) if gasto > 0 else 0.0
+                cpa = round(gasto / vendas, 2) if vendas > 0 else 0.0
+                ctr = round((cliques / impressoes * 100.0), 2) if impressoes > 0 else 0.0
+                cpc = round(gasto / cliques, 2) if cliques > 0 else 0.0
 
                 campaigns.append({
                     "id": c_id,
-                    "name": c['name'],
+                    "name": c_name,
                     "platform": c['platform'],
                     "status": c['status'],
+                    "effective_status": c.get('effective_status') or c['status'],
+                    "objective": c.get('objective') or 'VENDAS',
                     "daily_budget": (c['daily_budget_in_cents'] or 0) / 100.0,
                     "spent": gasto,
                     "sales": vendas,
                     "revenue": faturamento,
                     "roas": roas,
                     "cpa": cpa,
+                    "impressions": impressoes,
+                    "clicks": cliques,
+                    "ctr": ctr,
+                    "cpc": cpc,
                     "ad_account_id": c['ad_account_id'],
                     "adsets": [dict(a) for a in adsets]
                 })
 
             conn.close()
-            self._send_json({"campaigns": campaigns})
+            self._send_json({"campaigns": campaigns, "period": period, "start_date": s_range, "end_date": e_range})
             return
 
         # Meta OAuth Status Check
@@ -1861,11 +1979,15 @@ class TrackProHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # Conjuntos de Anúncio isolados com filtro opcional por múltiplas campanhas
+        # Conjuntos de Anúncio com Filtro por Período e Campanhas Selecionadas
         if path in ['/api/facebook/adsets', '/api/adsets']:
             conn = get_db()
             cursor = conn.cursor()
+            period = params.get('period', [''])[0].strip()
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
             camp_param = params.get('campaign_ids', params.get('campaign_id', ['']))[0]
+            
             if camp_param:
                 c_ids = [c.strip() for c in camp_param.split(',') if c.strip().isdigit()]
                 if c_ids:
@@ -1876,12 +1998,21 @@ class TrackProHandler(BaseHTTPRequestHandler):
             else:
                 rows = cursor.execute("SELECT a.*, c.name as campaign_name FROM ad_sets a LEFT JOIN campaigns c ON a.campaign_id = c.id ORDER BY a.id DESC").fetchall()
             
+            order_date_clause, order_date_params = get_order_date_condition(period, start_date, end_date, col='created_at')
+
             adsets_list = []
             for r in rows:
                 item = dict(r)
                 spent = (item.get('spent_cents') or 0) / 100.0
                 daily_budget = (item.get('daily_budget_cents') or 5000) / 100.0
-                sales = cursor.execute("SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE utm_content = ? AND status = 'paid'", (item['name'],)).fetchone()
+                
+                order_q = "SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE utm_content = ? AND status = 'paid'"
+                order_p = [item['name']]
+                if order_date_clause:
+                    order_q += f" AND {order_date_clause}"
+                    order_p.extend(order_date_params)
+                    
+                sales = cursor.execute(order_q, order_p).fetchone()
                 sales_count = sales['cnt'] if sales else 0
                 revenue = (sales['rev'] if sales else 0) / 100.0
                 roas = round(revenue / spent, 2) if spent > 0 else 0
@@ -1897,12 +2028,16 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"adsets": adsets_list})
             return
 
-        # Anúncios (Criativos) com filtro opcional por campanhas ou conjuntos
+        # Anúncios (Criativos) com Filtro por Período, Campanhas e Conjuntos
         if path in ['/api/facebook/ads', '/api/ads']:
             conn = get_db()
             cursor = conn.cursor()
+            period = params.get('period', [''])[0].strip()
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
             camp_param = params.get('campaign_ids', params.get('campaign_id', ['']))[0]
             adset_param = params.get('adset_ids', params.get('adset_id', ['']))[0]
+            
             query = """
                 SELECT ad.*, a.name as adset_name, c.name as campaign_name 
                 FROM ads ad 
@@ -1927,11 +2062,20 @@ class TrackProHandler(BaseHTTPRequestHandler):
             query += " ORDER BY ad.id DESC"
 
             rows = cursor.execute(query, where_vals).fetchall()
+            order_date_clause, order_date_params = get_order_date_condition(period, start_date, end_date, col='created_at')
+
             ads_list = []
             for r in rows:
                 item = dict(r)
                 spent = (item.get('spent_cents') or 0) / 100.0
-                sales = cursor.execute("SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE utm_term = ? AND status = 'paid'", (item['name'],)).fetchone()
+                
+                order_q = "SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE utm_term = ? AND status = 'paid'"
+                order_p = [item['name']]
+                if order_date_clause:
+                    order_q += f" AND {order_date_clause}"
+                    order_p.extend(order_date_params)
+                    
+                sales = cursor.execute(order_q, order_p).fetchone()
                 sales_count = (item.get('sales_count') or 0) + (sales['cnt'] if sales else 0)
                 revenue = ((item.get('revenue_cents') or 0) + (sales['rev'] if sales else 0)) / 100.0
                 roas = round(revenue / spent, 2) if spent > 0 else 0
@@ -2389,13 +2533,25 @@ class TrackProHandler(BaseHTTPRequestHandler):
                         'limit': '50'
                     }, access_token=token, max_pages=15)
 
-                    # 2. Busca insights no nível de campanha com paginação (últimos 30 dias)
-                    insights_raw = fetch_all_meta_pages(f"act_{acc_id}/insights", params={
+                    # 2. Busca insights no nível de campanha com período selecionado
+                    sync_period = body.get('period', 'today')
+                    sync_start = body.get('start_date', '')
+                    sync_end = body.get('end_date', '')
+                    s_r, e_r, preset = compute_date_range(sync_period, sync_start, sync_end)
+
+                    ins_params = {
                         'level': 'campaign',
                         'fields': 'campaign_id,campaign_name,impressions,reach,clicks,spend,ctr,cpc,cpm,frequency,actions,cost_per_action_type,date_start,date_stop',
-                        'date_preset': 'last_30d',
                         'limit': '50'
-                    }, access_token=token, max_pages=15)
+                    }
+                    if s_r and e_r and sync_period == 'custom':
+                        ins_params['time_range'] = json.dumps({'since': s_r, 'until': e_r})
+                    elif preset:
+                        ins_params['date_preset'] = preset
+                    else:
+                        ins_params['date_preset'] = 'last_30d'
+
+                    insights_raw = fetch_all_meta_pages(f"act_{acc_id}/insights", params=ins_params, access_token=token, max_pages=15)
 
                     # Indexa insights por campaign_id
                     insights_by_camp = {}

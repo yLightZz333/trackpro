@@ -29,863 +29,6 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <script>
-
-    // ==================== TRACKPRO AUTH & MULTI-TENANT FETCH INTERCEPTOR ====================
-    const originalFetch = window.fetch;
-    window.fetch = function(url, options = {}) {
-      const token = localStorage.getItem('trackpro_token');
-      if (token && typeof url === 'string' && url.startsWith('/api')) {
-        options.headers = options.headers || {};
-        if (options.headers instanceof Headers) {
-          if (!options.headers.has('Authorization')) {
-            options.headers.set('Authorization', `Bearer ${token}`);
-          }
-        } else {
-          if (!options.headers['Authorization']) {
-            options.headers['Authorization'] = `Bearer ${token}`;
-          }
-        }
-      }
-      return originalFetch(url, options);
-    };
-
-    // ==================== AUDIO SYNTHESIZER (WEB AUDIO API - ZERO LATÊNCIA) ====================
-    let audioCtx = null;
-    function getAudioContext() {
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          audioCtx = new AudioContextClass();
-        }
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      return audioCtx;
-    }
-
-    function playTrackProSound(soundType, customVol) {
-      const isEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
-      if (!isEnabled && customVol === undefined) return;
-      const ctx = getAudioContext();
-      if (!ctx) return;
-
-      const vol = customVol !== undefined ? customVol : (parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0'));
-      const chosenSound = soundType || localStorage.getItem('trackpro_sound_type') || 'kaching';
-
-      try {
-        const now = ctx.currentTime;
-        const masterGain = ctx.createGain();
-        masterGain.gain.setValueAtTime(Math.min(1.0, Math.max(0.05, vol)), now);
-        masterGain.connect(ctx.destination);
-
-        if (chosenSound === 'kaching') {
-          // 1. Som Clássico Ka-Ching (Caixa Registradora UTMify)
-          const clickOsc = ctx.createOscillator();
-          const clickGain = ctx.createGain();
-          clickOsc.type = 'triangle';
-          clickOsc.frequency.setValueAtTime(320, now);
-          clickOsc.frequency.exponentialRampToValueAtTime(80, now + 0.04);
-          clickGain.gain.setValueAtTime(0.4, now);
-          clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-          clickOsc.connect(clickGain);
-          clickGain.connect(masterGain);
-          clickOsc.start(now);
-          clickOsc.stop(now + 0.05);
-
-          const bells = [
-            { f: 987.77, start: now + 0.03, dur: 1.1, vol: 0.6 },
-            { f: 1318.51, start: now + 0.03, dur: 0.9, vol: 0.5 },
-            { f: 2637.02, start: now + 0.03, dur: 0.5, vol: 0.25 },
-            { f: 3136.00, start: now + 0.03, dur: 0.4, vol: 0.2 }
-          ];
-          bells.forEach(b => {
-            const osc = ctx.createOscillator();
-            const g = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(b.f, b.start);
-            g.gain.setValueAtTime(b.vol, b.start);
-            g.gain.exponentialRampToValueAtTime(0.0001, b.start + b.dur);
-            osc.connect(g);
-            g.connect(masterGain);
-            osc.start(b.start);
-            osc.stop(b.start + b.dur);
-          });
-
-          const coins = [
-            { f: 2400, delay: 0.18, dur: 0.35, v: 0.35 },
-            { f: 3100, delay: 0.26, dur: 0.35, v: 0.3 },
-            { f: 2750, delay: 0.34, dur: 0.4, v: 0.25 }
-          ];
-          coins.forEach(c => {
-            const osc = ctx.createOscillator();
-            const g = ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(c.f, now + c.delay);
-            g.gain.setValueAtTime(c.v, now + c.delay);
-            g.gain.exponentialRampToValueAtTime(0.0001, now + c.delay + c.dur);
-            osc.connect(g);
-            g.connect(masterGain);
-            osc.start(now + c.delay);
-            osc.stop(now + c.delay + c.dur);
-          });
-
-        } else if (chosenSound === 'coins') {
-          // 2. Moedas Caindo (LowTrack Style)
-          const freqs = [1960, 2400, 2800, 3250, 3600, 2200];
-          freqs.forEach((freq, idx) => {
-            const start = now + idx * 0.06;
-            const osc = ctx.createOscillator();
-            const g = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, start);
-            g.gain.setValueAtTime(0.4, start);
-            g.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
-            osc.connect(g);
-            g.connect(masterGain);
-            osc.start(start);
-            osc.stop(start + 0.35);
-          });
-
-        } else if (chosenSound === 'bell') {
-          // 3. Sino de Conquista (Modern Chime)
-          const notes = [
-            { f: 523.25, start: now, dur: 0.8 },
-            { f: 659.25, start: now + 0.08, dur: 0.9 },
-            { f: 783.99, start: now + 0.16, dur: 1.0 },
-            { f: 1046.50, start: now + 0.24, dur: 1.2 }
-          ];
-          notes.forEach(n => {
-            const osc = ctx.createOscillator();
-            const g = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(n.f, n.start);
-            g.gain.setValueAtTime(0.45, n.start);
-            g.gain.exponentialRampToValueAtTime(0.0005, n.start + n.dur);
-            osc.connect(g);
-            g.connect(masterGain);
-            osc.start(n.start);
-            osc.stop(n.start + n.dur);
-          });
-
-        } else if (chosenSound === 'pop') {
-          // 4. Pop Digital (Fintech Alert)
-          const osc = ctx.createOscillator();
-          const g = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(450, now);
-          osc.frequency.exponentialRampToValueAtTime(1400, now + 0.09);
-          g.gain.setValueAtTime(0.5, now);
-          g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-          osc.connect(g);
-          g.connect(masterGain);
-          osc.start(now);
-          osc.stop(now + 0.18);
-
-        } else if (chosenSound === 'pix') {
-          // 5. PIX Gerado (Som Suave de Confirmação)
-          const pings = [
-            { f: 880, start: now, dur: 0.25 },
-            { f: 1174.66, start: now + 0.12, dur: 0.4 }
-          ];
-          pings.forEach(p => {
-            const osc = ctx.createOscillator();
-            const g = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(p.f, p.start);
-            g.gain.setValueAtTime(0.35, p.start);
-            g.gain.exponentialRampToValueAtTime(0.001, p.start + p.dur);
-            osc.connect(g);
-            g.connect(masterGain);
-            osc.start(p.start);
-            osc.stop(p.start + p.dur);
-          });
-        }
-      } catch (e) {
-        console.warn('Erro ao reproduzir Web Audio:', e);
-      }
-    }
-
-    function selectSoundType(type) {
-      localStorage.setItem('trackpro_sound_type', type);
-      const radio = document.getElementById('sound-' + type);
-      if (radio) radio.checked = true;
-      playTrackProSound(type, 1.0);
-      saveNotificationSettingsToServer();
-    }
-
-    function testSelectedSound() {
-      const type = localStorage.getItem('trackpro_sound_type') || 'kaching';
-      playTrackProSound(type, 1.0);
-    }
-
-    function handleVolumeChange(val) {
-      const pct = Math.round(val * 100);
-      const display = document.getElementById('volume-val-display');
-      if (display) display.textContent = pct + '%';
-      localStorage.setItem('trackpro_sound_volume', val);
-      playTrackProSound(null, parseFloat(val));
-      saveNotificationSettingsToServer();
-    }
-
-    function handleSoundToggleChange(checked) {
-      soundEnabled = checked;
-      localStorage.setItem('trackpro_sound_enabled', checked);
-      updateSoundUI();
-      if (checked) testSelectedSound();
-      saveNotificationSettingsToServer();
-    }
-
-    // ==================== PUSH NOTIFICATIONS & MOBILE ALERTS ====================
-    async function requestPushNotificationPermission() {
-      getAudioContext(); // desbloqueia Web Audio com gesto do usuário
-      if (!('Notification' in window)) {
-        showToast('Notificações push não suportadas neste navegador.', 'error');
-        return;
-      }
-      try {
-        const perm = await Notification.requestPermission();
-        if (perm === 'granted') {
-          showToast('🔔 Permissão concedida! Você receberá alertas de vendas em tempo real no celular.', 'success');
-          const btnText = document.getElementById('btn-enable-push-text');
-          if (btnText) btnText.textContent = '✔ Alertas no Celular Ativos';
-          playTrackProSound('kaching', 1.0);
-          showMobileNotification('🎉 Notificações Ativadas!', 'TrackPro está pronto para alertar suas vendas no celular.', 'welcome');
-          saveNotificationSettingsToServer();
-        } else {
-          showToast('Permissão de notificações foi negada no navegador.', 'warning');
-        }
-      } catch (e) {
-        showToast('Erro ao solicitar permissão de notificações.', 'error');
-      }
-    }
-
-    function showMobileNotification(title, body, tag = 'sale-alert') {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification(title, {
-              body: body,
-              icon: '/icon-192.png',
-              badge: '/icon-192.png',
-              vibrate: [250, 100, 250, 100, 250],
-              tag: tag,
-              renotify: true,
-              data: { url: '/' }
-            });
-          });
-        } else {
-          try {
-            new Notification(title, {
-              body: body,
-              icon: '/icon-192.png',
-              badge: '/icon-192.png',
-              tag: tag
-            });
-          } catch (e) {}
-        }
-      }
-    }
-
-    // ==================== SIMULADOR DE ALERTAS ====================
-    async function simulateSaleAlert() {
-      playTrackProSound('kaching', 1.0);
-      showMobileNotification('💸 VENDA APROVADA!', 'Venda de R$ 197,00 aprovada via Cartão de Crédito! (Kiwify)', 'sale');
-      showSaleToast({
-        customer: 'Lucas Silva (Simulação)',
-        amount: 197.00,
-        platform: 'Kiwify',
-        source: 'facebook'
-      });
-      try {
-        await fetch('/api/notifications/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'sale_approved', amount_in_cents: 19700 })
-        });
-        loadNotifications();
-      } catch (e) {}
-    }
-
-    async function simulatePixAlert() {
-      playTrackProSound('pix', 1.0);
-      showMobileNotification('⚡ PIX GERADO!', 'PIX de R$ 97,00 gerado! Aguardando pagamento do cliente.', 'pix');
-      showToast('⚡ PIX GERADO: R$ 97,00! Cliente aguardando pagamento.', 'info');
-      try {
-        await fetch('/api/notifications/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'pix_generated', amount_in_cents: 9700 })
-        });
-        loadNotifications();
-      } catch (e) {}
-    }
-
-    // ==================== RESUMO DIÁRIO PROGRAMADO ====================
-    let configuredSummaryHours = ["08:00", "12:00", "16:00", "18:00", "22:00"];
-
-    function renderSummaryHoursChips() {
-      const container = document.getElementById('summary-hours-chips');
-      if (!container) return;
-      container.innerHTML = configuredSummaryHours.map(h => `
-        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold">
-          <span>${h}</span>
-          <button type="button" onclick="removeSummaryHour('${h}')" class="text-indigo-400 hover:text-rose-400 transition-colors ml-0.5">
-            <i data-lucide="x" class="w-3 h-3"></i>
-          </button>
-        </span>
-      `).join('');
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function addNewSummaryHour() {
-      const input = document.getElementById('new-summary-hour-input');
-      if (!input || !input.value) return;
-      const h = input.value.trim();
-      if (!configuredSummaryHours.includes(h)) {
-        configuredSummaryHours.push(h);
-        configuredSummaryHours.sort();
-        renderSummaryHoursChips();
-        saveNotificationSettingsToServer();
-        showToast(`Horário ${h} adicionado aos resumos diários!`, 'success');
-      }
-    }
-
-    function removeSummaryHour(h) {
-      configuredSummaryHours = configuredSummaryHours.filter(item => item !== h);
-      renderSummaryHoursChips();
-      saveNotificationSettingsToServer();
-    }
-
-    async function triggerScheduledSummaryTest() {
-      try {
-        const res = await fetch('/api/notifications/scheduled-summary');
-        const data = await res.json();
-        if (data.success) {
-          playTrackProSound('bell', 1.0);
-          showMobileNotification(data.title, data.message, 'daily-summary');
-          showToast(`🔔 ${data.title}: ${data.message}`, 'info');
-          loadNotifications();
-        }
-      } catch (e) {
-        showToast('Erro ao testar envio de resumo diário.', 'error');
-      }
-    }
-
-    async function checkScheduledSummaries() {
-      const toggle = document.getElementById('toggle-scheduled-summary');
-      if (toggle && !toggle.checked) return;
-
-      const now = new Date();
-      const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-      const todayDate = now.toISOString().slice(0, 10);
-
-      if (configuredSummaryHours.includes(currentHHMM)) {
-        const key = `trackpro_summary_fired_${todayDate}_${currentHHMM}`;
-        if (!localStorage.getItem(key)) {
-          localStorage.setItem(key, 'true');
-          try {
-            const res = await fetch('/api/notifications/scheduled-summary');
-            const data = await res.json();
-            if (data.success) {
-              playTrackProSound('bell', 1.0);
-              showMobileNotification(data.title, data.message, 'daily-summary');
-              showToast(`📊 ${data.title}: ${data.message}`, 'info');
-              loadNotifications();
-            }
-          } catch (e) {
-            console.warn('Erro ao disparar resumo diário:', e);
-          }
-        }
-      }
-    }
-
-    // ==================== CENTRAL DE NOTIFICAÇÕES & FEED ====================
-    let cachedNotifications = [];
-
-    async function loadNotifications() {
-      try {
-        const res = await fetch('/api/notifications');
-        const data = await res.json();
-        cachedNotifications = data.notifications || [];
-        updateNotificationBadges(data.unread_count || 0);
-        renderNotificationDropdownList(cachedNotifications);
-        renderFullNotificationsTable(cachedNotifications);
-      } catch (e) {
-        console.warn('Erro ao carregar notificações:', e);
-      }
-    }
-
-    function updateNotificationBadges(count) {
-      const bDesktop = document.getElementById('notif-badge-desktop');
-      const bMobile = document.getElementById('notif-badge-mobile');
-      [bDesktop, bMobile].forEach(el => {
-        if (!el) return;
-        if (count > 0) {
-          el.textContent = count > 99 ? '99+' : count;
-          el.classList.remove('hidden');
-        } else {
-          el.classList.add('hidden');
-        }
-      });
-    }
-
-    function renderNotificationDropdownList(list) {
-      const container = document.getElementById('notif-list-container');
-      if (!container) return;
-      if (!list || list.length === 0) {
-        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>';
-        return;
-      }
-      container.innerHTML = list.slice(0, 8).map(n => {
-        const isSale = n.type === 'sale_approved';
-        const isPix = n.type === 'pix_generated';
-        const icon = isSale ? 'check-circle-2' : (isPix ? 'zap' : 'bell');
-        const iconColor = isSale ? 'text-emerald-400' : (isPix ? 'text-sky-400' : 'text-amber-400');
-        const bgBadge = isSale ? 'bg-emerald-500/10' : (isPix ? 'bg-sky-500/10' : 'bg-amber-500/10');
-        return `
-          <div class="p-3 hover:bg-dark-950/70 transition-colors flex items-start gap-2.5 ${n.is_read ? 'opacity-70' : 'bg-dark-950/30'}">
-            <div class="w-7 h-7 rounded-lg ${bgBadge} ${iconColor} flex items-center justify-center shrink-0 mt-0.5">
-              <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-white truncate">${n.title}</span>
-                <span class="text-[9px] text-slate-500 font-mono">${(n.created_at || '').slice(11, 16)}</span>
-              </div>
-              <p class="text-[11px] text-slate-300 line-clamp-2 mt-0.5">${n.message}</p>
-            </div>
-          </div>
-        `;
-      }).join('');
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function renderFullNotificationsTable(list) {
-      const container = document.getElementById('full-notifications-table');
-      if (!container) return;
-      if (!list || list.length === 0) {
-        container.innerHTML = '<div class="p-6 text-center text-xs text-slate-500">Nenhuma notificação registrada na conta.</div>';
-        return;
-      }
-      container.innerHTML = list.map(n => {
-        const isSale = n.type === 'sale_approved';
-        const isPix = n.type === 'pix_generated';
-        const icon = isSale ? 'shopping-bag' : (isPix ? 'zap' : 'bell');
-        const color = isSale ? 'emerald' : (isPix ? 'sky' : 'amber');
-        return `
-          <div class="p-3.5 rounded-xl bg-dark-950/70 border border-slate-800 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-${color}-500/15 text-${color}-400 flex items-center justify-center font-bold">
-                <i data-lucide="${icon}" class="w-4 h-4"></i>
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-xs text-white">${n.title}</span>
-                  <span class="text-[10px] text-slate-500 font-mono">${n.created_at}</span>
-                </div>
-                <p class="text-xs text-slate-300 mt-0.5">${n.message}</p>
-              </div>
-            </div>
-            ${n.amount_in_cents > 0 ? `<span class="text-xs font-bold text-${color}-400 font-mono">R$ ${(n.amount_in_cents / 100).toFixed(2).replace('.', ',')}</span>` : ''}
-          </div>
-        `;
-      }).join('');
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function toggleNotificationDropdown() {
-      const dd = document.getElementById('notif-dropdown');
-      if (!dd) return;
-      dd.classList.toggle('hidden');
-      if (!dd.classList.contains('hidden')) {
-        closeProfileDropdown();
-        loadNotifications();
-      }
-    }
-
-    function closeNotificationDropdown() {
-      const dd = document.getElementById('notif-dropdown');
-      if (dd) dd.classList.add('hidden');
-    }
-
-    async function markAllNotificationsRead() {
-      try {
-        await fetch('/api/notifications/read-all', { method: 'POST' });
-        updateNotificationBadges(0);
-        showToast('Notificações marcadas como lidas.', 'info');
-        loadNotifications();
-      } catch (e) {}
-    }
-
-    // ==================== SALVAR CONFIGURAÇÕES DE NOTIFICAÇÃO NO SERVIDOR ====================
-    async function saveNotificationSettingsToServer() {
-      const soundType = localStorage.getItem('trackpro_sound_type') || 'kaching';
-      const soundVol = parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0');
-      const soundEn = localStorage.getItem('trackpro_sound_enabled') !== 'false';
-      const notifySale = document.getElementById('toggle-notify-sale')?.checked ?? true;
-      const notifyPix = document.getElementById('toggle-notify-pix')?.checked ?? true;
-      const notifyBoleto = document.getElementById('toggle-notify-boleto')?.checked ?? true;
-      const notifyRefund = document.getElementById('toggle-notify-refund')?.checked ?? true;
-      const notifySched = document.getElementById('toggle-scheduled-summary')?.checked ?? true;
-      const tone = document.getElementById('summary-tone-select')?.value || 'creative';
-
-      try {
-        await fetch('/api/notifications/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sound_enabled: soundEn,
-            sound_type: soundType,
-            sound_volume: soundVol,
-            notify_sale_approved: notifySale,
-            notify_pix_generated: notifyPix,
-            notify_boleto_printed: notifyBoleto,
-            notify_refund: notifyRefund,
-            notify_scheduled_summary: notifySched,
-            summary_hours: configuredSummaryHours,
-            summary_tone: tone
-          })
-        });
-      } catch (e) {}
-    }
-
-    async function loadNotificationSettingsFromBackend() {
-      try {
-        const res = await fetch('/api/notifications/settings');
-        const data = await res.json();
-        if (data && data.sound_type) {
-          localStorage.setItem('trackpro_sound_type', data.sound_type);
-          const radio = document.getElementById('sound-' + data.sound_type);
-          if (radio) radio.checked = true;
-
-          if (data.sound_volume !== undefined) {
-            localStorage.setItem('trackpro_sound_volume', data.sound_volume);
-            const slider = document.getElementById('notif-volume-slider');
-            if (slider) slider.value = data.sound_volume;
-            const display = document.getElementById('volume-val-display');
-            if (display) display.textContent = Math.round(data.sound_volume * 100) + '%';
-          }
-
-          if (data.sound_enabled !== undefined) {
-            const soundEn = data.sound_enabled === 1;
-            localStorage.setItem('trackpro_sound_enabled', soundEn);
-            const tSound = document.getElementById('notif-sound-toggle');
-            if (tSound) tSound.checked = soundEn;
-          }
-
-          if (Array.isArray(data.summary_hours)) {
-            configuredSummaryHours = data.summary_hours;
-            renderSummaryHoursChips();
-          }
-
-          if (data.summary_tone) {
-            const tSelect = document.getElementById('summary-tone-select');
-            if (tSelect) tSelect.value = data.summary_tone;
-          }
-
-          if (data.notify_sale_approved !== undefined) {
-            const el = document.getElementById('toggle-notify-sale');
-            if (el) el.checked = data.notify_sale_approved === 1;
-          }
-          if (data.notify_pix_generated !== undefined) {
-            const el = document.getElementById('toggle-notify-pix');
-            if (el) el.checked = data.notify_pix_generated === 1;
-          }
-          if (data.notify_boleto_printed !== undefined) {
-            const el = document.getElementById('toggle-notify-boleto');
-            if (el) el.checked = data.notify_boleto_printed === 1;
-          }
-          if (data.notify_refund !== undefined) {
-            const el = document.getElementById('toggle-notify-refund');
-            if (el) el.checked = data.notify_refund === 1;
-          }
-          if (data.notify_scheduled_summary !== undefined) {
-            const el = document.getElementById('toggle-scheduled-summary');
-            if (el) el.checked = data.notify_scheduled_summary === 1;
-          }
-        }
-      } catch (e) {}
-    }
-
-    // ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
-    function openAuthModal(tab = 'login') {
-      openModal('modal-auth');
-      switchAuthTab(tab);
-    }
-
-    function switchAuthTab(tab) {
-      const loginBtn = document.getElementById('auth-tab-login-btn');
-      const regBtn = document.getElementById('auth-tab-register-btn');
-      const formLogin = document.getElementById('form-login');
-      const formReg = document.getElementById('form-register');
-
-      if (tab === 'login') {
-        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
-        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
-        if (formLogin) formLogin.classList.remove('hidden');
-        if (formReg) formReg.classList.add('hidden');
-      } else {
-        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
-        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
-        if (formReg) formReg.classList.remove('hidden');
-        if (formLogin) formLogin.classList.add('hidden');
-      }
-    }
-
-    function togglePasswordVisibility(inputId) {
-      const inp = document.getElementById(inputId);
-      if (inp) {
-        inp.type = inp.type === 'password' ? 'text' : 'password';
-      }
-    }
-
-    function validatePasswordsMatch() {
-      const p1 = document.getElementById('reg-password')?.value || '';
-      const p2 = document.getElementById('reg-confirm-password')?.value || '';
-      const msg = document.getElementById('reg-password-match-msg');
-      if (!msg) return;
-
-      if (!p1 && !p2) {
-        msg.textContent = '';
-      } else if (p1 === p2 && p1.length >= 6) {
-        msg.textContent = '✔ Senhas conferem';
-        msg.className = 'text-[10px] font-semibold text-emerald-400';
-      } else if (p2.length > 0 && p1 !== p2) {
-        msg.textContent = '✖ As senhas não coincidem';
-        msg.className = 'text-[10px] font-semibold text-rose-400';
-      } else {
-        msg.textContent = '';
-      }
-    }
-
-    function fillLucasCredentials() {
-      const em = document.getElementById('login-email');
-      const pw = document.getElementById('login-password');
-      if (em) em.value = 'luckinhasp4@gmail.com';
-      if (pw) pw.value = 'yzzjl067_';
-      showToast('Credenciais do Lucas preenchidas!', 'info');
-    }
-
-    async function handleLoginSubmit(e) {
-      e.preventDefault();
-      const em = document.getElementById('login-email').value.trim();
-      const pw = document.getElementById('login-password').value;
-      const btn = document.getElementById('btn-login-submit');
-
-      if (btn) btn.disabled = true;
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: em, password: pw })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          localStorage.setItem('trackpro_token', data.token);
-          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
-          closeModal('modal-auth');
-          updateProfileUI(data.user);
-          showToast(`Bem-vindo, ${data.user.name}!`, 'success');
-          refreshData();
-          loadNotifications();
-        } else {
-          showToast(data.error || 'Erro ao fazer login.', 'error');
-        }
-      } catch (err) {
-        showToast('Erro de conexão ao fazer login.', 'error');
-      } finally {
-        if (btn) btn.disabled = false;
-      }
-    }
-
-    async function handleRegisterSubmit(e) {
-      e.preventDefault();
-      const name = document.getElementById('reg-name').value.trim();
-      const email = document.getElementById('reg-email').value.trim();
-      const password = document.getElementById('reg-password').value;
-      const confirmPassword = document.getElementById('reg-confirm-password').value;
-      const btn = document.getElementById('btn-reg-submit');
-
-      if (password !== confirmPassword) {
-        showToast('A confirmação de senha é obrigatória e deve ser idêntica à senha.', 'error');
-        document.getElementById('reg-confirm-password').focus();
-        return;
-      }
-
-      if (btn) btn.disabled = true;
-      try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name,
-            email: email,
-            password: password,
-            confirm_password: confirmPassword
-          })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          localStorage.setItem('trackpro_token', data.token);
-          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
-          closeModal('modal-auth');
-          updateProfileUI(data.user);
-          showToast(`Conta criada com sucesso! Seja bem-vindo, ${data.user.name}.`, 'success');
-          refreshData();
-          loadNotifications();
-        } else {
-          showToast(data.error || 'Erro ao criar conta.', 'error');
-        }
-      } catch (err) {
-        showToast('Erro de conexão ao criar conta.', 'error');
-      } finally {
-        if (btn) btn.disabled = false;
-      }
-    }
-
-    async function handleGoogleAuth() {
-      try {
-        const res = await fetch('/api/auth/google', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'Lucas (Google)',
-            email: 'luckinhasp4@gmail.com'
-          })
-        });
-        const data = await res.json();
-        if (res.ok && data.token) {
-          localStorage.setItem('trackpro_token', data.token);
-          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
-          closeModal('modal-auth');
-          updateProfileUI(data.user);
-          showToast('Conectado com Google com sucesso!', 'success');
-          refreshData();
-          loadNotifications();
-        }
-      } catch (e) {
-        showToast('Erro ao autenticar com Google.', 'error');
-      }
-    }
-
-    async function handleLogout() {
-      closeProfileDropdown();
-      try {
-        await fetch('/api/auth/logout', { method: 'POST' });
-      } catch (e) {}
-      localStorage.removeItem('trackpro_token');
-      localStorage.removeItem('trackpro_user');
-      showToast('Você saiu da sua conta.', 'info');
-      openAuthModal('login');
-    }
-
-    function toggleProfileDropdown() {
-      const dd = document.getElementById('profile-dropdown');
-      if (dd) {
-        dd.classList.toggle('hidden');
-        if (!dd.classList.contains('hidden')) {
-          closeNotificationDropdown();
-        }
-      }
-    }
-
-    function closeProfileDropdown() {
-      const dd = document.getElementById('profile-dropdown');
-      if (dd) dd.classList.add('hidden');
-    }
-
-    function updateProfileUI(user) {
-      if (!user) return;
-      const initial = (user.name || 'U').charAt(0).toUpperCase();
-      const elAvatar = document.getElementById('user-profile-avatar');
-      const elHName = document.getElementById('header-user-name');
-      const elHEmail = document.getElementById('header-user-email');
-      const elDName = document.getElementById('dropdown-user-name');
-      const elDEmail = document.getElementById('dropdown-user-email');
-
-      if (elAvatar) elAvatar.textContent = initial;
-      if (elHName) elHName.textContent = user.name || 'Lucas';
-      if (elHEmail) elHEmail.textContent = user.email || 'luckinhasp4@gmail.com';
-      if (elDName) elDName.textContent = user.name || 'Lucas';
-      if (elDEmail) elDEmail.textContent = user.email || 'luckinhasp4@gmail.com';
-    }
-
-    async function checkAuthSession() {
-      let token = localStorage.getItem('trackpro_token');
-      if (!token) {
-        // Auto-login no perfil VIP do Lucas caso nenhum token exista no storage
-        try {
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'luckinhasp4@gmail.com', password: 'yzzjl067_' })
-          });
-          const data = await res.json();
-          if (data.token) {
-            token = data.token;
-            localStorage.setItem('trackpro_token', token);
-            localStorage.setItem('trackpro_user', JSON.stringify(data.user));
-          }
-        } catch (e) {}
-      }
-
-      if (token) {
-        try {
-          const res = await fetch('/api/auth/me');
-          const data = await res.json();
-          if (data.authenticated && data.user) {
-            updateProfileUI(data.user);
-          }
-        } catch (e) {}
-      }
-    }
-
-    // ==================== CONEXÃO RÁPIDA FACEBOOK ADS ====================
-    async function connectQuickMetaToken() {
-      const input = document.getElementById('quick-meta-token-input');
-      const btn = document.getElementById('btn-quick-connect-meta');
-      const token = (input?.value || '').trim();
-
-      if (!token) {
-        showToast('Cole o token de acesso da Meta antes de continuar.', 'warning');
-        if (input) input.focus();
-        return;
-      }
-
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Conectando...';
-        if (window.lucide) lucide.createIcons();
-      }
-
-      try {
-        const res = await fetch('/api/facebook/connect_token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: token })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showToast(`Meta Ads conectado com sucesso! Conta: ${data.account_name || 'lighttt'}`, 'success');
-          const pillText = document.getElementById('quick-meta-status-text');
-          if (pillText) pillText.textContent = `Meta Conectado (${data.account_name || 'lighttt'})`;
-          input.value = '';
-          refreshData();
-          fetchFacebookStatus();
-        } else {
-          showToast(data.error || 'Token inválido ou sem permissões no Facebook.', 'error');
-        }
-      } catch (e) {
-        showToast('Erro ao validar token com o Facebook.', 'error');
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<i data-lucide="zap" class="w-3.5 h-3.5"></i> Conectar';
-          if (window.lucide) lucide.createIcons();
-        }
-      }
-    }
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -960,13 +103,13 @@
       <button onclick="switchTab('accounts')" id="nav-accounts" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="key-round" class="w-4 h-4 text-sky-400"></i> Contas de Anúncio
       </button>
-      <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i> Notificações & Sons
-      </button>
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
       </button>
-    </nav>
+    <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i> Notificações & Sons
+      </button>
+      </nav>
 
     <!-- Rodapé Sidebar -->
     <div class="p-4 border-t border-slate-800/80 bg-dark-950/50 space-y-2">
@@ -1037,8 +180,7 @@
           <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i>
           <span class="hidden xl:inline">Personalizar</span>
         </button>
-        <!-- Som de Venda Ka-ching Toggle -->
-        <!-- Sino de Notificações com Dropdown -->
+        <!-- Central de Notificações com Dropdown -->
         <div class="relative">
           <button onclick="toggleNotificationDropdown()" id="notif-bell-desktop" class="relative p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white transition-colors" title="Central de Notificações">
             <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
@@ -1058,8 +200,7 @@
               </div>
             </div>
             <div id="notif-list-container" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1">
-              <!-- Notificações carregadas via API -->
-              <div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação pendente.</div>
+              <div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>
             </div>
             <div class="p-2.5 border-t border-slate-800 bg-dark-950/50 flex items-center justify-between text-xs">
               <button onclick="simulateSaleAlert()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
@@ -1072,6 +213,7 @@
           </div>
         </div>
 
+        <!-- Som de Venda Ka-ching Toggle -->
         <button onclick="toggleSound()" id="sound-btn-desktop" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
           <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
           <span>Som de Venda Ativo</span>
@@ -1120,7 +262,6 @@
             </div>
           </div>
         </div>
-        
       </div>
     </header>
 
@@ -2223,8 +1364,6 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
 
       </section>
 
-    </div>
-  
       <!-- ==================== TAB: NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ==================== -->
       <section id="tab-notifications" class="tab-pane hidden space-y-4 md:space-y-6">
         <!-- Banner Principal -->
@@ -2472,7 +1611,9 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
         </div>
       </section>
 
-    </main>
+
+    </div>
+  </main>
 
   <!-- MOBILE BOTTOM NAVIGATION -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-dark-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around z-30 px-2">
@@ -3143,8 +2284,6 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION CONTAINER -->
-  <div 
   <!-- ==================== MODAL AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ==================== -->
   <div id="modal-auth" class="modal fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-dark-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
@@ -3283,11 +2422,867 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     </div>
   </div>
 
-
-  id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- ==================== LOGICA JAVASCRIPT ==================== -->
   <script>
+    // ==================== TRACKPRO AUTH & MULTI-TENANT FETCH INTERCEPTOR ====================
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      const token = localStorage.getItem('trackpro_token');
+      if (token && typeof url === 'string' && url.startsWith('/api')) {
+        options.headers = options.headers || {};
+        if (options.headers instanceof Headers) {
+          if (!options.headers.has('Authorization')) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          }
+        } else {
+          if (!options.headers['Authorization']) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+          }
+        }
+      }
+      return originalFetch(url, options);
+    };
+
+    // ==================== AUDIO SYNTHESIZER (WEB AUDIO API - ZERO LATÊNCIA) ====================
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTrackProSound(soundType, customVol) {
+      const isEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      if (!isEnabled && customVol === undefined) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const vol = customVol !== undefined ? customVol : (parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0'));
+      const chosenSound = soundType || localStorage.getItem('trackpro_sound_type') || 'kaching';
+
+      try {
+        const now = ctx.currentTime;
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(Math.min(1.0, Math.max(0.05, vol)), now);
+        masterGain.connect(ctx.destination);
+
+        if (chosenSound === 'kaching') {
+          // 1. Som Clássico Ka-Ching (Caixa Registradora UTMify)
+          const clickOsc = ctx.createOscillator();
+          const clickGain = ctx.createGain();
+          clickOsc.type = 'triangle';
+          clickOsc.frequency.setValueAtTime(320, now);
+          clickOsc.frequency.exponentialRampToValueAtTime(80, now + 0.04);
+          clickGain.gain.setValueAtTime(0.4, now);
+          clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          clickOsc.connect(clickGain);
+          clickGain.connect(masterGain);
+          clickOsc.start(now);
+          clickOsc.stop(now + 0.05);
+
+          const bells = [
+            { f: 987.77, start: now + 0.03, dur: 1.1, vol: 0.6 },
+            { f: 1318.51, start: now + 0.03, dur: 0.9, vol: 0.5 },
+            { f: 2637.02, start: now + 0.03, dur: 0.5, vol: 0.25 },
+            { f: 3136.00, start: now + 0.03, dur: 0.4, vol: 0.2 }
+          ];
+          bells.forEach(b => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(b.f, b.start);
+            g.gain.setValueAtTime(b.vol, b.start);
+            g.gain.exponentialRampToValueAtTime(0.0001, b.start + b.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(b.start);
+            osc.stop(b.start + b.dur);
+          });
+
+          const coins = [
+            { f: 2400, delay: 0.18, dur: 0.35, v: 0.35 },
+            { f: 3100, delay: 0.26, dur: 0.35, v: 0.3 },
+            { f: 2750, delay: 0.34, dur: 0.4, v: 0.25 }
+          ];
+          coins.forEach(c => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(c.f, now + c.delay);
+            g.gain.setValueAtTime(c.v, now + c.delay);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + c.delay + c.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(now + c.delay);
+            osc.stop(now + c.delay + c.dur);
+          });
+
+        } else if (chosenSound === 'coins') {
+          // 2. Moedas Caindo (LowTrack Style)
+          const freqs = [1960, 2400, 2800, 3250, 3600, 2200];
+          freqs.forEach((freq, idx) => {
+            const start = now + idx * 0.06;
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+            g.gain.setValueAtTime(0.4, start);
+            g.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(start);
+            osc.stop(start + 0.35);
+          });
+
+        } else if (chosenSound === 'bell') {
+          // 3. Sino de Conquista (Modern Chime)
+          const notes = [
+            { f: 523.25, start: now, dur: 0.8 },
+            { f: 659.25, start: now + 0.08, dur: 0.9 },
+            { f: 783.99, start: now + 0.16, dur: 1.0 },
+            { f: 1046.50, start: now + 0.24, dur: 1.2 }
+          ];
+          notes.forEach(n => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(n.f, n.start);
+            g.gain.setValueAtTime(0.45, n.start);
+            g.gain.exponentialRampToValueAtTime(0.0005, n.start + n.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(n.start);
+            osc.stop(n.start + n.dur);
+          });
+
+        } else if (chosenSound === 'pop') {
+          // 4. Pop Digital (Fintech Alert)
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(1400, now + 0.09);
+          g.gain.setValueAtTime(0.5, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.18);
+
+        } else if (chosenSound === 'pix') {
+          // 5. PIX Gerado (Som Suave de Confirmação)
+          const pings = [
+            { f: 880, start: now, dur: 0.25 },
+            { f: 1174.66, start: now + 0.12, dur: 0.4 }
+          ];
+          pings.forEach(p => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(p.f, p.start);
+            g.gain.setValueAtTime(0.35, p.start);
+            g.gain.exponentialRampToValueAtTime(0.001, p.start + p.dur);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(p.start);
+            osc.stop(p.start + p.dur);
+          });
+        }
+      } catch (e) {
+        console.warn('Erro ao reproduzir Web Audio:', e);
+      }
+    }
+
+    function selectSoundType(type) {
+      localStorage.setItem('trackpro_sound_type', type);
+      const radio = document.getElementById('sound-' + type);
+      if (radio) radio.checked = true;
+      playTrackProSound(type, 1.0);
+      saveNotificationSettingsToServer();
+    }
+
+    function testSelectedSound() {
+      const type = localStorage.getItem('trackpro_sound_type') || 'kaching';
+      playTrackProSound(type, 1.0);
+    }
+
+    function handleVolumeChange(val) {
+      const pct = Math.round(val * 100);
+      const display = document.getElementById('volume-val-display');
+      if (display) display.textContent = pct + '%';
+      localStorage.setItem('trackpro_sound_volume', val);
+      playTrackProSound(null, parseFloat(val));
+      saveNotificationSettingsToServer();
+    }
+
+    function handleSoundToggleChange(checked) {
+      soundEnabled = checked;
+      localStorage.setItem('trackpro_sound_enabled', checked);
+      updateSoundUI();
+      if (checked) testSelectedSound();
+      saveNotificationSettingsToServer();
+    }
+
+    // ==================== PUSH NOTIFICATIONS & MOBILE ALERTS ====================
+    async function requestPushNotificationPermission() {
+      getAudioContext();
+      if (!('Notification' in window)) {
+        showToast('Notificações push não suportadas neste navegador.', 'error');
+        return;
+      }
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          showToast('🔔 Permissão concedida! Você receberá alertas de vendas em tempo real no celular.', 'success');
+          const btnText = document.getElementById('btn-enable-push-text');
+          if (btnText) btnText.textContent = '✔ Alertas no Celular Ativos';
+          playTrackProSound('kaching', 1.0);
+          showMobileNotification('🎉 Notificações Ativadas!', 'TrackPro está pronto para alertar suas vendas no celular.', 'welcome');
+          saveNotificationSettingsToServer();
+        } else {
+          showToast('Permissão de notificações foi negada no navegador.', 'warning');
+        }
+      } catch (e) {
+        showToast('Erro ao solicitar permissão de notificações.', 'error');
+      }
+    }
+
+    function showMobileNotification(title, body, tag = 'sale-alert') {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, {
+              body: body,
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
+              vibrate: [250, 100, 250, 100, 250],
+              tag: tag,
+              renotify: true,
+              data: { url: '/' }
+            });
+          });
+        } else {
+          try {
+            new Notification(title, {
+              body: body,
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
+              tag: tag
+            });
+          } catch (e) {}
+        }
+      }
+    }
+
+    // ==================== SIMULADOR DE ALERTAS ====================
+    async function simulateSaleAlert() {
+      playTrackProSound('kaching', 1.0);
+      showMobileNotification('💸 VENDA APROVADA!', 'Venda de R$ 197,00 aprovada via Cartão de Crédito! (Kiwify)', 'sale');
+      showSaleToast({
+        customer: 'Lucas Silva (Simulação)',
+        amount: 197.00,
+        platform: 'Kiwify',
+        source: 'facebook'
+      });
+      try {
+        await fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'sale_approved', amount_in_cents: 19700 })
+        });
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    async function simulatePixAlert() {
+      playTrackProSound('pix', 1.0);
+      showMobileNotification('⚡ PIX GERADO!', 'PIX de R$ 97,00 gerado! Aguardando pagamento do cliente.', 'pix');
+      showToast('⚡ PIX GERADO: R$ 97,00! Cliente aguardando pagamento.', 'info');
+      try {
+        await fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'pix_generated', amount_in_cents: 9700 })
+        });
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    // ==================== RESUMO DIÁRIO PROGRAMADO ====================
+    let configuredSummaryHours = ["08:00", "12:00", "16:00", "18:00", "22:00"];
+
+    function renderSummaryHoursChips() {
+      const container = document.getElementById('summary-hours-chips');
+      if (!container) return;
+      container.innerHTML = configuredSummaryHours.map(h => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold">
+          <span>${h}</span>
+          <button type="button" onclick="removeSummaryHour('${h}')" class="text-indigo-400 hover:text-rose-400 transition-colors ml-0.5">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
+        </span>
+      `).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function addNewSummaryHour() {
+      const input = document.getElementById('new-summary-hour-input');
+      if (!input || !input.value) return;
+      const h = input.value.trim();
+      if (!configuredSummaryHours.includes(h)) {
+        configuredSummaryHours.push(h);
+        configuredSummaryHours.sort();
+        renderSummaryHoursChips();
+        saveNotificationSettingsToServer();
+        showToast(`Horário ${h} adicionado aos resumos diários!`, 'success');
+      }
+    }
+
+    function removeSummaryHour(h) {
+      configuredSummaryHours = configuredSummaryHours.filter(item => item !== h);
+      renderSummaryHoursChips();
+      saveNotificationSettingsToServer();
+    }
+
+    async function triggerScheduledSummaryTest() {
+      try {
+        const res = await fetch('/api/notifications/scheduled-summary');
+        const data = await res.json();
+        if (data.success) {
+          playTrackProSound('bell', 1.0);
+          showMobileNotification(data.title, data.message, 'daily-summary');
+          showToast(`🔔 ${data.title}: ${data.message}`, 'info');
+          loadNotifications();
+        }
+      } catch (e) {
+        showToast('Erro ao testar envio de resumo diário.', 'error');
+      }
+    }
+
+    async function checkScheduledSummaries() {
+      const toggle = document.getElementById('toggle-scheduled-summary');
+      if (toggle && !toggle.checked) return;
+
+      const now = new Date();
+      const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      const todayDate = now.toISOString().slice(0, 10);
+
+      if (configuredSummaryHours.includes(currentHHMM)) {
+        const key = `trackpro_summary_fired_${todayDate}_${currentHHMM}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'true');
+          try {
+            const res = await fetch('/api/notifications/scheduled-summary');
+            const data = await res.json();
+            if (data.success) {
+              playTrackProSound('bell', 1.0);
+              showMobileNotification(data.title, data.message, 'daily-summary');
+              showToast(`📊 ${data.title}: ${data.message}`, 'info');
+              loadNotifications();
+            }
+          } catch (e) {
+            console.warn('Erro ao disparar resumo diário:', e);
+          }
+        }
+      }
+    }
+
+    // ==================== CENTRAL DE NOTIFICAÇÕES & FEED ====================
+    let cachedNotifications = [];
+
+    async function loadNotifications() {
+      try {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        cachedNotifications = data.notifications || [];
+        updateNotificationBadges(data.unread_count || 0);
+        renderNotificationDropdownList(cachedNotifications);
+        renderFullNotificationsTable(cachedNotifications);
+      } catch (e) {
+        console.warn('Erro ao carregar notificações:', e);
+      }
+    }
+
+    function updateNotificationBadges(count) {
+      const bDesktop = document.getElementById('notif-badge-desktop');
+      const bMobile = document.getElementById('notif-badge-mobile');
+      [bDesktop, bMobile].forEach(el => {
+        if (!el) return;
+        if (count > 0) {
+          el.textContent = count > 99 ? '99+' : count;
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    function renderNotificationDropdownList(list) {
+      const container = document.getElementById('notif-list-container');
+      if (!container) return;
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>';
+        return;
+      }
+      container.innerHTML = list.slice(0, 8).map(n => {
+        const isSale = n.type === 'sale_approved';
+        const isPix = n.type === 'pix_generated';
+        const icon = isSale ? 'check-circle-2' : (isPix ? 'zap' : 'bell');
+        const iconColor = isSale ? 'text-emerald-400' : (isPix ? 'text-sky-400' : 'text-amber-400');
+        const bgBadge = isSale ? 'bg-emerald-500/10' : (isPix ? 'bg-sky-500/10' : 'bg-amber-500/10');
+        return `
+          <div class="p-3 hover:bg-dark-950/70 transition-colors flex items-start gap-2.5 ${n.is_read ? 'opacity-70' : 'bg-dark-950/30'}">
+            <div class="w-7 h-7 rounded-lg ${bgBadge} ${iconColor} flex items-center justify-center shrink-0 mt-0.5">
+              <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white truncate">${n.title}</span>
+                <span class="text-[9px] text-slate-500 font-mono">${(n.created_at || '').slice(11, 16)}</span>
+              </div>
+              <p class="text-[11px] text-slate-300 line-clamp-2 mt-0.5">${n.message}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderFullNotificationsTable(list) {
+      const container = document.getElementById('full-notifications-table');
+      if (!container) return;
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-xs text-slate-500">Nenhuma notificação registrada na conta.</div>';
+        return;
+      }
+      container.innerHTML = list.map(n => {
+        const isSale = n.type === 'sale_approved';
+        const isPix = n.type === 'pix_generated';
+        const icon = isSale ? 'shopping-bag' : (isPix ? 'zap' : 'bell');
+        const color = isSale ? 'emerald' : (isPix ? 'sky' : 'amber');
+        return `
+          <div class="p-3.5 rounded-xl bg-dark-950/70 border border-slate-800 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-${color}-500/15 text-${color}-400 flex items-center justify-center font-bold">
+                <i data-lucide="${icon}" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-xs text-white">${n.title}</span>
+                  <span class="text-[10px] text-slate-500 font-mono">${n.created_at}</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-0.5">${n.message}</p>
+              </div>
+            </div>
+            ${n.amount_in_cents > 0 ? `<span class="text-xs font-bold text-${color}-400 font-mono">R$ ${(n.amount_in_cents / 100).toFixed(2).replace('.', ',')}</span>` : ''}
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleNotificationDropdown() {
+      const dd = document.getElementById('notif-dropdown');
+      if (!dd) return;
+      dd.classList.toggle('hidden');
+      if (!dd.classList.contains('hidden')) {
+        closeProfileDropdown();
+        loadNotifications();
+      }
+    }
+
+    function closeNotificationDropdown() {
+      const dd = document.getElementById('notif-dropdown');
+      if (dd) dd.classList.add('hidden');
+    }
+
+    async function markAllNotificationsRead() {
+      try {
+        await fetch('/api/notifications/read-all', { method: 'POST' });
+        updateNotificationBadges(0);
+        showToast('Notificações marcadas como lidas.', 'info');
+        loadNotifications();
+      } catch (e) {}
+    }
+
+    // ==================== SALVAR CONFIGURAÇÕES DE NOTIFICAÇÃO NO SERVIDOR ====================
+    async function saveNotificationSettingsToServer() {
+      const soundType = localStorage.getItem('trackpro_sound_type') || 'kaching';
+      const soundVol = parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0');
+      const soundEn = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      const notifySale = document.getElementById('toggle-notify-sale')?.checked ?? true;
+      const notifyPix = document.getElementById('toggle-notify-pix')?.checked ?? true;
+      const notifyBoleto = document.getElementById('toggle-notify-boleto')?.checked ?? true;
+      const notifyRefund = document.getElementById('toggle-notify-refund')?.checked ?? true;
+      const notifySched = document.getElementById('toggle-scheduled-summary')?.checked ?? true;
+      const tone = document.getElementById('summary-tone-select')?.value || 'creative';
+
+      try {
+        await fetch('/api/notifications/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sound_enabled: soundEn,
+            sound_type: soundType,
+            sound_volume: soundVol,
+            notify_sale_approved: notifySale,
+            notify_pix_generated: notifyPix,
+            notify_boleto_printed: notifyBoleto,
+            notify_refund: notifyRefund,
+            notify_scheduled_summary: notifySched,
+            summary_hours: configuredSummaryHours,
+            summary_tone: tone
+          })
+        });
+      } catch (e) {}
+    }
+
+    async function loadNotificationSettingsFromBackend() {
+      try {
+        const res = await fetch('/api/notifications/settings');
+        const data = await res.json();
+        if (data && data.sound_type) {
+          localStorage.setItem('trackpro_sound_type', data.sound_type);
+          const radio = document.getElementById('sound-' + data.sound_type);
+          if (radio) radio.checked = true;
+
+          if (data.sound_volume !== undefined) {
+            localStorage.setItem('trackpro_sound_volume', data.sound_volume);
+            const slider = document.getElementById('notif-volume-slider');
+            if (slider) slider.value = data.sound_volume;
+            const display = document.getElementById('volume-val-display');
+            if (display) display.textContent = Math.round(data.sound_volume * 100) + '%';
+          }
+
+          if (data.sound_enabled !== undefined) {
+            const soundEn = data.sound_enabled === 1;
+            localStorage.setItem('trackpro_sound_enabled', soundEn);
+            const tSound = document.getElementById('notif-sound-toggle');
+            if (tSound) tSound.checked = soundEn;
+          }
+
+          if (Array.isArray(data.summary_hours)) {
+            configuredSummaryHours = data.summary_hours;
+            renderSummaryHoursChips();
+          }
+
+          if (data.summary_tone) {
+            const tSelect = document.getElementById('summary-tone-select');
+            if (tSelect) tSelect.value = data.summary_tone;
+          }
+
+          if (data.notify_sale_approved !== undefined) {
+            const el = document.getElementById('toggle-notify-sale');
+            if (el) el.checked = data.notify_sale_approved === 1;
+          }
+          if (data.notify_pix_generated !== undefined) {
+            const el = document.getElementById('toggle-notify-pix');
+            if (el) el.checked = data.notify_pix_generated === 1;
+          }
+          if (data.notify_boleto_printed !== undefined) {
+            const el = document.getElementById('toggle-notify-boleto');
+            if (el) el.checked = data.notify_boleto_printed === 1;
+          }
+          if (data.notify_refund !== undefined) {
+            const el = document.getElementById('toggle-notify-refund');
+            if (el) el.checked = data.notify_refund === 1;
+          }
+          if (data.notify_scheduled_summary !== undefined) {
+            const el = document.getElementById('toggle-scheduled-summary');
+            if (el) el.checked = data.notify_scheduled_summary === 1;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
+    function openAuthModal(tab = 'login') {
+      openModal('modal-auth');
+      switchAuthTab(tab);
+    }
+
+    function switchAuthTab(tab) {
+      const loginBtn = document.getElementById('auth-tab-login-btn');
+      const regBtn = document.getElementById('auth-tab-register-btn');
+      const formLogin = document.getElementById('form-login');
+      const formReg = document.getElementById('form-register');
+
+      if (tab === 'login') {
+        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
+        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
+        if (formLogin) formLogin.classList.remove('hidden');
+        if (formReg) formReg.classList.add('hidden');
+      } else {
+        if (regBtn) regBtn.className = 'flex-1 py-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 transition-all font-bold';
+        if (loginBtn) loginBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-bold';
+        if (formReg) formReg.classList.remove('hidden');
+        if (formLogin) formLogin.classList.add('hidden');
+      }
+    }
+
+    function togglePasswordVisibility(inputId) {
+      const inp = document.getElementById(inputId);
+      if (inp) {
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      }
+    }
+
+    function validatePasswordsMatch() {
+      const p1 = document.getElementById('reg-password')?.value || '';
+      const p2 = document.getElementById('reg-confirm-password')?.value || '';
+      const msg = document.getElementById('reg-password-match-msg');
+      if (!msg) return;
+
+      if (!p1 && !p2) {
+        msg.textContent = '';
+      } else if (p1 === p2 && p1.length >= 6) {
+        msg.textContent = '✔ Senhas conferem';
+        msg.className = 'text-[10px] font-semibold text-emerald-400';
+      } else if (p2.length > 0 && p1 !== p2) {
+        msg.textContent = '✖ As senhas não coincidem';
+        msg.className = 'text-[10px] font-semibold text-rose-400';
+      } else {
+        msg.textContent = '';
+      }
+    }
+
+    function fillLucasCredentials() {
+      const em = document.getElementById('login-email');
+      const pw = document.getElementById('login-password');
+      if (em) em.value = 'luckinhasp4@gmail.com';
+      if (pw) pw.value = 'yzzjl067_';
+      showToast('Credenciais do Lucas preenchidas!', 'info');
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const em = document.getElementById('login-email').value.trim();
+      const pw = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-login-submit');
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: em, password: pw })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast(`Bem-vindo, ${data.user.name}!`, 'success');
+          refreshData();
+          loadNotifications();
+        } else {
+          showToast(data.error || 'Erro ao fazer login.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão ao fazer login.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleRegisterSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = document.getElementById('reg-confirm-password').value;
+      const btn = document.getElementById('btn-reg-submit');
+
+      if (password !== confirmPassword) {
+        showToast('A confirmação de senha é obrigatória e deve ser idêntica à senha.', 'error');
+        document.getElementById('reg-confirm-password').focus();
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            password: password,
+            confirm_password: confirmPassword
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast(`Conta criada com sucesso! Seja bem-vindo, ${data.user.name}.`, 'success');
+          refreshData();
+          loadNotifications();
+        } else {
+          showToast(data.error || 'Erro ao criar conta.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão ao criar conta.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleGoogleAuth() {
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Lucas (Google)',
+            email: 'luckinhasp4@gmail.com'
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          localStorage.setItem('trackpro_token', data.token);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-auth');
+          updateProfileUI(data.user);
+          showToast('Conectado com Google com sucesso!', 'success');
+          refreshData();
+          loadNotifications();
+        }
+      } catch (e) {
+        showToast('Erro ao autenticar com Google.', 'error');
+      }
+    }
+
+    async function handleLogout() {
+      closeProfileDropdown();
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch (e) {}
+      localStorage.removeItem('trackpro_token');
+      localStorage.removeItem('trackpro_user');
+      showToast('Você saiu da sua conta.', 'info');
+      openAuthModal('login');
+    }
+
+    function toggleProfileDropdown() {
+      const dd = document.getElementById('profile-dropdown');
+      if (dd) {
+        dd.classList.toggle('hidden');
+        if (!dd.classList.contains('hidden')) {
+          closeNotificationDropdown();
+        }
+      }
+    }
+
+    function closeProfileDropdown() {
+      const dd = document.getElementById('profile-dropdown');
+      if (dd) dd.classList.add('hidden');
+    }
+
+    function updateProfileUI(user) {
+      if (!user) return;
+      const initial = (user.name || 'U').charAt(0).toUpperCase();
+      const elAvatar = document.getElementById('user-profile-avatar');
+      const elHName = document.getElementById('header-user-name');
+      const elHEmail = document.getElementById('header-user-email');
+      const elDName = document.getElementById('dropdown-user-name');
+      const elDEmail = document.getElementById('dropdown-user-email');
+
+      if (elAvatar) elAvatar.textContent = initial;
+      if (elHName) elHName.textContent = user.name || 'Lucas';
+      if (elHEmail) elHEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+      if (elDName) elDName.textContent = user.name || 'Lucas';
+      if (elDEmail) elDEmail.textContent = user.email || 'luckinhasp4@gmail.com';
+    }
+
+    async function checkAuthSession() {
+      let token = localStorage.getItem('trackpro_token');
+      if (!token) {
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'luckinhasp4@gmail.com', password: 'yzzjl067_' })
+          });
+          const data = await res.json();
+          if (data.token) {
+            token = data.token;
+            localStorage.setItem('trackpro_token', token);
+            localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          }
+        } catch (e) {}
+      }
+
+      if (token) {
+        try {
+          const res = await fetch('/api/auth/me');
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            updateProfileUI(data.user);
+          }
+        } catch (e) {}
+      }
+    }
+
+    // ==================== CONEXÃO RÁPIDA FACEBOOK ADS ====================
+    async function connectQuickMetaToken() {
+      const input = document.getElementById('quick-meta-token-input');
+      const btn = document.getElementById('btn-quick-connect-meta');
+      const token = (input?.value || '').trim();
+
+      if (!token) {
+        showToast('Cole o token de acesso da Meta antes de continuar.', 'warning');
+        if (input) input.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Conectando...';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch('/api/facebook/connect_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Meta Ads conectado com sucesso! Conta: ${data.account_name || 'lighttt'}`, 'success');
+          const pillText = document.getElementById('quick-meta-status-text');
+          if (pillText) pillText.textContent = `Meta Conectado (${data.account_name || 'lighttt'})`;
+          input.value = '';
+          refreshData();
+          fetchFacebookStatus();
+        } else {
+          showToast(data.error || 'Token inválido ou sem permissões no Facebook.', 'error');
+        }
+      } catch (e) {
+        showToast('Erro ao validar token com o Facebook.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="zap" class="w-3.5 h-3.5"></i> Conectar';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    }
+
     let currentTab = 'dashboard';
     let currentDashboardId = '';
     let soundEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';

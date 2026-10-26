@@ -548,202 +548,285 @@
           </div>
         </div>
 
-        <!-- Toolbar Dashboard -->
+                <!-- Toolbar Dashboard -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <h2 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="layout-grid" class="w-5 h-5 text-brand-400"></i>
               <span>Visão Geral do Funil & Lucro</span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Ao Vivo</span>
             </h2>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
+            <button id="btn-toggle-edit-mode" onclick="toggleDashboardEditMode()" class="px-3 py-1.5 bg-brand-500/15 hover:bg-brand-500/25 text-brand-400 border border-brand-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              <span id="btn-toggle-edit-mode-text">✏️ Editar Layout</span>
+            </button>
             <button onclick="openModal('modal-customize-dashboard')" class="px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm">
-              <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i> ⚙️ Personalizar Métricas
+              <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span>⚙️ Personalizar Métricas</span>
             </button>
             <button id="dash-facebook-connect-btn" onclick="openFacebookLoginPopup()" class="px-3 py-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-sky-400 border border-[#1877F2]/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
-              <i data-lucide="facebook" class="w-3.5 h-3.5 text-[#1877F2]"></i> Conectar Facebook (1 Clique)
+              <i data-lucide="facebook" class="w-3.5 h-3.5 text-[#1877F2]"></i>
+              <span>Conectar Facebook</span>
             </button>
             <button onclick="resetTestData()" class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Zerar todos os dados para começar do zero">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Zerar Dados
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Zerar Dados</span>
             </button>
           </div>
         </div>
 
-        <!-- KPI Cards Grid (Renderizado Dinamicamente com Drag & Drop e Redimensionamento) -->
-        <div id="kpi-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
-            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Faturamento</span>
-            <div id="kpi-faturamento" class="text-xl md:text-3xl font-extrabold text-white tracking-tight">R$ 0,00</div>
-            <span class="text-[11px] text-emerald-400 font-medium mt-1 inline-block">100% Vendas Aprovadas</span>
-            <div class="absolute -right-2 -bottom-2 opacity-5 text-emerald-400"><i data-lucide="dollar-sign" class="w-20 h-20"></i></div>
+        <!-- Banner Flutuante do Modo de Edição Ativo -->
+        <div id="dashboard-edit-banner" class="hidden bg-gradient-to-r from-brand-600/20 via-dark-900 to-dark-900 border border-brand-500/40 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xl sticky top-16 z-30 transition-all backdrop-blur-md">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center shrink-0 border border-brand-500/30 animate-pulse">
+              <i data-lucide="move" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-extrabold text-white">Modo de Edição Ativo</span>
+                <span class="px-2 py-0.2 rounded text-[9px] font-bold bg-brand-500/20 text-brand-300">Arrastar & Redimensionar</span>
+              </div>
+              <p class="text-[11px] text-slate-300">Arraste os elementos para qualquer posição ou puxe o canto inferior direito (⤡) para ajustar largura e altura.</p>
+            </div>
           </div>
-
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
-            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Gasto em Ads</span>
-            <div id="kpi-gastoads" class="text-xl md:text-3xl font-extrabold text-white tracking-tight">R$ 0,00</div>
-            <span class="text-[11px] text-slate-400 mt-1 inline-block">Sincronizado Meta Ads</span>
-            <div class="absolute -right-2 -bottom-2 opacity-5 text-blue-400"><i data-lucide="trending-up" class="w-20 h-20"></i></div>
-          </div>
-
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
-            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">ROAS Real</span>
-            <div id="kpi-roas" class="text-xl md:text-3xl font-extrabold text-brand-400 tracking-tight">0.00x</div>
-            <span class="text-[11px] text-slate-400 mt-1 inline-block">Retorno sobre Anúncio</span>
-            <div class="absolute -right-2 -bottom-2 opacity-5 text-purple-400"><i data-lucide="zap" class="w-20 h-20"></i></div>
-          </div>
-
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden">
-            <span class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">CPA Médio</span>
-            <div id="kpi-cpa" class="text-xl md:text-3xl font-extrabold text-white tracking-tight">R$ 0,00</div>
-            <span id="kpi-vendas" class="text-[11px] text-slate-400 mt-1 inline-block">0 Vendas Hoje</span>
-            <div class="absolute -right-2 -bottom-2 opacity-5 text-emerald-400"><i data-lucide="shopping-cart" class="w-20 h-20"></i></div>
+          <div class="flex items-center gap-2 self-end sm:self-auto">
+            <button onclick="resetDashboardLayout()" class="px-3 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 transition-colors">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 inline mr-1"></i> Restaurar Padrão
+            </button>
+            <button onclick="exitDashboardEditMode()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 flex items-center gap-1.5 transition-all">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              <span>Concluir Edição</span>
+            </button>
           </div>
         </div>
 
-        <!-- FUNIL DE CONVERSÃO CONTÍNUO (META ADS RIBBON - RÉPLICA EXATA) -->
-        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3 shadow-xl">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <h3 class="font-bold text-sm md:text-base text-white">Funil de conversão (Meta ads)</h3>
-              <span class="text-slate-400 hover:text-white cursor-help" title="Funil contínuo oficial: Cliques → Vis. Página → ICs → Vendas Inic. → Vendas Apr. Mostra a porcentagem em relação aos cliques e o volume absoluto em cada etapa.">
-                <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
-              </span>
+        <!-- MAIN DASHBOARD WIDGETS GRID (COMPLETAMENTE MODULAR, REDIMENSIONÁVEL & REORDENÁVEL) -->
+        <div id="dashboard-widgets-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 [grid-auto-flow:dense]">
+
+          <!-- KPI Cards Grid Container (Cards dinâmicos de métricas) -->
+          <div id="kpi-cards-grid" class="contents"></div>
+
+          <!-- WIDGET 1: FUNIL DE CONVERSÃO CONTÍNUO (META ADS RIBBON) -->
+          <div
+            id="widget-funnel"
+            data-widget-id="widget-funnel"
+            data-widget-type="funnel"
+            data-col-span="4"
+            class="dashboard-widget col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3 shadow-xl relative overflow-hidden select-none group transition-all"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="widget-drag-handle p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
+                  <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                </span>
+                <h3 class="font-bold text-sm md:text-base text-white">Funil de conversão (Meta ads)</h3>
+                <span class="text-slate-400 hover:text-white cursor-help" title="Funil contínuo oficial: Cliques → Vis. Página → ICs → Vendas Inic. → Vendas Apr. Mostra a porcentagem em relação aos cliques e o volume absoluto em cada etapa.">
+                  <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
+                </span>
+              </div>
+              <div class="text-xs text-slate-400 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Tempo Real</span>
+              </div>
             </div>
-            <div class="text-xs text-slate-400 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Tempo Real</span>
+
+            <!-- Container do Funil em Fita Fluida -->
+            <div class="relative w-full rounded-2xl overflow-hidden py-2 select-none flex-1 flex flex-col justify-center">
+              <svg id="meta-funnel-svg" viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
+                <defs>
+                  <linearGradient id="metaFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#1E3A8A" />
+                    <stop offset="16%" stop-color="#2563EB" />
+                    <stop offset="40%" stop-color="#4F46E5" />
+                    <stop offset="65%" stop-color="#7C3AED" />
+                    <stop offset="85%" stop-color="#C026D3" />
+                    <stop offset="100%" stop-color="#E11D48" />
+                  </linearGradient>
+                </defs>
+                <path id="meta-funnel-path" d="M 0 14 C 100 14, 150 24, 200 24 C 280 24, 320 38, 400 38 C 480 38, 520 52, 600 52 C 680 52, 720 58, 800 58 L 1000 58 L 1000 102 L 800 102 C 720 102, 680 108, 600 108 C 520 108, 480 122, 400 122 C 320 122, 280 136, 200 136 C 150 136, 100 146, 0 146 Z" fill="url(#metaFunnelGrad)" stroke="#38BDF8" stroke-width="1.5" stroke-opacity="0.3" />
+                <path d="M 200 24 L 200 136" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="2 3" />
+                <path d="M 400 38 L 400 122" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="2 3" />
+                <path d="M 600 52 L 600 108" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="2 3" />
+                <path d="M 800 58 L 800 102" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="2 3" />
+              </svg>
+
+              <!-- Grade Sobreposta com os 5 Estágios -->
+              <div class="absolute inset-0 grid grid-cols-5 pointer-events-none py-2 px-1">
+                <div class="flex flex-col items-center justify-between text-center px-1">
+                  <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-2">CLIQUES</span>
+                  <div id="funnel-ribbon-pct-clicks" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">100%</div>
+                  <span id="funnel-ribbon-cnt-clicks" class="text-xs md:text-sm font-bold text-white/90 pb-2">0</span>
+                </div>
+                <div class="flex flex-col items-center justify-between text-center px-1">
+                  <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-4">VIS. PÁGINA</span>
+                  <div id="funnel-ribbon-pct-views" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                  <span id="funnel-ribbon-cnt-views" class="text-xs md:text-sm font-bold text-white/90 pb-4">0</span>
+                </div>
+                <div class="flex flex-col items-center justify-between text-center px-1">
+                  <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-5">ICS</span>
+                  <div id="funnel-ribbon-pct-ic" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                  <span id="funnel-ribbon-cnt-ic" class="text-xs md:text-sm font-bold text-white/90 pb-5">0</span>
+                </div>
+                <div class="flex flex-col items-center justify-between text-center px-1">
+                  <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-7">VENDAS INIC.</span>
+                  <div id="funnel-ribbon-pct-orders-init" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                  <span id="funnel-ribbon-cnt-orders-init" class="text-xs md:text-sm font-bold text-white/90 pb-7">0</span>
+                </div>
+                <div class="flex flex-col items-center justify-between text-center px-1">
+                  <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-8">VENDAS APR.</span>
+                  <div id="funnel-ribbon-pct-orders-paid" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                  <span id="funnel-ribbon-cnt-orders-paid" class="text-xs md:text-sm font-bold text-white/90 pb-8">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resize Handle -->
+            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
             </div>
           </div>
 
-          <!-- Container do Funil em Fita Fluida -->
-          <div class="relative w-full rounded-2xl overflow-hidden py-2 select-none">
-            <!-- Ribbon SVG Fluida Horizontal com Gradiente Azul -> Roxo -> Rosa -->
-            <!-- Ribbon SVG Fluida Horizontal com Gradiente Azul -> Roxo -> Rosa -->
-            <svg id="meta-funnel-svg" viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
-              <defs>
-                <linearGradient id="metaFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#1E3A8A" />
-                  <stop offset="16%" stop-color="#2563EB" />
-                  <stop offset="40%" stop-color="#4F46E5" />
-                  <stop offset="65%" stop-color="#7C3AED" />
-                  <stop offset="85%" stop-color="#C026D3" />
-                  <stop offset="100%" stop-color="#E11D48" />
-                </linearGradient>
-              </defs>
-              <!-- Geometria Dinâmica Adaptativa do Funil -->
-              <path id="meta-funnel-path" d="M 0 14 C 100 14, 150 24, 200 24 C 280 24, 320 38, 400 38 C 480 38, 520 52, 600 52 C 680 52, 720 58, 800 58 L 1000 58 L 1000 102 L 800 102 C 720 102, 680 108, 600 108 C 520 108, 480 122, 400 122 C 320 122, 280 136, 200 136 C 150 136, 100 146, 0 146 Z" fill="url(#metaFunnelGrad)" style="transition: d 0.4s ease-in-out;"/>
-              <!-- Linhas Divisórias Verticais Finas -->
-              <line id="funnel-div-1" x1="200" y1="24" x2="200" y2="136" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line id="funnel-div-2" x1="400" y1="38" x2="400" y2="122" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line id="funnel-div-3" x1="600" y1="52" x2="600" y2="108" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line id="funnel-div-4" x1="800" y1="58" x2="800" y2="102" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-            </svg>
-
-            <!-- Grade Sobreposta com os 5 Estágios Exatos da Referência -->
-            <div class="absolute inset-0 grid grid-cols-5 pointer-events-none py-2 px-1">
-              <!-- Estágio 1: Cliques -->
-              <div class="flex flex-col items-center justify-between text-center px-1">
-                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-1">CLIQUES</span>
-                <div id="funnel-ribbon-pct-clicks" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">100%</div>
-                <span id="funnel-ribbon-cnt-clicks" class="text-xs md:text-sm font-bold text-white/90 pb-1">0</span>
-              </div>
-
-              <!-- Estágio 2: Vis. Página -->
-              <div class="flex flex-col items-center justify-between text-center px-1">
-                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-3">VIS. PÁGINA</span>
-                <div id="funnel-ribbon-pct-pageviews" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
-                <span id="funnel-ribbon-cnt-pageviews" class="text-xs md:text-sm font-bold text-white/90 pb-3">0</span>
-              </div>
-
-              <!-- Estágio 3: ICs -->
-              <div class="flex flex-col items-center justify-between text-center px-1">
-                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-5">ICS</span>
-                <div id="funnel-ribbon-pct-ic" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
-                <span id="funnel-ribbon-cnt-ic" class="text-xs md:text-sm font-bold text-white/90 pb-5">0</span>
-              </div>
-
-              <!-- Estágio 4: Vendas Inic. -->
-              <div class="flex flex-col items-center justify-between text-center px-1">
-                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-7">VENDAS INIC.</span>
-                <div id="funnel-ribbon-pct-orders-init" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
-                <span id="funnel-ribbon-cnt-orders-init" class="text-xs md:text-sm font-bold text-white/90 pb-7">0</span>
-              </div>
-
-              <!-- Estágio 5: Vendas Apr. -->
-              <div class="flex flex-col items-center justify-between text-center px-1">
-                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-8">VENDAS APR.</span>
-                <div id="funnel-ribbon-pct-orders-paid" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
-                <span id="funnel-ribbon-cnt-orders-paid" class="text-xs md:text-sm font-bold text-white/90 pb-8">0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Gráficos: Vendas por Horário | Canais & UTM | Vendas por Método -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
+          <!-- WIDGET 2: VENDAS POR HORÁRIO (GRÁFICO) -->
+          <div
+            id="widget-chart-hourly"
+            data-widget-id="widget-chart-hourly"
+            data-widget-type="chart"
+            data-col-span="2"
+            class="dashboard-widget col-span-1 sm:col-span-2 md:col-span-2 lg:col-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[260px]"
+          >
             <div class="flex items-center justify-between mb-3">
-              <div>
-                <h3 class="font-bold text-sm text-white">Vendas por Horário</h3>
-                <span class="text-xs text-slate-400">Distribuição no período ativo</span>
+              <div class="flex items-center gap-2">
+                <span class="widget-drag-handle p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
+                  <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                </span>
+                <div>
+                  <h3 class="font-bold text-sm text-white">Vendas por Horário</h3>
+                  <span class="text-xs text-slate-400">Distribuição no período ativo</span>
+                </div>
               </div>
               <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Hoje</span>
             </div>
-            <div class="flex-1 flex items-center justify-center min-h-[180px]">
+            <div class="flex-1 flex items-center justify-center min-h-[180px] w-full">
               <canvas id="revenueChart"></canvas>
+            </div>
+            <!-- Resize Handle -->
+            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
             </div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
-            <div>
-              <h3 class="font-bold text-sm text-white mb-0.5">Canais & Fontes (UTM)</h3>
-              <span class="text-xs text-slate-400">Origem de tráfego das compras</span>
+          <!-- WIDGET 3: CANAIS & FONTES (UTM) -->
+          <div
+            id="widget-chart-sources"
+            data-widget-id="widget-chart-sources"
+            data-widget-type="chart"
+            data-col-span="1"
+            class="dashboard-widget col-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[260px]"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="widget-drag-handle p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
+                  <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                </span>
+                <div>
+                  <h3 class="font-bold text-sm text-white">Canais & Fontes (UTM)</h3>
+                  <span class="text-xs text-slate-400">Origem de tráfego das compras</span>
+                </div>
+              </div>
             </div>
-            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2">
+            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2 w-full">
               <canvas id="sourcesChart"></canvas>
             </div>
             <div id="sources-legend" class="space-y-1.5 text-xs text-slate-300"></div>
+            <!-- Resize Handle -->
+            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
+            </div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
-            <div>
-              <h3 class="font-bold text-sm text-white mb-0.5">Vendas por Método</h3>
-              <span class="text-xs text-slate-400">PIX, Cartão de Crédito e Boleto</span>
+          <!-- WIDGET 4: VENDAS POR MÉTODO -->
+          <div
+            id="widget-chart-methods"
+            data-widget-id="widget-chart-methods"
+            data-widget-type="chart"
+            data-col-span="1"
+            class="dashboard-widget col-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[260px]"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="widget-drag-handle p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
+                  <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                </span>
+                <div>
+                  <h3 class="font-bold text-sm text-white">Vendas por Método</h3>
+                  <span class="text-xs text-slate-400">PIX, Cartão e Boleto</span>
+                </div>
+              </div>
             </div>
-            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2">
+            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2 w-full">
               <canvas id="paymentMethodsChart"></canvas>
             </div>
             <div id="payment-methods-legend" class="space-y-1.5 text-xs text-slate-300"></div>
+            <!-- Resize Handle -->
+            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
+            </div>
           </div>
+
+          <!-- WIDGET 5: ÚLTIMAS CONVERSÕES RECEBIDAS -->
+          <div
+            id="widget-table-orders"
+            data-widget-id="widget-table-orders"
+            data-widget-type="table"
+            data-col-span="4"
+            class="dashboard-widget col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-xl relative overflow-hidden select-none group transition-all flex flex-col min-h-[300px]"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <span class="widget-drag-handle p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
+                  <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                </span>
+                <div>
+                  <h3 class="font-bold text-sm text-white">Últimas Conversões Recebidas</h3>
+                  <span class="text-xs text-slate-400">Atribuídas com UTM e disparadas para o Meta CAPI</span>
+                </div>
+              </div>
+              <button onclick="switchTab('orders')" class="text-xs font-semibold text-brand-400 hover:text-brand-300">Ver todas →</button>
+            </div>
+            <div class="overflow-x-auto flex-1">
+              <table class="w-full text-left text-xs min-w-[600px]">
+                <thead class="text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th class="py-2.5 px-3">Pedido / Cliente</th>
+                    <th class="py-2.5 px-3">Plataforma</th>
+                    <th class="py-2.5 px-3">Campanha (UTM)</th>
+                    <th class="py-2.5 px-3">Valor</th>
+                    <th class="py-2.5 px-3">Status</th>
+                    <th class="py-2.5 px-3">Data</th>
+                  </tr>
+                </thead>
+                <tbody id="overview-orders-tbody" class="divide-y divide-slate-800/60 font-medium">
+                  <tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Pronto para receber webhooks!</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Resize Handle -->
+            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- DROP ZONE DE FINAL DE PAINEL -->
+          <div id="dashboard-empty-dropzone" class="hidden col-span-full py-8 border-2 border-dashed border-slate-700 hover:border-brand-500 rounded-2xl flex flex-col items-center justify-center text-xs text-slate-400 transition-all bg-dark-900/40 cursor-pointer select-none">
+            <i data-lucide="arrow-down-circle" class="w-6 h-6 text-brand-400 mb-1.5 animate-bounce"></i>
+            <span class="font-bold text-white">Solte aqui para mover para o final do painel</span>
+            <span class="text-[11px] text-slate-500">O layout se ajusta automaticamente sem deixar buracos</span>
+          </div>
+
         </div>
 
-        <!-- Últimos Pedidos no Dashboard -->
-        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="font-bold text-sm text-white">Últimas Conversões Recebidas</h3>
-              <span class="text-xs text-slate-400">Atribuídas com UTM e disparadas para o Meta CAPI</span>
-            </div>
-            <button onclick="switchTab('orders')" class="text-xs font-semibold text-brand-400 hover:text-brand-300">Ver todas →</button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs min-w-[600px]">
-              <thead class="text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th class="py-2.5 px-3">Pedido / Cliente</th>
-                  <th class="py-2.5 px-3">Plataforma</th>
-                  <th class="py-2.5 px-3">Campanha (UTM)</th>
-                  <th class="py-2.5 px-3">Valor</th>
-                  <th class="py-2.5 px-3">Status</th>
-                  <th class="py-2.5 px-3">Data</th>
-                </tr>
-              </thead>
-              <tbody id="overview-orders-tbody" class="divide-y divide-slate-800/60 font-medium">
-                <tr><td colspan="6" class="py-6 text-center text-slate-500">Nenhuma venda registrada ainda. Pronto para receber webhooks!</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </section>
 
       <!-- ==================== TAB 2: CAMPANHAS & GESTÃO FACEBOOK ADS ==================== -->
@@ -4739,101 +4822,484 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       }
     });
 
-    // ==================== RENDERIZAÇÃO DINÂMICA DE KPIS COM DRAG & DROP E RESIZE ====================
-    function handleCardDragStart(e, key) {
-      draggedMetricKey = key;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', key);
-      e.currentTarget.classList.add('opacity-50', 'border-brand-500');
+    // ==================== DASHBOARD MODULAR: DRAG & DROP, RESIZE E MODO DE EDIÇÃO ====================
+    let isDashboardEditMode = false;
+    let dashboardWidgetsOrder = [];
+    let dashboardWidgetSettings = {};
+    let lastCachedKpis = {};
+
+    const DEFAULT_DASHBOARD_ORDER = [
+      'metric-faturamento',
+      'metric-lucroReal',
+      'metric-gastoAds',
+      'metric-roas',
+      'widget-funnel',
+      'widget-chart-hourly',
+      'widget-chart-sources',
+      'widget-chart-methods',
+      'widget-table-orders'
+    ];
+
+    try {
+      const savedOrder = localStorage.getItem('trackpro_dashboard_order');
+      if (savedOrder) dashboardWidgetsOrder = JSON.parse(savedOrder);
+      else dashboardWidgetsOrder = [...DEFAULT_DASHBOARD_ORDER];
+
+      const savedSettings = localStorage.getItem('trackpro_widget_settings');
+      if (savedSettings) dashboardWidgetSettings = JSON.parse(savedSettings);
+      else dashboardWidgetSettings = {};
+    } catch (e) {
+      dashboardWidgetsOrder = [...DEFAULT_DASHBOARD_ORDER];
+      dashboardWidgetSettings = {};
     }
 
-    function handleCardDragOver(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const target = e.currentTarget;
-      if (!target.classList.contains('border-brand-500')) {
-        target.classList.add('border-brand-500', 'bg-dark-850');
+    // Toggle do Modo de Edição
+    function toggleDashboardEditMode() {
+      if (isDashboardEditMode) {
+        exitDashboardEditMode();
+      } else {
+        enterDashboardEditMode();
       }
     }
 
-    function handleCardDragLeave(e) {
-      e.currentTarget.classList.remove('border-brand-500', 'bg-dark-850');
-    }
+    function enterDashboardEditMode() {
+      isDashboardEditMode = true;
+      const banner = document.getElementById('dashboard-edit-banner');
+      const btn = document.getElementById('btn-toggle-edit-mode');
+      const btnText = document.getElementById('btn-toggle-edit-mode-text');
 
-    function handleCardDrop(e, targetKey) {
-      e.preventDefault();
-      e.currentTarget.classList.remove('border-brand-500', 'bg-dark-850');
-      if (!draggedMetricKey || draggedMetricKey === targetKey) return;
-
-      const currentOrder = (userVisibleMetrics && userVisibleMetrics.length > 0) ? [...userVisibleMetrics] : [...DEFAULT_VISIBLE_METRICS];
-      const fromIdx = currentOrder.indexOf(draggedMetricKey);
-      const toIdx = currentOrder.indexOf(targetKey);
-      if (fromIdx !== -1 && toIdx !== -1) {
-        currentOrder.splice(fromIdx, 1);
-        currentOrder.splice(toIdx, 0, draggedMetricKey);
-        userVisibleMetrics = currentOrder;
-        localStorage.setItem('trackpro_visible_metrics', JSON.stringify(userVisibleMetrics));
-        renderDynamicKpiCards(lastCachedKpis);
-        fetch('/api/user/preferences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visible_metrics: userVisibleMetrics, visible_columns: userVisibleColumns })
-        }).catch(() => {});
+      if (banner) banner.classList.remove('hidden');
+      if (btn) {
+        btn.className = 'px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm';
+        if (btnText) btnText.textContent = '✓ Concluir Edição';
       }
-      draggedMetricKey = null;
+
+      // Ativa bordas de edição e botões de redimensionamento em todos os widgets
+      document.querySelectorAll('.dashboard-widget').forEach(w => {
+        w.classList.add('ring-1', 'ring-brand-500/40');
+        const handle = w.querySelector('.widget-resize-handle');
+        if (handle) handle.classList.remove('opacity-0');
+      });
+
+      if (window.lucide) lucide.createIcons();
     }
 
-    function toggleCardSize(key) {
-      cardSizes[key] = (cardSizes[key] === 'wide') ? 'normal' : 'wide';
-      localStorage.setItem('trackpro_card_sizes', JSON.stringify(cardSizes));
-      renderDynamicKpiCards(lastCachedKpis);
+    function exitDashboardEditMode() {
+      isDashboardEditMode = false;
+      const banner = document.getElementById('dashboard-edit-banner');
+      const btn = document.getElementById('btn-toggle-edit-mode');
+      const btnText = document.getElementById('btn-toggle-edit-mode-text');
+
+      if (banner) banner.classList.add('hidden');
+      if (btn) {
+        btn.className = 'px-3 py-1.5 bg-brand-500/15 hover:bg-brand-500/25 text-brand-400 border border-brand-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm';
+        if (btnText) btnText.textContent = '✏️ Editar Layout';
+      }
+
+      // Remove classes temporárias, cores escuras ou estados de arrasto
+      document.querySelectorAll('.dashboard-widget').forEach(w => {
+        w.classList.remove(
+          'ring-1', 'ring-2', 'ring-brand-500', 'ring-brand-500/40',
+          'opacity-50', 'opacity-40', 'scale-[0.98]',
+          'bg-dark-850', 'border-brand-500'
+        );
+        const handle = w.querySelector('.widget-resize-handle');
+        if (handle) handle.classList.add('opacity-0');
+      });
+
+      const ph = document.getElementById('dashboard-drag-placeholder');
+      if (ph) ph.remove();
+
+      const dropzone = document.getElementById('dashboard-empty-dropzone');
+      if (dropzone) dropzone.classList.add('hidden');
+
+      if (typeof showSaleToast === 'function') {
+        showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Layout do painel salvo!' });
+      }
     }
 
+    function resetDashboardLayout() {
+      localStorage.removeItem('trackpro_dashboard_order');
+      localStorage.removeItem('trackpro_widget_settings');
+      dashboardWidgetsOrder = [...DEFAULT_DASHBOARD_ORDER];
+      dashboardWidgetSettings = {};
+
+      // Restaura dimensões padrões no DOM
+      document.querySelectorAll('.dashboard-widget').forEach(w => {
+        w.style.minHeight = '';
+        const defSpan = w.id === 'widget-funnel' || w.id === 'widget-table-orders' ? 4 : (w.id === 'widget-chart-hourly' ? 2 : 1);
+        ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => w.classList.remove(c));
+        w.classList.add(`col-span-${defSpan}`);
+        w.dataset.colSpan = defSpan;
+      });
+
+      applyDashboardLayoutOrder(dashboardWidgetsOrder);
+      exitDashboardEditMode();
+
+      // Redimensiona gráficos
+      if (window.revenueChartInstance) revenueChartInstance.resize();
+      if (window.sourcesChartInstance) sourcesChartInstance.resize();
+      if (window.paymentMethodsChartInstance) paymentMethodsChartInstance.resize();
+
+      if (typeof showSaleToast === 'function') {
+        showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Layout padrão restaurado!' });
+      }
+    }
+
+    function saveCurrentDashboardLayout() {
+      const grid = document.getElementById('dashboard-widgets-grid');
+      if (!grid) return;
+      const newOrder = [];
+      grid.querySelectorAll('.dashboard-widget').forEach(w => {
+        if (w.dataset.widgetId) newOrder.push(w.dataset.widgetId);
+      });
+      dashboardWidgetsOrder = newOrder;
+      localStorage.setItem('trackpro_dashboard_order', JSON.stringify(dashboardWidgetsOrder));
+
+      fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dashboard_order: dashboardWidgetsOrder,
+          widget_settings: dashboardWidgetSettings,
+          visible_metrics: userVisibleMetrics,
+          visible_columns: userVisibleColumns
+        })
+      }).catch(() => {});
+    }
+
+    function applyDashboardLayoutOrder(order) {
+      const grid = document.getElementById('dashboard-widgets-grid');
+      if (!grid) return;
+      const dropzone = document.getElementById('dashboard-empty-dropzone');
+
+      // Aplica configurações salvas de tamanho (largura e altura)
+      grid.querySelectorAll('.dashboard-widget').forEach(w => {
+        const wId = w.dataset.widgetId;
+        if (wId && dashboardWidgetSettings[wId]) {
+          const conf = dashboardWidgetSettings[wId];
+          if (conf.colSpan) {
+            ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => w.classList.remove(c));
+            w.classList.add(`col-span-${conf.colSpan}`);
+            w.dataset.colSpan = conf.colSpan;
+          }
+          if (conf.height) {
+            w.style.minHeight = conf.height + 'px';
+          }
+        }
+      });
+
+      // Reordena os elementos no DOM conforme a ordem salva
+      if (Array.isArray(order) && order.length > 0) {
+        order.forEach(wId => {
+          const el = grid.querySelector(`[data-widget-id="${wId}"]`);
+          if (el && dropzone) {
+            grid.insertBefore(el, dropzone);
+          }
+        });
+      }
+    }
+
+    // Inicialização do Drag Handle (Reordenação Suave via Pointer Events)
+    function initWidgetDragHandle(handleEl) {
+      if (!handleEl || handleEl._dragBound) return;
+      handleEl._dragBound = true;
+      handleEl.style.touchAction = 'none';
+
+      handleEl.addEventListener('pointerdown', (e) => {
+        if (e.button && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const widget = handleEl.closest('.dashboard-widget');
+        if (!widget) return;
+
+        const grid = document.getElementById('dashboard-widgets-grid');
+        const emptyDropzone = document.getElementById('dashboard-empty-dropzone');
+        if (!grid) return;
+
+        handleEl.setPointerCapture(e.pointerId);
+
+        let placeholder = document.getElementById('dashboard-drag-placeholder');
+        if (!placeholder) {
+          placeholder = document.createElement('div');
+          placeholder.id = 'dashboard-drag-placeholder';
+          placeholder.className = 'dashboard-drag-placeholder rounded-2xl border-2 border-dashed border-brand-500 bg-brand-500/10 transition-all flex items-center justify-center text-xs font-bold text-brand-400 select-none animate-pulse min-h-[110px]';
+          placeholder.innerHTML = '<span class="flex items-center gap-1.5"><i data-lucide="arrow-down" class="w-4 h-4"></i> Soltar Aqui</span>';
+        }
+
+        const span = widget.dataset.colSpan || '1';
+        ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => placeholder.classList.remove(c));
+        placeholder.classList.add(`col-span-${span}`);
+        placeholder.style.minHeight = Math.max(110, widget.offsetHeight) + 'px';
+
+        grid.insertBefore(placeholder, widget);
+        widget.classList.add('opacity-40', 'scale-[0.98]', 'pointer-events-none');
+        if (emptyDropzone) emptyDropzone.classList.remove('hidden');
+
+        function onPointerMove(ev) {
+          const elUnder = document.elementFromPoint(ev.clientX, ev.clientY);
+          if (!elUnder) return;
+
+          const targetWidget = elUnder.closest('.dashboard-widget');
+          if (targetWidget && targetWidget !== widget && targetWidget !== placeholder) {
+            const rect = targetWidget.getBoundingClientRect();
+            const isAfter = (ev.clientY > rect.top + rect.height / 2) || (ev.clientX > rect.left + rect.width / 2);
+            if (isAfter) {
+              grid.insertBefore(placeholder, targetWidget.nextSibling);
+            } else {
+              grid.insertBefore(placeholder, targetWidget);
+            }
+          } else if (elUnder.closest('#dashboard-empty-dropzone')) {
+            grid.insertBefore(placeholder, emptyDropzone);
+          }
+        }
+
+        function onPointerUp(ev) {
+          try { handleEl.releasePointerCapture(ev.pointerId); } catch(err) {}
+          handleEl.removeEventListener('pointermove', onPointerMove);
+          handleEl.removeEventListener('pointerup', onPointerUp);
+          handleEl.removeEventListener('pointercancel', onPointerUp);
+
+          widget.classList.remove('opacity-40', 'scale-[0.98]', 'pointer-events-none');
+          if (emptyDropzone) emptyDropzone.classList.add('hidden');
+
+          if (placeholder && placeholder.parentNode === grid) {
+            grid.insertBefore(widget, placeholder);
+            placeholder.remove();
+          }
+
+          saveCurrentDashboardLayout();
+          resizeInternalWidgetCharts(widget);
+        }
+
+        handleEl.addEventListener('pointermove', onPointerMove);
+        handleEl.addEventListener('pointerup', onPointerUp);
+        handleEl.addEventListener('pointercancel', onPointerUp);
+      });
+    }
+
+    // Inicialização do Resize Handle (Redimensionamento Proporcional Horizontal & Vertical)
+    function initWidgetResizeHandle(handleEl) {
+      if (!handleEl || handleEl._resizeBound) return;
+      handleEl._resizeBound = true;
+      handleEl.style.touchAction = 'none';
+
+      handleEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const widget = handleEl.closest('.dashboard-widget');
+        if (!widget) return;
+
+        handleEl.setPointerCapture(e.pointerId);
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = widget.offsetWidth;
+        const startHeight = widget.offsetHeight;
+        const grid = document.getElementById('dashboard-widgets-grid');
+        const colWidth = (grid ? grid.offsetWidth : window.innerWidth) / 4;
+
+        let tooltip = document.getElementById('resize-live-tooltip');
+        if (!tooltip) {
+          tooltip = document.createElement('div');
+          tooltip.id = 'resize-live-tooltip';
+          tooltip.className = 'fixed z-50 bg-brand-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full';
+          document.body.appendChild(tooltip);
+        }
+        tooltip.classList.remove('hidden');
+
+        widget.classList.add('ring-2', 'ring-brand-500', 'z-30');
+
+        let currentSpan = parseInt(widget.dataset.colSpan || '1', 10);
+        let currentH = startHeight;
+
+        function onPointerMove(ev) {
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+
+          // Altura Vertical
+          const newHeight = Math.max(110, Math.min(800, startHeight + dy));
+          currentH = Math.round(newHeight);
+          widget.style.minHeight = currentH + 'px';
+
+          // Largura Horizontal (colSpan 1 a 4)
+          const projectedWidth = Math.max(colWidth * 0.5, startWidth + dx);
+          let targetSpan = Math.round(projectedWidth / colWidth);
+          targetSpan = Math.max(1, Math.min(4, targetSpan));
+          currentSpan = targetSpan;
+
+          ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => widget.classList.remove(c));
+          widget.classList.add(`col-span-${targetSpan}`);
+          widget.dataset.colSpan = targetSpan;
+
+          tooltip.style.left = ev.clientX + 'px';
+          tooltip.style.top = (ev.clientY - 12) + 'px';
+          tooltip.textContent = `📏 ${targetSpan} col (${targetSpan * 25}%) × ${currentH}px`;
+
+          resizeInternalWidgetCharts(widget);
+        }
+
+        function onPointerUp(ev) {
+          try { handleEl.releasePointerCapture(ev.pointerId); } catch(err) {}
+          handleEl.removeEventListener('pointermove', onPointerMove);
+          handleEl.removeEventListener('pointerup', onPointerUp);
+          handleEl.removeEventListener('pointercancel', onPointerUp);
+
+          widget.classList.remove('ring-2', 'ring-brand-500', 'z-30');
+          if (tooltip) tooltip.classList.add('hidden');
+
+          const wId = widget.dataset.widgetId;
+          if (wId) {
+            dashboardWidgetSettings[wId] = {
+              colSpan: currentSpan,
+              height: currentH
+            };
+            localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
+            saveCurrentDashboardLayout();
+          }
+
+          resizeInternalWidgetCharts(widget);
+        }
+
+        handleEl.addEventListener('pointermove', onPointerMove);
+        handleEl.addEventListener('pointerup', onPointerUp);
+        handleEl.addEventListener('pointercancel', onPointerUp);
+      });
+    }
+
+    function resizeInternalWidgetCharts(widget) {
+      if (!widget) return;
+      const canvas = widget.querySelector('canvas');
+      if (canvas) {
+        if (canvas.id === 'revenueChart' && window.revenueChartInstance) revenueChartInstance.resize();
+        if (canvas.id === 'sourcesChart' && window.sourcesChartInstance) sourcesChartInstance.resize();
+        if (canvas.id === 'paymentMethodsChart' && window.paymentMethodsChartInstance) paymentMethodsChartInstance.resize();
+      }
+    }
+
+    // Detector de toque longo (Long-press) para Celular
+    function attachWidgetTouchHandlers(widget) {
+      if (!widget || widget._touchBound) return;
+      widget._touchBound = true;
+
+      let touchTimer = null;
+      let startX = 0;
+      let startY = 0;
+
+      widget.addEventListener('touchstart', (e) => {
+        if (e.target.closest('button, a, select, input, .widget-drag-handle, .widget-resize-handle')) return;
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+
+        touchTimer = setTimeout(() => {
+          if (navigator.vibrate) navigator.vibrate(40);
+          enterDashboardEditMode();
+          widget.classList.add('ring-2', 'ring-brand-500');
+          setTimeout(() => widget.classList.remove('ring-2', 'ring-brand-500'), 500);
+        }, 450);
+      }, { passive: true });
+
+      widget.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
+          clearTimeout(touchTimer);
+        }
+      }, { passive: true });
+
+      widget.addEventListener('touchend', () => {
+        clearTimeout(touchTimer);
+        if (!isDashboardEditMode) {
+          widget.classList.remove('opacity-50', 'opacity-40', 'bg-dark-850', 'border-brand-500', 'ring-2');
+        }
+      }, { passive: true });
+
+      widget.addEventListener('touchcancel', () => {
+        clearTimeout(touchTimer);
+        if (!isDashboardEditMode) {
+          widget.classList.remove('opacity-50', 'opacity-40', 'bg-dark-850', 'border-brand-500', 'ring-2');
+        }
+      }, { passive: true });
+    }
+
+    // Renderização Dinâmica de Cards de Métricas e Vinculação de Handlers
     function renderDynamicKpiCards(kpis) {
-      const grid = document.getElementById('kpi-cards-grid');
+      const grid = document.getElementById('dashboard-widgets-grid');
       if (!grid) return;
       if (kpis) lastCachedKpis = kpis;
       else kpis = lastCachedKpis || {};
 
       const visible = (userVisibleMetrics && userVisibleMetrics.length > 0) ? userVisibleMetrics : DEFAULT_VISIBLE_METRICS;
+      const dropzone = document.getElementById('dashboard-empty-dropzone');
 
-      grid.innerHTML = visible.map(key => {
+      // 1. Cria ou atualiza cada card visível
+      visible.forEach(key => {
         const def = METRIC_DEFS[key];
-        if (!def) return '';
+        if (!def) return;
+        const widgetId = 'metric-' + key;
         const valFormatted = def.format(kpis[key]);
-        const isWide = cardSizes[key] === 'wide';
-        const spanClass = isWide ? 'col-span-1 sm:col-span-2 md:col-span-2 lg:col-span-2' : 'col-span-1';
 
-        return `
-          <div
-            draggable="true"
-            ondragstart="handleCardDragStart(event, '${key}')"
-            ondragover="handleCardDragOver(event)"
-            ondragleave="handleCardDragLeave(event)"
-            ondrop="handleCardDrop(event, '${key}')"
-            class="${spanClass} bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden bg-gradient-to-br ${def.bg} hover:border-slate-700 transition-all select-none group cursor-grab active:cursor-grabbing"
-          >
+        let card = grid.querySelector(`[data-widget-id="${widgetId}"]`);
+        if (!card) {
+          card = document.createElement('div');
+          card.id = 'widget-' + widgetId;
+          card.dataset.widgetId = widgetId;
+          card.dataset.widgetType = 'metric';
+          card.dataset.colSpan = '1';
+          card.className = 'dashboard-widget col-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden bg-gradient-to-br ' + def.bg + ' hover:border-slate-700 transition-all select-none group';
+
+          card.innerHTML = `
             <div class="flex items-center justify-between mb-1">
               <div class="flex items-center gap-1.5 text-slate-400">
-                <span class="text-slate-600 group-hover:text-slate-400 transition-colors" title="Arraste para reorganizar ordem">
-                  <i data-lucide="grip-vertical" class="w-3.5 h-3.5"></i>
+                <span class="widget-drag-handle p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
+                  <i data-lucide="grip-vertical" class="w-4 h-4"></i>
                 </span>
-                <span class="text-[11px] font-semibold uppercase tracking-wider">${def.label}</span>
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-300">${def.label}</span>
               </div>
-              <button type="button" onclick="event.stopPropagation(); toggleCardSize('${key}')" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800/80 transition-all" title="${isWide ? 'Diminuir largura (1 coluna)' : 'Aumentar largura (2 colunas)'}">
-                <i data-lucide="${isWide ? 'minimize-2' : 'maximize-2'}" class="w-3.5 h-3.5"></i>
-              </button>
             </div>
-            <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-white tracking-tight">${valFormatted}</div>
-            <span class="text-[11px] ${def.subColor} font-medium mt-1 inline-block">${def.sub}</span>
+            <div id="kpi-val-${key}" class="text-xl md:text-2xl lg:text-3xl font-extrabold text-white tracking-tight">${valFormatted}</div>
+            <span id="kpi-sub-${key}" class="text-[11px] ${def.subColor} font-medium mt-1 inline-block">${def.sub}</span>
             <div class="absolute -right-2 -bottom-2 opacity-5 ${def.color} pointer-events-none">
               <i data-lucide="${def.icon}" class="w-20 h-20"></i>
             </div>
-          </div>
-        `;
-      }).join('');
+            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
+            </div>
+          `;
 
-      lucide.createIcons();
+          if (dropzone) grid.insertBefore(card, dropzone);
+          else grid.appendChild(card);
+        } else {
+          // Atualiza apenas os valores
+          const elVal = document.getElementById('kpi-val-' + key);
+          if (elVal) elVal.textContent = valFormatted;
+          const elSub = document.getElementById('kpi-sub-' + key);
+          if (elSub) elSub.textContent = def.sub;
+        }
+      });
+
+      // 2. Remove métricas desmarcadas
+      grid.querySelectorAll('[data-widget-type="metric"]').forEach(card => {
+        const key = card.dataset.widgetId.replace('metric-', '');
+        if (!visible.includes(key)) {
+          card.remove();
+        }
+      });
+
+      // 3. Aplica ordem salva e vincula os handlers em todos os widgets (cards e seções de baixo)
+      applyDashboardLayoutOrder(dashboardWidgetsOrder);
+
+      grid.querySelectorAll('.dashboard-widget').forEach(w => {
+        const dragHandle = w.querySelector('.widget-drag-handle');
+        const resizeHandle = w.querySelector('.widget-resize-handle');
+        if (dragHandle) initWidgetDragHandle(dragHandle);
+        if (resizeHandle) initWidgetResizeHandle(resizeHandle);
+        attachWidgetTouchHandlers(w);
+      });
+
+      if (window.lucide) lucide.createIcons();
     }
 
     // ==================== ATUALIZAÇÃO DE DADOS & REQUISIÇÕES ====================

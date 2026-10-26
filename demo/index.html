@@ -177,6 +177,103 @@
 
       <!-- ==================== TAB 1: DASHBOARD ==================== -->
       <section id="tab-dashboard" class="tab-pane space-y-4 md:space-y-6">
+        <!-- ==================== BARRA DE RESUMO & FILTRO DE PERÍODO (RÉPLICA EXATA) ==================== -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <h1 class="text-2xl font-extrabold text-white tracking-tight">Resumo</h1>
+            </div>
+
+            <div class="flex items-center gap-4 self-end lg:self-auto">
+              <div class="flex items-center gap-2 text-xs text-slate-400">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span id="summary-last-update">Atualizado agora mesmo</span>
+              </div>
+              <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Atualizar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Grade de Filtros de Período, Conta, Fonte, Plataforma e Produto -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
+            <!-- 1. Período de Visualização -->
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <span>Período de Visualização</span>
+                <span class="text-slate-500 hover:text-slate-300 cursor-help" title="Filtra métricas, vendas e funil pelo período selecionado"><i data-lucide="info" class="w-3.5 h-3.5"></i></span>
+              </label>
+              <div class="relative">
+                <select id="filter-period" onchange="handleFilterChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="today" selected>Hoje</option>
+                  <option value="yesterday">Ontem</option>
+                  <option value="last_7_days">Últimos 7 dias</option>
+                  <option value="last_week">Semana passada</option>
+                  <option value="this_month">Este mês</option>
+                  <option value="last_month">Mês passado</option>
+                  <option value="all">Todo o período</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- 2. Conta de Anúncio -->
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Conta de Anúncio</label>
+              <div class="relative">
+                <select id="filter-ad-account" onchange="handleFilterChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="all">Todas as Contas</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- 3. Fonte de Tráfego -->
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Fonte de Tráfego</label>
+              <div class="relative">
+                <select id="filter-traffic-source" onchange="handleFilterChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="all">Todas</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="google">Google</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="direto">Direto / Orgânico</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- 4. Plataforma -->
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Plataforma</label>
+              <div class="relative">
+                <select id="filter-platform" onchange="handleFilterChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="all">Todas</option>
+                  <option value="Kiwify">Kiwify</option>
+                  <option value="Hotmart">Hotmart</option>
+                  <option value="Greenn">Greenn</option>
+                  <option value="Cakto">Cakto</option>
+                  <option value="Wiapy">Wiapy</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- 5. Produto -->
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Produto</label>
+              <div class="relative">
+                <select id="filter-product" onchange="handleFilterChange()" class="w-full bg-dark-950 border border-slate-700/80 hover:border-slate-600 text-white text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                  <option value="all">Todos os Produtos</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Toolbar Dashboard -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center gap-2">
@@ -229,86 +326,79 @@
           </div>
         </div>
 
-        <!-- FUNIL DE CONVERSÃO GERAL (VISUAL TRACKPRO) -->
-        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                <span>Funil de Conversão do Tráfego</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">Anúncio → Compra</span>
-              </h3>
-              <p class="text-xs text-slate-400">Acompanhe a quebra do funil de vendas e a taxa de perda em cada etapa</p>
+        <!-- FUNIL DE CONVERSÃO CONTÍNUO (META ADS RIBBON - RÉPLICA EXATA) -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3 shadow-xl">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-sm md:text-base text-white">Funil de conversão (Meta ads)</h3>
+              <span class="text-slate-400 hover:text-white cursor-help" title="Funil contínuo oficial: Cliques → Vis. Página → ICs → Vendas Inic. → Vendas Apr. Mostra a porcentagem em relação aos cliques e o volume absoluto em cada etapa.">
+                <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
+              </span>
             </div>
-            <div id="funnel-overall-badge" class="flex items-center gap-2 bg-dark-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold">
-              <span class="text-slate-400">Conversão Geral:</span>
-              <span id="funnel-overall-rate" class="text-emerald-400 font-extrabold text-sm">0.0%</span>
+            <div class="text-xs text-slate-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Tempo Real</span>
             </div>
           </div>
 
-          <!-- Estágios do Funil com Barras & Indicadores de Queda -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-1">
-            <!-- Etapa 1: Impressões -->
-            <div class="bg-dark-950 border border-slate-800/80 rounded-xl p-3.5 space-y-2 relative overflow-hidden group hover:border-slate-700 transition-all">
-              <div class="flex items-center justify-between text-slate-400 text-[11px] font-semibold">
-                <span>1. IMPRESSÕES</span>
-                <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-500"></i>
-              </div>
-              <div id="funnel-val-impressions" class="text-lg md:text-xl font-extrabold text-white">0</div>
-              <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span>Anúncios Meta</span>
-                <span class="text-sky-400 font-bold" id="funnel-rate-ctr">CTR 0.0%</span>
-              </div>
-            </div>
+          <!-- Container do Funil em Fita Fluida -->
+          <div class="relative w-full rounded-2xl overflow-hidden py-2 select-none">
+            <!-- Ribbon SVG Fluida Horizontal com Gradiente Azul -> Roxo -> Rosa -->
+            <svg viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
+              <defs>
+                <linearGradient id="metaFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#1E3A8A" />
+                  <stop offset="16%" stop-color="#2563EB" />
+                  <stop offset="40%" stop-color="#4F46E5" />
+                  <stop offset="65%" stop-color="#7C3AED" />
+                  <stop offset="85%" stop-color="#C026D3" />
+                  <stop offset="100%" stop-color="#E11D48" />
+                </linearGradient>
+              </defs>
+              <!-- Geometria do Funil Tapering Uniforme -->
+              <path d="M 0 14 C 100 14, 150 24, 200 24 C 280 24, 320 38, 400 38 C 480 38, 520 52, 600 52 C 680 52, 720 58, 800 58 L 1000 58 L 1000 102 L 800 102 C 720 102, 680 108, 600 108 C 520 108, 480 122, 400 122 C 320 122, 280 136, 200 136 C 150 136, 100 146, 0 146 Z" fill="url(#metaFunnelGrad)"/>
+              <!-- Linhas Divisórias Verticais Finas -->
+              <line x1="200" y1="24" x2="200" y2="136" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line x1="400" y1="38" x2="400" y2="122" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line x1="600" y1="52" x2="600" y2="108" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line x1="800" y1="58" x2="800" y2="102" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+            </svg>
 
-            <!-- Etapa 2: Cliques -->
-            <div class="bg-dark-950 border border-slate-800/80 rounded-xl p-3.5 space-y-2 relative overflow-hidden group hover:border-slate-700 transition-all">
-              <div class="flex items-center justify-between text-slate-400 text-[11px] font-semibold">
-                <span>2. CLIQUES NO LINK</span>
-                <i data-lucide="mouse-pointer" class="w-3.5 h-3.5 text-sky-400"></i>
+            <!-- Grade Sobreposta com os 5 Estágios Exatos da Referência -->
+            <div class="absolute inset-0 grid grid-cols-5 pointer-events-none py-2 px-1">
+              <!-- Estágio 1: Cliques -->
+              <div class="flex flex-col items-center justify-between text-center px-1">
+                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-1">CLIQUES</span>
+                <div id="funnel-ribbon-pct-clicks" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">100%</div>
+                <span id="funnel-ribbon-cnt-clicks" class="text-xs md:text-sm font-bold text-white/90 pb-1">0</span>
               </div>
-              <div id="funnel-val-clicks" class="text-lg md:text-xl font-extrabold text-white">0</div>
-              <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span>Queda Conexão</span>
-                <span class="text-purple-400 font-bold" id="funnel-rate-connect">Conexão 100%</span>
-              </div>
-            </div>
 
-            <!-- Etapa 3: Page Views -->
-            <div class="bg-dark-950 border border-slate-800/80 rounded-xl p-3.5 space-y-2 relative overflow-hidden group hover:border-slate-700 transition-all">
-              <div class="flex items-center justify-between text-slate-400 text-[11px] font-semibold">
-                <span>3. VISITAS NA PÁGINA</span>
-                <i data-lucide="globe" class="w-3.5 h-3.5 text-purple-400"></i>
+              <!-- Estágio 2: Vis. Página -->
+              <div class="flex flex-col items-center justify-between text-center px-1">
+                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-3">VIS. PÁGINA</span>
+                <div id="funnel-ribbon-pct-pageviews" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                <span id="funnel-ribbon-cnt-pageviews" class="text-xs md:text-sm font-bold text-white/90 pb-3">0</span>
               </div>
-              <div id="funnel-val-pageviews" class="text-lg md:text-xl font-extrabold text-white">0</div>
-              <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span>Indo p/ Checkout</span>
-                <span class="text-indigo-400 font-bold" id="funnel-rate-pvtocheckout">IC 0.0%</span>
-              </div>
-            </div>
 
-            <!-- Etapa 4: Iniciação Checkout (IC) -->
-            <div class="bg-dark-950 border border-slate-800/80 rounded-xl p-3.5 space-y-2 relative overflow-hidden group hover:border-slate-700 transition-all">
-              <div class="flex items-center justify-between text-slate-400 text-[11px] font-semibold">
-                <span>4. INICIAÇÃO CHECKOUT</span>
-                <i data-lucide="external-link" class="w-3.5 h-3.5 text-amber-400"></i>
+              <!-- Estágio 3: ICs -->
+              <div class="flex flex-col items-center justify-between text-center px-1">
+                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-5">ICS</span>
+                <div id="funnel-ribbon-pct-ic" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                <span id="funnel-ribbon-cnt-ic" class="text-xs md:text-sm font-bold text-white/90 pb-5">0</span>
               </div>
-              <div id="funnel-val-ic" class="text-lg md:text-xl font-extrabold text-white">0</div>
-              <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span>Conversão Checkout</span>
-                <span class="text-emerald-400 font-bold" id="funnel-rate-ictopurchase">Pagam 0.0%</span>
-              </div>
-            </div>
 
-            <!-- Etapa 5: Vendas Aprovadas -->
-            <div class="bg-dark-950 border border-emerald-500/30 rounded-xl p-3.5 space-y-2 relative overflow-hidden bg-gradient-to-br from-emerald-500/10 to-transparent group hover:border-emerald-500/50 transition-all">
-              <div class="flex items-center justify-between text-emerald-400 text-[11px] font-semibold">
-                <span>5. VENDAS APROVADAS</span>
-                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <!-- Estágio 4: Vendas Inic. -->
+              <div class="flex flex-col items-center justify-between text-center px-1">
+                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-7">VENDAS INIC.</span>
+                <div id="funnel-ribbon-pct-orders-init" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                <span id="funnel-ribbon-cnt-orders-init" class="text-xs md:text-sm font-bold text-white/90 pb-7">0</span>
               </div>
-              <div id="funnel-val-purchases" class="text-lg md:text-xl font-extrabold text-emerald-400">0</div>
-              <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span>Receita Gerada</span>
-                <span class="text-emerald-400 font-bold" id="funnel-val-revenue">R$ 0,00</span>
+
+              <!-- Estágio 5: Vendas Apr. -->
+              <div class="flex flex-col items-center justify-between text-center px-1">
+                <span class="text-[10px] md:text-xs font-extrabold uppercase tracking-wider text-amber-300 pt-8">VENDAS APR.</span>
+                <div id="funnel-ribbon-pct-orders-paid" class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-sm">0.0%</div>
+                <span id="funnel-ribbon-cnt-orders-paid" class="text-xs md:text-sm font-bold text-white/90 pb-8">0</span>
               </div>
             </div>
           </div>
@@ -663,15 +753,36 @@
       <section id="tab-accounts" class="tab-pane hidden space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-bold text-white">Contas de Anúncio Conectadas</h2>
-            <p class="text-xs text-slate-400">Vincule suas contas do Facebook Ads com Token para gerenciar status e orçamentos</p>
+            <h2 class="text-lg font-bold text-white">Contas de Anúncio & Conexão Meta</h2>
+            <p class="text-xs text-slate-400">Integração oficial OAuth 2.0 da Meta para gestão de campanhas, orçamentos e métricas</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
-              <i data-lucide="facebook" class="w-4 h-4"></i> Conectar com Facebook (Direto)
+              <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
             </button>
             <button onclick="openModal('modal-new-account')" class="px-3 py-2 bg-dark-800 hover:bg-dark-750 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium">
-              Manual
+              Adicionar Manual
+            </button>
+          </div>
+        </div>
+
+        <!-- Card de Status Oficial Meta OAuth 2.0 -->
+        <div id="meta-oauth-status-card" class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-2xl bg-[#1877F2]/20 border border-[#1877F2]/40 text-[#1877F2] flex items-center justify-center font-bold text-lg">
+              <i data-lucide="facebook" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h4 id="meta-user-name-display" class="font-bold text-sm text-white">Nenhuma Conta Meta Conectada</h4>
+                <span id="meta-connection-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Desconectado</span>
+              </div>
+              <p id="meta-connection-subtext" class="text-xs text-slate-400 mt-0.5">Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas e orçamentos automaticamente.</p>
+            </div>
+          </div>
+          <div id="meta-oauth-actions" class="flex items-center gap-2 flex-wrap">
+            <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
+              <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
             </button>
           </div>
         </div>
@@ -1059,6 +1170,64 @@
       <div class="p-4 border-t border-slate-800 flex items-center justify-end bg-dark-950/40">
         <button onclick="closeModal('modal-facebook-connect')" class="px-3.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs">Fechar</button>
       </div>
+    </div>
+  </div>
+
+    <!-- Modal de Configuração Oficial Meta OAuth 2.0 -->
+  <div id="modal-meta-oauth-setup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-dark-950/40">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 flex items-center justify-center text-[#1877F2]">
+            <i data-lucide="facebook" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Configuração Oficial da Meta (OAuth 2.0)</h3>
+            <p class="text-xs text-slate-400">Conexão oficial ponto-a-ponto com a Graph & Marketing API</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-meta-oauth-setup')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form onsubmit="saveMetaConfigAndConnect(event)" class="p-6 space-y-4 text-xs overflow-y-auto">
+        <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3.5 space-y-2 text-slate-300">
+          <div class="font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-4 h-4 text-blue-400"></i>
+            <span>Instruções da Conexão Meta</span>
+          </div>
+          <ol class="list-decimal list-inside space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+            <li>Acesse seu aplicativo em <a href="https://developers.facebook.com/apps" target="_blank" class="text-sky-400 underline font-semibold">developers.facebook.com/apps</a>.</li>
+            <li>No menu <strong>Facebook Login para Empresas</strong> → <strong>Configurações</strong>, adicione esta URL exata em <strong>URIs de redirecionamento do OAuth válidos</strong>:</li>
+          </ol>
+          <div class="flex items-center gap-2 bg-dark-950 p-2 rounded-lg border border-slate-800 mt-1">
+            <input id="meta-setup-redirect-uri" type="text" readonly class="flex-1 bg-transparent text-[11px] font-mono text-sky-400 focus:outline-none" value="https://meutrackpro.onrender.com/api/auth/facebook/callback">
+            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('meta-setup-redirect-uri').value); alert('URL copiada!')" class="px-2 py-1 bg-dark-800 hover:bg-slate-700 text-slate-200 rounded text-[10px] font-semibold flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Copiar
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-3 pt-1">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">ID do Aplicativo Meta (App ID)</label>
+            <input id="meta-setup-app-id" type="text" required placeholder="Ex: 109283746501928" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono text-xs">
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Chave Secreta do Aplicativo (App Secret)</label>
+            <input id="meta-setup-app-secret" type="password" required placeholder="••••••••••••••••••••••••" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono text-xs">
+            <p class="text-[10px] text-slate-500 mt-1">Sua chave é salva com segurança protegida no backend e nunca é exposta no navegador.</p>
+          </div>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2.5">
+          <button type="button" onclick="closeModal('modal-meta-oauth-setup')" class="px-4 py-2.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">Cancelar</button>
+          <button type="submit" id="btn-save-meta-config" class="px-5 py-2.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all">
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            <span>Salvar e Conectar com a Meta</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1822,21 +1991,158 @@
       if (el) el.classList.add('hidden');
     }
 
-    // ==================== LOGIN FACEBOOK POPUP OFICIAL (ZERO TOKENS) ====================
-    function openFacebookLoginPopup() {
-      const width = 580;
-      const height = 700;
-      const left = Math.round((window.innerWidth - width) / 2 + window.screenX);
-      const top = Math.round((window.innerHeight - height) / 2 + window.screenY);
-      const popup = window.open(
-        '/api/auth/facebook',
-        'FacebookOAuthDialog',
-        `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
-      );
-      if (popup) popup.focus();
+    
+    // ==================== CONTROLE DE FILTROS & RESUMO DO DASHBOARD ====================
+    function handleFilterChange() {
+      refreshData();
     }
 
-    window.addEventListener('message', (event) => {
+    function populateFilterSelects(options) {
+      if (!options) return;
+      const accSel = document.getElementById('filter-ad-account');
+      if (accSel && options.ad_accounts && accSel.options.length <= 1) {
+        options.ad_accounts.forEach(acc => {
+          const opt = document.createElement('option');
+          opt.value = acc.id;
+          opt.textContent = `${acc.name} (${acc.id})`;
+          accSel.appendChild(opt);
+        });
+      }
+
+      const prodSel = document.getElementById('filter-product');
+      if (prodSel && options.products && prodSel.options.length <= 1) {
+        options.products.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          prodSel.appendChild(opt);
+        });
+      }
+    }
+
+    // ==================== INTEGRAÇÃO REAL META OAUTH 2.0 ====================
+    async function openFacebookLoginPopup() {
+      try {
+        const res = await fetch('/api/auth/facebook/status');
+        const status = await res.json();
+        
+        if (!status.configured) {
+          const redirectInput = document.getElementById('meta-setup-redirect-uri');
+          if (redirectInput) {
+            redirectInput.value = status.redirect_uri || (window.location.origin + '/api/auth/facebook/callback');
+          }
+          openModal('modal-meta-oauth-setup');
+          return;
+        }
+
+        const width = 600;
+        const height = 720;
+        const left = Math.round((window.innerWidth - width) / 2 + window.screenX);
+        const top = Math.round((window.innerHeight - height) / 2 + window.screenY);
+        const popup = window.open(
+          '/api/auth/facebook/login',
+          'FacebookOAuthDialog',
+          `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+        );
+        if (popup) popup.focus();
+      } catch (e) {
+        alert('Erro ao verificar conexão Meta: ' + e.message);
+      }
+    }
+
+    async function saveMetaConfigAndConnect(e) {
+      if (e) e.preventDefault();
+      const appId = document.getElementById('meta-setup-app-id').value.trim();
+      const appSecret = document.getElementById('meta-setup-app-secret').value.trim();
+      const redirectUri = document.getElementById('meta-setup-redirect-uri').value.trim();
+
+      if (!appId || !appSecret) {
+        alert('Informe o App ID e App Secret da Meta');
+        return;
+      }
+
+      const saveBtn = document.getElementById('btn-save-meta-config');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = 'Salvando e iniciando conexão...';
+      }
+
+      try {
+        const res = await fetch('/api/auth/facebook/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ app_id: appId, app_secret: appSecret, redirect_uri: redirectUri })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao salvar credenciais');
+
+        closeModal('modal-meta-oauth-setup');
+        showSaleToast({
+          customer: 'Meta Platforms',
+          amount: 0,
+          platform: 'Credenciais configuradas! Redirecionando para o Facebook...'
+        });
+
+        const width = 600;
+        const height = 720;
+        const left = Math.round((window.innerWidth - width) / 2 + window.screenX);
+        const top = Math.round((window.innerHeight - height) / 2 + window.screenY);
+        const popup = window.open(
+          '/api/auth/facebook/login',
+          'FacebookOAuthDialog',
+          `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+        );
+        if (popup) popup.focus();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = 'Salvar e Conectar com a Meta';
+        }
+      }
+    }
+
+    async function disconnectMetaAccount() {
+      if (!confirm('Deseja realmente desconectar sua conta Meta e revogar as permissões?')) return;
+      try {
+        const res = await fetch('/api/auth/facebook/disconnect', { method: 'POST' });
+        const data = await res.json();
+        showSaleToast({
+          customer: 'Meta Desconectada',
+          amount: 0,
+          platform: data.message || 'Conta desconectada com sucesso.'
+        });
+        loadAccountsData();
+        refreshData();
+      } catch (e) {
+        alert('Erro ao desconectar: ' + e.message);
+      }
+    }
+
+    async function syncMetaCampaigns() {
+      try {
+        showSaleToast({
+          customer: 'Meta Ads',
+          amount: 0,
+          platform: 'Sincronizando campanhas e métricas da Meta...'
+        });
+        const res = await fetch('/api/facebook/sync', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao sincronizar');
+        showSaleToast({
+          customer: 'Meta Ads',
+          amount: 0,
+          platform: data.message || 'Campanhas sincronizadas com sucesso!'
+        });
+        refreshData();
+        loadCampaignsData();
+      } catch (e) {
+        alert('Erro na sincronização: ' + e.message);
+      }
+    }
+
+        window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'TRACKPRO_FB_CONNECTED') {
         playKachingSound();
         showSaleToast({
@@ -1950,29 +2256,56 @@
     // ==================== ATUALIZAÇÃO DE DADOS & REQUISIÇÕES ====================
     async function refreshData() {
       try {
-        const query = currentDashboardId ? `?dashboard_id=${currentDashboardId}` : '';
-        const res = await fetch('/api/dashboard/overview' + query);
+        const period = document.getElementById('filter-period')?.value || 'today';
+        const adAccount = document.getElementById('filter-ad-account')?.value || 'all';
+        const source = document.getElementById('filter-traffic-source')?.value || 'all';
+        const platform = document.getElementById('filter-platform')?.value || 'all';
+        const product = document.getElementById('filter-product')?.value || 'all';
+
+        const params = new URLSearchParams();
+        if (currentDashboardId) params.append('dashboard_id', currentDashboardId);
+        if (period) params.append('period', period);
+        if (adAccount && adAccount !== 'all') params.append('ad_account', adAccount);
+        if (source && source !== 'all') params.append('source', source);
+        if (platform && platform !== 'all') params.append('platform', platform);
+        if (product && product !== 'all') params.append('product', product);
+
+        const res = await fetch('/api/dashboard/overview?' + params.toString());
         const data = await res.json();
 
-        // 1. Atualiza Cards Dinâmicos
+        // 1. Atualiza timestamp do resumo
+        const summaryUpdateEl = document.getElementById('summary-last-update');
+        if (summaryUpdateEl) {
+          const now = new Date();
+          summaryUpdateEl.textContent = 'Atualizado às ' + now.toLocaleTimeString('pt-BR');
+        }
+
+        // 2. Popula os filtros de seleção caso ainda não tenham opções carregadas
+        if (data.filterOptions) {
+          populateFilterSelects(data.filterOptions);
+        }
+
+        // 3. Atualiza Cards Dinâmicos
         renderDynamicKpiCards(data.kpis);
 
-        // 2. Atualiza Funil Visual de Conversão
-        if (data.funnel) {
-          const f = data.funnel;
-          const r = f.rates || {};
+        // 4. Atualiza Funil Contínuo de Conversão (Meta ads Ribbon)
+        if (data.funnel && data.funnel.ribbon) {
+          const rib = data.funnel.ribbon;
           const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-          setTxt('funnel-val-impressions', Number(f.impressions || 0).toLocaleString('pt-BR'));
-          setTxt('funnel-rate-ctr', `CTR ${Number(r.ctr || 0).toFixed(2)}%`);
-          setTxt('funnel-val-clicks', Number(f.clicks || 0).toLocaleString('pt-BR'));
-          setTxt('funnel-rate-connect', `Conexão ${Number(r.connect_rate || 100).toFixed(1)}%`);
-          setTxt('funnel-val-pageviews', Number(f.pageviews || 0).toLocaleString('pt-BR'));
-          setTxt('funnel-rate-pvtocheckout', `IC ${Number(r.pv_to_ic || 0).toFixed(1)}%`);
-          setTxt('funnel-val-ic', Number(f.initiate_checkout || 0).toLocaleString('pt-BR'));
-          setTxt('funnel-rate-ictopurchase', `Pagam ${Number(r.ic_to_purchase || 0).toFixed(1)}%`);
-          setTxt('funnel-val-purchases', Number(f.purchases || 0).toLocaleString('pt-BR'));
-          setTxt('funnel-val-revenue', 'R$ ' + Number(data.kpis?.faturamento || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-          setTxt('funnel-overall-rate', `${Number(r.overall_conversion || 0).toFixed(2)}%`);
+          setTxt('funnel-ribbon-pct-clicks', rib.clicks?.pct || '100%');
+          setTxt('funnel-ribbon-cnt-clicks', Number(rib.clicks?.count || 0).toLocaleString('pt-BR'));
+
+          setTxt('funnel-ribbon-pct-pageviews', rib.pageviews?.pct || '0.0%');
+          setTxt('funnel-ribbon-cnt-pageviews', Number(rib.pageviews?.count || 0).toLocaleString('pt-BR'));
+
+          setTxt('funnel-ribbon-pct-ic', rib.ic?.pct || '0.0%');
+          setTxt('funnel-ribbon-cnt-ic', Number(rib.ic?.count || 0).toLocaleString('pt-BR'));
+
+          setTxt('funnel-ribbon-pct-orders-init', rib.orders_initiated?.pct || '0.0%');
+          setTxt('funnel-ribbon-cnt-orders-init', Number(rib.orders_initiated?.count || 0).toLocaleString('pt-BR'));
+
+          setTxt('funnel-ribbon-pct-orders-paid', rib.orders_paid?.pct || '0.0%');
+          setTxt('funnel-ribbon-cnt-orders-paid', Number(rib.orders_paid?.count || 0).toLocaleString('pt-BR'));
         }
 
         // 3. Tabela de Pedidos Recentes
@@ -2912,9 +3245,57 @@
       lucide.createIcons();
     }
 
-    // ==================== CONTAS DE ANÚNCIO ====================
+    // ==================== CONTAS DE ANÚNCIO & STATUS META ====================
     async function loadAccountsData() {
       try {
+        // Atualiza Status do OAuth da Meta
+        try {
+          const statusRes = await fetch('/api/auth/facebook/status');
+          const statusData = await statusRes.json();
+          const nameEl = document.getElementById('meta-user-name-display');
+          const badgeEl = document.getElementById('meta-connection-badge');
+          const subEl = document.getElementById('meta-connection-subtext');
+          const actionsEl = document.getElementById('meta-oauth-actions');
+
+          if (statusData.connected) {
+            if (nameEl) nameEl.textContent = statusData.meta_user_name || 'Conta Meta Conectada';
+            if (badgeEl) {
+              badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+              badgeEl.textContent = 'OAuth 2.0 Ativo';
+            }
+            if (subEl) {
+              const expStr = statusData.expires_at ? statusData.expires_at.substring(0, 10) : '60 dias';
+              subEl.textContent = `Token oficial ativo (Expira em: ${expStr}). Permissões concedidas: ${statusData.permissions ? statusData.permissions.join(', ') : 'ads_read, ads_management'}`;
+            }
+            if (actionsEl) {
+              actionsEl.innerHTML = `
+                <button onclick="syncMetaCampaigns()" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-400"></i> Sincronizar da Meta
+                </button>
+                <button onclick="disconnectMetaAccount()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                  <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Desconectar
+                </button>
+              `;
+            }
+          } else {
+            if (nameEl) nameEl.textContent = 'Nenhuma Conta Meta Conectada';
+            if (badgeEl) {
+              badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+              badgeEl.textContent = 'Desconectado';
+            }
+            if (subEl) subEl.textContent = 'Conecte sua conta Meta via OAuth 2.0 oficial para sincronizar campanhas e orçamentos automaticamente.';
+            if (actionsEl) {
+              actionsEl.innerHTML = `
+                <button onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all">
+                  <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
+                </button>
+              `;
+            }
+          }
+        } catch (errStatus) {
+          console.warn('Erro ao carregar status OAuth:', errStatus);
+        }
+
         const res = await fetch('/api/facebook/accounts');
         const data = await res.json();
         const grid = document.getElementById('accounts-grid');
@@ -2922,7 +3303,7 @@
         if (!grid) return;
 
         if (!data.accounts || data.accounts.length === 0) {
-          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhuma conta de anúncio vinculada. Clique em "+ Conectar Nova Conta" para inserir seu Account ID (act_...) e Token da Marketing API.</div>';
+          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhuma conta de anúncio vinculada. Clique em "Conectar conta Meta" acima para autenticar pelo Facebook ou adicione manualmente.</div>';
         } else {
           grid.innerHTML = data.accounts.map(a => `
             <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">

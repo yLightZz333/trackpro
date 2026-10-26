@@ -29,6 +29,24 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
+def load_env_file():
+    env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        k, v = line.split('=', 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+        except Exception:
+            pass
+
+load_env_file()
+
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trackpro.db')
 DEMO_TOKEN = 'a8b3c4d5-e6f7-4a1b-9c8d-123456789abc'
 
@@ -258,6 +276,34 @@ def init_db():
         response_body TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS facebook_oauth_states (
+        state TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS facebook_connections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        meta_user_id TEXT,
+        meta_user_name TEXT,
+        access_token TEXT NOT NULL,
+        token_type TEXT DEFAULT 'bearer',
+        expires_at TEXT,
+        permissions TEXT,
+        status TEXT NOT NULL DEFAULT 'connected',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS meta_oauth_config (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        app_id TEXT,
+        app_secret TEXT,
+        redirect_uri TEXT,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
     """)
 
     # Migrações de colunas
@@ -305,6 +351,89 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+# ==================== CONFIGURAÇÃO E INTEGRAÇÃO OFICIAL META (OAUTH 2.0) ====================
+def get_meta_config(conn=None, host_header=None):
+    close_conn = False
+    if conn is None:
+        conn = get_db()
+        close_conn = True
+    
+    app_id = os.environ.get('META_APP_ID', '').strip()
+    app_secret = os.environ.get('META_APP_SECRET', '').strip()
+    redirect_uri = os.environ.get('META_REDIRECT_URI', '').strip()
+    
+    try:
+        cfg = conn.execute("SELECT app_id, app_secret, redirect_uri FROM meta_oauth_config WHERE id = 1").fetchone()
+        if cfg:
+            if not app_id and cfg['app_id']:
+                app_id = cfg['app_id'].strip()
+            if not app_secret and cfg['app_secret']:
+                app_secret = cfg['app_secret'].strip()
+            if not redirect_uri and cfg['redirect_uri']:
+                redirect_uri = cfg['redirect_uri'].strip()
+    except Exception:
+        pass
+        
+    if not redirect_uri:
+        if host_header:
+            scheme = 'http' if ('localhost' in host_header or '127.0.0.1' in host_header) else 'https'
+            redirect_uri = f"{scheme}://{host_header}/api/auth/facebook/callback"
+        else:
+            redirect_uri = "https://meutrackpro.onrender.com/api/auth/facebook/callback"
+            
+    if close_conn:
+        conn.close()
+        
+    return {
+        "app_id": app_id,
+        "app_secret": app_secret,
+        "redirect_uri": redirect_uri,
+        "is_configured": bool(app_id and app_secret)
+    }
+
+def call_meta_graph_api(endpoint, method='GET', params=None, body=None, access_token=None):
+    base_url = "https://graph.facebook.com/v19.0"
+    url = f"{base_url}/{endpoint.lstrip('/')}"
+    query = {}
+    if params:
+        query.update(params)
+    if access_token:
+        query['access_token'] = access_token
+    
+    if query:
+        url += ('&' if '?' in url else '?') + urllib.parse.urlencode(query)
+    
+    headers = {
+        'Accept': 'application/json',
+        'User-Agent': 'TrackPro-Tracker/2.5'
+    }
+    
+    req_data = None
+    if body is not None:
+        if isinstance(body, dict):
+            req_data = json.dumps(body).encode('utf-8')
+            headers['Content-Type'] = 'application/json'
+        elif isinstance(body, bytes):
+            req_data = body
+        else:
+            req_data = str(body).encode('utf-8')
+            
+    req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = resp.read().decode('utf-8')
+            return json.loads(data) if data else {}
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode('utf-8', errors='ignore')
+        try:
+            err_json = json.loads(err_body)
+            err_msg = err_json.get('error', {}).get('message', str(e))
+        except Exception:
+            err_msg = err_body or str(e)
+        raise Exception(f"Meta Graph API error ({e.code}): {err_msg}")
+    except Exception as e:
+        raise Exception(f"Erro de comunicação com Meta Graph API: {str(e)}")
 
 # ==================== PARSER UNIVERSAL DE WEBHOOKS ====================
 def parse_webhook_payload(headers, body):
@@ -945,45 +1074,75 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self.wfile.write(script.encode('utf-8'))
             return
 
-        # Dashboard Overview API (com suporte a filtros por dashboard/workspace)
+        # Dashboard Overview API (com suporte a filtros por período, contas, plataformas e produtos)
         if path in ['/api/dashboard', '/api/dashboard/overview']:
             conn = get_db()
             cursor = conn.cursor()
             
+            period = params.get('period', ['today'])[0]
             platform_filter = params.get('platform', ['all'])[0]
+            source_filter = params.get('source', ['all'])[0]
+            ad_account_filter = params.get('ad_account', ['all'])[0]
+            product_filter = params.get('product', ['all'])[0]
             dash_id = params.get('dashboard_id', [''])[0]
+            
             if dash_id:
                 d_row = cursor.execute("SELECT platform_filter FROM custom_dashboards WHERE id = ?", (dash_id,)).fetchone()
                 if d_row and d_row['platform_filter']:
                     platform_filter = d_row['platform_filter']
 
-            where_clause = ""
-            where_params = []
-            if platform_filter and platform_filter != 'all':
-                where_clause = "WHERE platform = ?"
-                where_params = [platform_filter]
+            # Filtro de Período SQLite
+            date_clause = ""
+            if period == 'today':
+                date_clause = "date(created_at, 'localtime') = date('now', 'localtime')"
+            elif period == 'yesterday':
+                date_clause = "date(created_at, 'localtime') = date('now', 'localtime', '-1 day')"
+            elif period == 'last_7_days':
+                date_clause = "created_at >= datetime('now', 'localtime', '-7 days')"
+            elif period == 'last_week':
+                date_clause = "created_at >= datetime('now', 'localtime', '-14 days') AND created_at < datetime('now', 'localtime', '-7 days')"
+            elif period == 'this_month':
+                date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')"
+            elif period == 'last_month':
+                date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')"
 
-            if where_clause:
-                paid_filter = where_clause + " AND status = 'paid'"
-                pending_filter = where_clause + " AND status = 'waiting_payment'"
-            else:
-                paid_filter = "WHERE status = 'paid'"
-                pending_filter = "WHERE status = 'waiting_payment'"
+            order_conds = []
+            order_params = []
+            if date_clause:
+                order_conds.append(date_clause)
+            if platform_filter and platform_filter != 'all':
+                order_conds.append("platform = ?")
+                order_params.append(platform_filter)
+            if source_filter and source_filter != 'all':
+                order_conds.append("utm_source = ?")
+                order_params.append(source_filter)
+            if product_filter and product_filter != 'all':
+                order_conds.append("product_id = ?")
+                order_params.append(product_filter)
+
+            base_where = ("WHERE " + " AND ".join(order_conds)) if order_conds else ""
+            paid_where = (base_where + " AND status = 'paid'") if base_where else "WHERE status = 'paid'"
+            pending_where = (base_where + " AND status = 'waiting_payment'") if base_where else "WHERE status = 'waiting_payment'"
 
             # 1. Vendas Aprovadas
-            query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {paid_filter}"
-            row_paid = cursor.execute(query_paid, where_params).fetchone()
+            query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {paid_where}"
+            row_paid = cursor.execute(query_paid, order_params).fetchone()
             tot_revenue = (row_paid['total'] or 0) / 100.0
             paid_ord = row_paid['count'] or 0
 
             # 2. Vendas Pendentes (Pix/Boleto aguardando)
-            query_pending = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {pending_filter}"
-            row_pending = cursor.execute(query_pending, where_params).fetchone()
+            query_pending = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {pending_where}"
+            row_pending = cursor.execute(query_pending, order_params).fetchone()
             pending_revenue = (row_pending['total'] or 0) / 100.0
             pending_ord = row_pending['count'] or 0
 
-            # 3. Gasto em Anúncios
-            row_spent = cursor.execute("SELECT COALESCE(SUM(total_spent_in_cents), 0) as total FROM campaigns").fetchone()
+            # 3. Gasto em Anúncios (filtrado por Conta se aplicável)
+            camp_where = ""
+            camp_params = []
+            if ad_account_filter and ad_account_filter != 'all':
+                camp_where = "WHERE ad_account_id = ?"
+                camp_params = [ad_account_filter]
+            row_spent = cursor.execute(f"SELECT COALESCE(SUM(total_spent_in_cents), 0) as total FROM campaigns {camp_where}", camp_params).fetchone()
             tot_spent = (row_spent['total'] or 0) / 100.0
 
             # 4. Taxas e Impostos Parametrizados (Configurações Financeiras)
@@ -1006,9 +1165,18 @@ class TrackProHandler(BaseHTTPRequestHandler):
             ticket_medio = round(tot_revenue / paid_ord, 2) if paid_ord > 0 else 0
 
             # 6. Tráfego e Funil (Pixel & Cliques)
-            row_pv = cursor.execute("SELECT COUNT(*) as count FROM tracking_events WHERE event_type = 'pageview'").fetchone()
+            event_conds = []
+            event_params = []
+            if date_clause:
+                event_conds.append(date_clause)
+            if source_filter and source_filter != 'all':
+                event_conds.append("utm_source = ?")
+                event_params.append(source_filter)
+            event_where = ("WHERE " + " AND ".join(event_conds)) if event_conds else ""
+
+            row_pv = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {('WHERE event_type = \"pageview\"' if not event_where else event_where + ' AND event_type = \"pageview\"')}", event_params).fetchone()
             pageviews = (row_pv['count'] or 0)
-            row_ic = cursor.execute("SELECT COUNT(*) as count FROM tracking_events WHERE event_type = 'initiate_checkout'").fetchone()
+            row_ic = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {('WHERE event_type = \"initiate_checkout\"' if not event_where else event_where + ' AND event_type = \"initiate_checkout\"')}", event_params).fetchone()
             initiate_checkout = (row_ic['count'] or 0) or int(paid_ord * 1.8 + pending_ord * 1.2)
             
             cliques = max(int(pageviews * 1.15), int(tot_spent * 1.8))
@@ -1022,12 +1190,30 @@ class TrackProHandler(BaseHTTPRequestHandler):
             taxa_checkout = round((paid_ord / initiate_checkout * 100.0), 1) if initiate_checkout > 0 else 0
             taxa_geral = round((paid_ord / cliques * 100.0), 2) if cliques > 0 else 0
 
+            # Estágios do Funil Contínuo
+            vendas_iniciadas = paid_ord + pending_ord
+            vendas_aprovadas = paid_ord
+
+            pct_clicks = 100.0 if cliques > 0 else 0.0
+            pct_pv = round((pageviews / cliques * 100.0), 1) if cliques > 0 else 0.0
+            pct_ic = round((initiate_checkout / cliques * 100.0), 1) if cliques > 0 else 0.0
+            pct_ord_init = round((vendas_iniciadas / cliques * 100.0), 1) if cliques > 0 else 0.0
+            pct_ord_paid = round((vendas_aprovadas / cliques * 100.0), 1) if cliques > 0 else 0.0
+
             funnel_data = {
                 "impressions": impressoes,
                 "clicks": cliques,
                 "pageviews": pageviews,
                 "initiate_checkout": initiate_checkout,
-                "purchases": paid_ord,
+                "orders_initiated": vendas_iniciadas,
+                "purchases": vendas_aprovadas,
+                "ribbon": {
+                    "clicks": {"label": "CLIQUES", "count": cliques, "pct": f"{pct_clicks:.0f}%"},
+                    "pageviews": {"label": "VIS. PÁGINA", "count": pageviews, "pct": f"{pct_pv:.1f}%"},
+                    "ic": {"label": "ICS", "count": initiate_checkout, "pct": f"{pct_ic:.1f}%"},
+                    "orders_initiated": {"label": "VENDAS INIC.", "count": vendas_iniciadas, "pct": f"{pct_ord_init:.1f}%"},
+                    "orders_paid": {"label": "VENDAS APR.", "count": vendas_aprovadas, "pct": f"{pct_ord_paid:.1f}%"}
+                },
                 "rates": {
                     "ctr": ctr,
                     "connect_rate": connect_rate,
@@ -1045,8 +1231,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
             churn_rate = 3.5 if paid_ord > 0 else 0
 
             # Fontes de tráfego
-            query_sources = f"SELECT utm_source, COUNT(*) as count, SUM(price_in_cents) as total FROM orders {paid_filter} GROUP BY utm_source"
-            sources_rows = cursor.execute(query_sources, where_params).fetchall()
+            query_sources = f"SELECT utm_source, COUNT(*) as count, SUM(price_in_cents) as total FROM orders {paid_where} GROUP BY utm_source"
+            sources_rows = cursor.execute(query_sources, order_params).fetchall()
             color_map = {'facebook': '#1877F2', 'instagram': '#E4405F', 'google': '#4285F4', 'tiktok': '#00F2FE', 'direto': '#10B981'}
             sources_chart = [
                 {
@@ -1061,10 +1247,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 SELECT o.id, o.order_external_id, o.customer_name, o.customer_email, o.price_in_cents,
                        o.status, o.platform, o.created_at, o.utm_source, o.utm_campaign, o.utm_content
                 FROM orders o
-                {where_clause}
+                {base_where}
                 ORDER BY o.created_at DESC LIMIT 15
             """
-            recent_rows = cursor.execute(query_orders, where_params).fetchall()
+            recent_rows = cursor.execute(query_orders, order_params).fetchall()
             recent_orders = [
                 {
                     "id": r['order_external_id'],
@@ -1082,7 +1268,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             ]
 
             # Campanhas
-            camp_rows = cursor.execute("SELECT * FROM campaigns ORDER BY total_spent_in_cents DESC").fetchall()
+            camp_rows = cursor.execute(f"SELECT * FROM campaigns {camp_where} ORDER BY total_spent_in_cents DESC", camp_params).fetchall()
             campaign_summary = [
                 {
                     "id": c['id'],
@@ -1093,6 +1279,16 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "dailyBudget": (c['daily_budget_in_cents'] or 0) / 100.0
                 } for c in camp_rows
             ]
+
+            # Opções de Filtro (para popular dinamicamente os selects da barra Resumo)
+            acc_rows = cursor.execute("SELECT account_id, name FROM facebook_ad_accounts WHERE user_id = 1").fetchall()
+            prod_rows = cursor.execute("SELECT id, name FROM products WHERE user_id = 1").fetchall()
+            filter_options = {
+                "ad_accounts": [{"id": r['account_id'], "name": r['name']} for r in acc_rows],
+                "platforms": ["Kiwify", "Hotmart", "Greenn", "Cakto", "Wiapy"],
+                "products": [{"id": str(p['id']), "name": p['name']} for p in prod_rows],
+                "sources": ["facebook", "instagram", "google", "tiktok", "direto"]
+            }
 
             conn.close()
 
@@ -1132,7 +1328,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 "revenueChart": [],
                 "sourcesChart": sources_chart,
                 "recentOrders": recent_orders,
-                "campaignSummary": campaign_summary
+                "campaignSummary": campaign_summary,
+                "filterOptions": filter_options
             }
             self._send_json(resp)
             return
@@ -1221,124 +1418,256 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"campaigns": campaigns})
             return
 
-        # Tela Oficial do Facebook Login Popup (Zero Tokens)
-        if path == '/api/auth/facebook':
-            html_content = """<!DOCTYPE html>
+        # Meta OAuth Status Check
+        if path == '/api/auth/facebook/status':
+            conn = get_db()
+            cfg = get_meta_config(conn, self.headers.get('Host'))
+            conn_row = conn.execute("SELECT * FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
+            accounts = conn.execute("SELECT account_id, name, currency, status FROM facebook_ad_accounts WHERE user_id = 1").fetchall()
+            
+            perms = []
+            if conn_row and conn_row['permissions']:
+                try:
+                    perms = json.loads(conn_row['permissions'])
+                except Exception:
+                    perms = [p.strip() for p in conn_row['permissions'].split(',') if p.strip()]
+
+            resp = {
+                "configured": cfg['is_configured'],
+                "app_id": cfg['app_id'][:4] + '***' + cfg['app_id'][-2:] if len(cfg['app_id']) > 6 else cfg['app_id'],
+                "redirect_uri": cfg['redirect_uri'],
+                "connected": bool(conn_row),
+                "meta_user_name": conn_row['meta_user_name'] if conn_row else None,
+                "meta_user_id": conn_row['meta_user_id'] if conn_row else None,
+                "expires_at": conn_row['expires_at'] if conn_row else None,
+                "permissions": perms,
+                "ad_accounts": [dict(a) for a in accounts]
+            }
+            conn.close()
+            self._send_json(resp)
+            return
+
+        # Iniciar Fluxo Oficial Meta OAuth 2.0
+        if path in ['/api/auth/facebook', '/api/auth/facebook/login']:
+            conn = get_db()
+            cfg = get_meta_config(conn, self.headers.get('Host'))
+            
+            if not cfg['is_configured']:
+                conn.close()
+                self._send_json({
+                    "error": "Meta App ID ou Secret não configurados.",
+                    "configured": False,
+                    "redirect_uri": cfg['redirect_uri']
+                }, 400)
+                return
+
+            state = uuid.uuid4().hex
+            conn.execute("INSERT OR REPLACE INTO facebook_oauth_states (state, user_id, created_at) VALUES (?, 1, CURRENT_TIMESTAMP)", (state,))
+            conn.commit()
+            conn.close()
+
+            scopes = "ads_read,ads_management,read_insights,business_management,public_profile"
+            oauth_url = (
+                f"https://www.facebook.com/v19.0/dialog/oauth?"
+                f"client_id={urllib.parse.quote(cfg['app_id'])}"
+                f"&redirect_uri={urllib.parse.quote(cfg['redirect_uri'])}"
+                f"&state={urllib.parse.quote(state)}"
+                f"&scope={urllib.parse.quote(scopes)}"
+                f"&response_type=code"
+            )
+
+            self.send_response(302)
+            self.send_header('Location', oauth_url)
+            self._send_cors_headers()
+            self.end_headers()
+            return
+
+        # Callback Oficial da Meta (Facebook OAuth 2.0)
+        if path == '/api/auth/facebook/callback':
+            code = params.get('code', [''])[0]
+            state = params.get('state', [''])[0]
+            error = params.get('error', [''])[0]
+            error_desc = params.get('error_description', [params.get('error_message', ['Erro na autorização da Meta'])])[0]
+
+            conn = get_db()
+            cfg = get_meta_config(conn, self.headers.get('Host'))
+
+            if error or not code:
+                conn.close()
+                html_err = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Facebook Login - Vincular TrackPro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Erro ao Conectar Meta Ads</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
 </head>
-<body class="bg-[#F0F2F5] min-h-screen flex flex-col justify-between">
-  <!-- Facebook Blue Header -->
-  <header class="bg-[#1877F2] text-white py-3.5 px-6 shadow-sm flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-      <span class="font-bold text-lg tracking-tight">facebook</span>
+<body class="bg-[#0B0F19] text-white flex items-center justify-center min-h-screen p-4 font-sans">
+  <div class="bg-[#111827] border border-rose-500/30 p-8 rounded-2xl max-w-md w-full text-center shadow-2xl space-y-4">
+    <div class="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/30">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
     </div>
-    <span class="text-xs text-blue-100 font-medium">Autenticação Segura</span>
-  </header>
+    <h2 class="text-xl font-bold text-white">Falha na Autorização Meta</h2>
+    <p class="text-slate-300 text-xs leading-relaxed">{error_desc}</p>
+    <button onclick="window.close()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs">
+      Fechar Janela
+    </button>
+  </div>
+</body>
+</html>"""
+                self.send_response(400)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(html_err.encode('utf-8'))
+                return
 
-  <!-- Login Dialog Box -->
-  <main class="max-w-md w-full mx-auto p-4 my-auto">
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-      <!-- App Brand Header -->
-      <div class="p-6 text-center border-b border-slate-100">
-        <div class="w-16 h-16 bg-[#1877F2]/10 text-[#1877F2] rounded-2xl flex items-center justify-center mx-auto mb-3">
-          <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        </div>
-        <h2 class="text-lg font-bold text-slate-900">Vincular TrackPro ao Facebook</h2>
-        <p class="text-xs text-slate-500 mt-1">Conecte suas contas de anúncio para rastreamento de ROI, campanhas e regras automáticas</p>
-      </div>
+            # Validação anti-CSRF do State
+            state_row = conn.execute("SELECT state FROM facebook_oauth_states WHERE state = ?", (state,)).fetchone()
+            if not state_row:
+                conn.close()
+                self.send_response(400)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(b"<h1>Erro de Seguranca: Token CSRF (state) invalido ou expirado. Tente novamente.</h1>")
+                return
+            conn.execute("DELETE FROM facebook_oauth_states WHERE state = ?", (state,))
+            conn.commit()
 
-      <!-- User Profile & Permissions -->
-      <div class="p-6 space-y-4 text-xs text-slate-600">
-        <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-          <div class="w-10 h-10 rounded-full bg-[#1877F2] text-white font-bold flex items-center justify-center text-sm shadow-sm">
-            FB
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="font-bold text-slate-900 text-sm truncate">Seu Perfil do Facebook</div>
-            <div class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Sessão Ativa
-            </div>
-          </div>
-        </div>
+            try:
+                # 1. Troca de code por short-lived token
+                token_resp = call_meta_graph_api('oauth/access_token', params={
+                    'client_id': cfg['app_id'],
+                    'client_secret': cfg['app_secret'],
+                    'redirect_uri': cfg['redirect_uri'],
+                    'code': code
+                })
+                short_token = token_resp.get('access_token')
+                if not short_token:
+                    raise Exception("A Meta nao retornou access_token na troca de codigo.")
 
-        <div class="space-y-2 pt-1">
-          <div class="font-semibold text-slate-800">O TrackPro receberá acesso a:</div>
-          <div class="space-y-1.5 text-slate-600 text-[11px]">
-            <div class="flex items-center gap-2">
-              <span class="text-emerald-500 font-bold">✓</span>
-              <span>Suas Contas de Anúncio e BMs</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-emerald-500 font-bold">✓</span>
-              <span>Visualização de Campanhas e Gastos</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-emerald-500 font-bold">✓</span>
-              <span>Gerenciamento de Status (Ativar / Pausar)</span>
-            </div>
-          </div>
-        </div>
-      </div>
+                # 2. Troca por Long-Lived Token (60 dias)
+                long_resp = call_meta_graph_api('oauth/access_token', params={
+                    'grant_type': 'fb_exchange_token',
+                    'client_id': cfg['app_id'],
+                    'client_secret': cfg['app_secret'],
+                    'fb_exchange_token': short_token
+                })
+                final_token = long_resp.get('access_token', short_token)
+                expires_in = long_resp.get('expires_in', 5184000)
+                expires_at = datetime.fromtimestamp(datetime.utcnow().timestamp() + int(expires_in)).strftime('%Y-%m-%d %H:%M:%S')
 
-      <!-- Buttons -->
-      <div class="p-6 bg-slate-50 border-t border-slate-100 flex flex-col gap-2.5">
-        <button id="btn-confirm" onclick="confirmFacebookLogin()" class="w-full py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
-          <span>Continuar como Seu Perfil</span>
-        </button>
-        <button onclick="window.close()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-600 rounded-xl font-semibold text-xs border border-slate-200 transition-colors">
-          Cancelar
-        </button>
-      </div>
+                # 3. Identifica usuario da Meta
+                user_info = call_meta_graph_api('me', params={'fields': 'id,name,email'}, access_token=final_token)
+                meta_user_id = user_info.get('id', '')
+                meta_user_name = user_info.get('name', 'Usuario Meta')
+
+                # 4. Identifica permissoes
+                perms_data = call_meta_graph_api('me/permissions', access_token=final_token)
+                granted_perms = [p.get('permission') for p in perms_data.get('data', []) if p.get('status') == 'granted']
+
+                # 5. Salva conexao
+                conn.execute("""
+                    INSERT INTO facebook_connections (user_id, meta_user_id, meta_user_name, access_token, expires_at, permissions, status, updated_at)
+                    VALUES (1, ?, ?, ?, ?, ?, 'connected', CURRENT_TIMESTAMP)
+                """, (meta_user_id, meta_user_name, final_token, expires_at, json.dumps(granted_perms)))
+
+                # 6. Busca Contas de Anuncio reais autorizadas
+                ad_accounts_data = call_meta_graph_api('me/adaccounts', params={
+                    'fields': 'id,name,account_id,account_status,currency,amount_spent,business',
+                    'limit': '50'
+                }, access_token=final_token)
+
+                accounts_saved = 0
+                for acc in ad_accounts_data.get('data', []):
+                    raw_id = acc.get('account_id') or acc.get('id', '').replace('act_', '')
+                    name = acc.get('name') or f"Conta {raw_id}"
+                    currency = acc.get('currency', 'BRL')
+                    status_code = acc.get('account_status', 1)
+                    status_str = 'ACTIVE' if status_code == 1 else 'DISABLED'
+                    
+                    existing = conn.execute("SELECT id FROM facebook_ad_accounts WHERE account_id = ? AND user_id = 1", (raw_id,)).fetchone()
+                    if existing:
+                        conn.execute("""
+                            UPDATE facebook_ad_accounts SET name = ?, access_token = ?, currency = ?, status = ?
+                            WHERE id = ?
+                        """, (name, final_token, currency, status_str, existing['id']))
+                    else:
+                        conn.execute("""
+                            INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, status)
+                            VALUES (1, ?, ?, ?, ?, ?)
+                        """, (raw_id, name, final_token, currency, status_str))
+                    accounts_saved += 1
+
+                conn.commit()
+                conn.close()
+
+                html_ok = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Meta Conectada com Sucesso</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0B0F19] text-white flex items-center justify-center min-h-screen p-4 font-sans">
+  <div class="bg-[#111827] border border-emerald-500/30 p-8 rounded-2xl max-w-md w-full text-center shadow-2xl space-y-4">
+    <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto border border-emerald-500/30">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
     </div>
-    <div class="text-center text-[11px] text-slate-400 mt-4">
-      Esta conexão não dá acesso à sua senha pessoal nem às suas mensagens privadas.
-    </div>
-  </main>
-
-  <footer class="text-center text-[11px] text-slate-400 py-4">
-    Meta Platforms, Inc. • Conexão Segura OAuth 2.0
-  </footer>
-
+    <h2 class="text-xl font-bold text-white">Conta Meta Conectada!</h2>
+    <p class="text-slate-300 text-xs leading-relaxed">
+      Perfil de <strong>{meta_user_name}</strong> autenticado via OAuth 2.0 oficial. {accounts_saved} conta(s) de anuncio importada(s) com sucesso para o TrackPro.
+    </p>
+    <button onclick="finishLogin()" class="w-full py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-500/20 transition-all">
+      Concluir e Voltar
+    </button>
+  </div>
   <script>
-    async function confirmFacebookLogin() {
-      const btn = document.getElementById('btn-confirm');
-      btn.disabled = true;
-      btn.innerHTML = 'Vinculando contas ao TrackPro...';
-      try {
-        const res = await fetch('/api/auth/facebook/confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
-        });
-        const data = await res.json();
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage({ type: 'TRACKPRO_FB_CONNECTED', accounts: data.accounts }, '*');
-        }
-        btn.innerHTML = '✓ Conectado! Fechando janela...';
-        setTimeout(() => window.close(), 600);
-      } catch (e) {
-        alert('Erro ao confirmar login do Facebook: ' + e.message);
-        btn.disabled = false;
-        btn.innerHTML = 'Continuar como Seu Perfil';
-      }
-    }
+    function finishLogin() {{
+      if (window.opener && !window.opener.closed) {{
+        window.opener.postMessage({{ type: 'TRACKPRO_FB_CONNECTED', user: '{meta_user_name}', count: {accounts_saved} }}, '*');
+      }}
+      window.close();
+    }}
+    setTimeout(finishLogin, 1500);
   </script>
 </body>
 </html>"""
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self._send_cors_headers()
-            self.end_headers()
-            self.wfile.write(html_content.encode('utf-8'))
-            return
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(html_ok.encode('utf-8'))
+                return
+
+            except Exception as e:
+                conn.close()
+                html_fail = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Erro ao Validar Token Meta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0B0F19] text-white flex items-center justify-center min-h-screen p-4 font-sans">
+  <div class="bg-[#111827] border border-rose-500/30 p-8 rounded-2xl max-w-md w-full text-center shadow-2xl space-y-4">
+    <div class="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/30">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </div>
+    <h2 class="text-xl font-bold text-white">Falha na Validacao do Token</h2>
+    <p class="text-slate-300 text-xs leading-relaxed">{str(e)}</p>
+    <button onclick="window.close()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs">
+      Fechar Janela
+    </button>
+  </div>
+</body>
+</html>"""
+                self.send_response(500)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(html_fail.encode('utf-8'))
+                return
 
         # Conjuntos de Anúncio isolados com filtro opcional por múltiplas campanhas
         if path in ['/api/facebook/adsets', '/api/adsets']:
@@ -1759,25 +2088,90 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"success": True, "campaign_id": camp_id, "message": f"Campanha {name} criada com sucesso!"})
             return
 
-        # Confirmar Vinculação Direta do Facebook (Zero Tokens)
-        if path == '/api/auth/facebook/confirm':
+        # Configurar Credenciais Oficiais Meta OAuth
+        if path == '/api/auth/facebook/config':
+            app_id = body.get('app_id', '').strip()
+            app_secret = body.get('app_secret', '').strip()
+            redirect_uri = body.get('redirect_uri', '').strip()
+            if not app_id or not app_secret:
+                self._send_json({"error": "App ID e App Secret são obrigatórios"}, 400)
+                return
             conn = get_db()
-            cursor = conn.cursor()
-            default_accounts = [
-                {"account_id": "1092837465019", "name": "BM Principal (Escala Direta)", "currency": "BRL", "status": "ACTIVE"},
-                {"account_id": "2837465019283", "name": "BM Contingência 02 (Testes Criativos)", "currency": "BRL", "status": "ACTIVE"},
-                {"account_id": "3746501928374", "name": "BM 03 - Remarketing & LTV", "currency": "BRL", "status": "ACTIVE"}
-            ]
-            for acc in default_accounts:
-                exists = cursor.execute("SELECT id FROM facebook_ad_accounts WHERE account_id = ? AND user_id = 1", (acc['account_id'],)).fetchone()
-                if not exists:
-                    cursor.execute("""
-                        INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, status)
-                        VALUES (1, ?, ?, 'oauth_meta_connected', ?, ?)
-                    """, (acc['account_id'], acc['name'], acc['currency'], acc['status']))
+            conn.execute("""
+                INSERT OR REPLACE INTO meta_oauth_config (id, app_id, app_secret, redirect_uri, updated_at)
+                VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (app_id, app_secret, redirect_uri))
             conn.commit()
             conn.close()
-            self._send_json({"success": True, "message": "Contas do Facebook vinculadas com sucesso!", "accounts": default_accounts})
+            self._send_json({"success": True, "message": "Credenciais Meta salvas com sucesso!"})
+            return
+
+        # Desconectar Conta Meta e Revogar Permissoes
+        if path == '/api/auth/facebook/disconnect':
+            conn = get_db()
+            conn_row = conn.execute("SELECT access_token FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
+            if conn_row and conn_row['access_token']:
+                try:
+                    call_meta_graph_api('me/permissions', method='DELETE', access_token=conn_row['access_token'])
+                except Exception:
+                    pass
+            conn.execute("UPDATE facebook_connections SET status = 'disconnected' WHERE user_id = 1")
+            conn.execute("UPDATE facebook_ad_accounts SET access_token = NULL WHERE user_id = 1")
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Conta Meta desconectada e permissoes revogadas com sucesso."})
+            return
+
+        # Sincronizacao Real de Campanhas e Gastos da Meta Marketing API
+        if path == '/api/facebook/sync':
+            conn = get_db()
+            cursor = conn.cursor()
+            accounts = cursor.execute("SELECT account_id, access_token FROM facebook_ad_accounts WHERE user_id = 1 AND access_token IS NOT NULL AND access_token != ''").fetchall()
+            
+            if not accounts:
+                conn.close()
+                self._send_json({"error": "Nenhuma conta Meta conectada com token ativo para sincronizar."}, 400)
+                return
+
+            synced_count = 0
+            for acc in accounts:
+                acc_id = acc['account_id']
+                token = acc['access_token']
+                try:
+                    camp_data = call_meta_graph_api(f"act_{acc_id}/campaigns", params={
+                        'fields': 'id,name,status,daily_budget,lifetime_budget,insights{spend,clicks,impressions,cpc,cpm,ctr}',
+                        'limit': '50'
+                    }, access_token=token)
+
+                    for c in camp_data.get('data', []):
+                        c_ext_id = c.get('id')
+                        c_name = c.get('name', 'Campanha Meta')
+                        c_status = 'active' if c.get('status') == 'ACTIVE' else 'paused'
+                        daily_budget_cents = int(float(c.get('daily_budget') or 5000))
+                        
+                        insights = (c.get('insights', {}).get('data', [{}])[0]) if c.get('insights') else {}
+                        spend_float = float(insights.get('spend') or 0.0)
+                        spend_cents = int(spend_float * 100)
+
+                        existing_c = cursor.execute("SELECT id FROM campaigns WHERE external_campaign_id = ? OR name = ?", (c_ext_id, c_name)).fetchone()
+                        if existing_c:
+                            cursor.execute("""
+                                UPDATE campaigns
+                                SET name = ?, status = ?, daily_budget_in_cents = ?, total_spent_in_cents = ?, ad_account_id = ?, external_campaign_id = ?
+                                WHERE id = ?
+                            """, (c_name, c_status, daily_budget_cents, spend_cents, acc_id, c_ext_id, existing_c['id']))
+                        else:
+                            cursor.execute("""
+                                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id, external_campaign_id)
+                                VALUES (1, ?, 'facebook', ?, ?, ?, ?, ?)
+                            """, (c_name, c_status, daily_budget_cents, spend_cents, acc_id, c_ext_id))
+                        synced_count += 1
+                except Exception:
+                    pass
+
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "synced_campaigns": synced_count, "message": f"{synced_count} campanha(s) sincronizada(s) da Meta com sucesso!"})
             return
 
         # Ações em Massa (Bulk Actions para Campanhas, Conjuntos e Anúncios)

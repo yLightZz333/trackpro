@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>TrackPro — Atribuição, Meta Ads & Automações</title>
+  <title>TrackPro</title>
   
   <!-- Favicon & App Icons (Desktop & Mobile PWA) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%23059669'/%3E%3Cstop offset='100%25' stop-color='%2334d399'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Cg stroke='%23ffffff' stroke-width='6.5' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Ccircle cx='50' cy='50' r='26'/%3E%3Cline x1='50' y1='14' x2='50' y2='24'/%3E%3Cline x1='50' y1='76' x2='50' y2='86'/%3E%3Cline x1='14' y1='50' x2='24' y2='50'/%3E%3Cline x1='76' y1='50' x2='86' y2='50'/%3E%3Ccircle cx='50' cy='50' r='3' fill='%23ffffff'/%3E%3C/g%3E%3C/svg%3E">
@@ -378,7 +378,8 @@
           <!-- Container do Funil em Fita Fluida -->
           <div class="relative w-full rounded-2xl overflow-hidden py-2 select-none">
             <!-- Ribbon SVG Fluida Horizontal com Gradiente Azul -> Roxo -> Rosa -->
-            <svg viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
+            <!-- Ribbon SVG Fluida Horizontal com Gradiente Azul -> Roxo -> Rosa -->
+            <svg id="meta-funnel-svg" viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
               <defs>
                 <linearGradient id="metaFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#1E3A8A" />
@@ -389,13 +390,13 @@
                   <stop offset="100%" stop-color="#E11D48" />
                 </linearGradient>
               </defs>
-              <!-- Geometria do Funil Tapering Uniforme -->
-              <path d="M 0 14 C 100 14, 150 24, 200 24 C 280 24, 320 38, 400 38 C 480 38, 520 52, 600 52 C 680 52, 720 58, 800 58 L 1000 58 L 1000 102 L 800 102 C 720 102, 680 108, 600 108 C 520 108, 480 122, 400 122 C 320 122, 280 136, 200 136 C 150 136, 100 146, 0 146 Z" fill="url(#metaFunnelGrad)"/>
+              <!-- Geometria Dinâmica Adaptativa do Funil -->
+              <path id="meta-funnel-path" d="M 0 14 C 100 14, 150 24, 200 24 C 280 24, 320 38, 400 38 C 480 38, 520 52, 600 52 C 680 52, 720 58, 800 58 L 1000 58 L 1000 102 L 800 102 C 720 102, 680 108, 600 108 C 520 108, 480 122, 400 122 C 320 122, 280 136, 200 136 C 150 136, 100 146, 0 146 Z" fill="url(#metaFunnelGrad)" style="transition: d 0.4s ease-in-out;"/>
               <!-- Linhas Divisórias Verticais Finas -->
-              <line x1="200" y1="24" x2="200" y2="136" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line x1="400" y1="38" x2="400" y2="122" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line x1="600" y1="52" x2="600" y2="108" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
-              <line x1="800" y1="58" x2="800" y2="102" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-1" x1="200" y1="24" x2="200" y2="136" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-2" x1="400" y1="38" x2="400" y2="122" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-3" x1="600" y1="52" x2="600" y2="108" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
+              <line id="funnel-div-4" x1="800" y1="58" x2="800" y2="102" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5" />
             </svg>
 
             <!-- Grade Sobreposta com os 5 Estágios Exatos da Referência -->
@@ -438,27 +439,41 @@
           </div>
         </div>
 
-        <!-- Gráfico e Fontes de Tráfego -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          <div class="lg:col-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5">
-            <div class="flex items-center justify-between mb-4">
+        <!-- Gráficos: Vendas por Horário | Canais & UTM | Vendas por Método -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
               <div>
-                <h3 class="font-bold text-sm text-white">Vendas por Horário (Hoje)</h3>
-                <span class="text-xs text-slate-400">Atualizado em tempo real</span>
+                <h3 class="font-bold text-sm text-white">Vendas por Horário</h3>
+                <span class="text-xs text-slate-400">Distribuição no período ativo</span>
               </div>
+              <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Hoje</span>
             </div>
-            <div class="h-60 flex items-center justify-center">
+            <div class="flex-1 flex items-center justify-center min-h-[180px]">
               <canvas id="revenueChart"></canvas>
             </div>
           </div>
 
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col">
-            <h3 class="font-bold text-sm text-white mb-1">Canais & Fontes (UTM)</h3>
-            <span class="text-xs text-slate-400 mb-4">Origem do tráfego das compras</span>
-            <div class="flex-1 flex items-center justify-center min-h-[180px]">
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-sm text-white mb-0.5">Canais & Fontes (UTM)</h3>
+              <span class="text-xs text-slate-400">Origem de tráfego das compras</span>
+            </div>
+            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2">
               <canvas id="sourcesChart"></canvas>
             </div>
-            <div id="sources-legend" class="mt-4 space-y-1.5 text-xs text-slate-300"></div>
+            <div id="sources-legend" class="space-y-1.5 text-xs text-slate-300"></div>
+          </div>
+
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-sm text-white mb-0.5">Vendas por Método</h3>
+              <span class="text-xs text-slate-400">PIX, Cartão de Crédito e Boleto</span>
+            </div>
+            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2">
+              <canvas id="paymentMethodsChart"></canvas>
+            </div>
+            <div id="payment-methods-legend" class="space-y-1.5 text-xs text-slate-300"></div>
           </div>
         </div>
 
@@ -1077,6 +1092,23 @@
         <!-- SEÇÃO COMPLETA: SCRIPTS DO SITE & PROMPT IA -->
         <!-- ========================================== -->
         <div id="site-tracking-scripts" class="space-y-4 pt-2">
+          <!-- Seletor do Pixel Meta Cadastrado para Preenchimento Automático -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                <i data-lucide="crosshair" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm text-white">Preenchimento Automático do Pixel Meta</h4>
+                <p class="text-xs text-slate-400">Selecione seu pixel cadastrado para gerar os códigos já com seu ID sem precisar alterar manualmente:</p>
+              </div>
+            </div>
+            <div class="w-full sm:w-80">
+              <select id="script-pixel-selector" onchange="updatePixelSnippets()" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none">
+                <option value="">Carregando pixels...</option>
+              </select>
+            </div>
+          </div>
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
               <h2 class="text-lg font-bold text-white flex items-center gap-2">
@@ -1875,6 +1907,378 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     let lastOrderCount = -1;
     let revenueChartInstance = null;
     let sourcesChartInstance = null;
+    let paymentMethodsChartInstance = null;
+    let cachedRegisteredPixels = [];
+
+    // ==================== FUNIL ADAPTATIVO & DINÂMICO ====================
+    function updateFunnelRibbon(f) {
+      if (!f) return;
+      const clicks = Number(f.clicks || 0);
+      const pv = Number(f.pageviews || 0);
+      const ic = Number(f.initiate_checkout || 0);
+      const ordInit = Number(f.orders_initiated || 0);
+      const ordPaid = Number(f.purchases || 0);
+
+      const baseClicks = Math.max(1, clicks);
+      const rPv = clicks > 0 ? (pv / baseClicks) : 0.8;
+      const rIc = clicks > 0 ? (ic / baseClicks) : 0.45;
+      const rInit = clicks > 0 ? (ordInit / baseClicks) : 0.25;
+      const rPaid = clicks > 0 ? (ordPaid / baseClicks) : 0.15;
+
+      // Altura total SVG é 160. Centro y = 80.
+      function getHalfHeight(ratio, count) {
+        if (clicks > 0 && count === 0) return 2; // afina quase a zero se zerou o estágio!
+        const h = Math.max(4, Math.min(136, 136 * Math.pow(Math.max(0.015, ratio), 0.65)));
+        return h / 2;
+      }
+
+      const h0 = clicks === 0 ? 55 : 68;
+      const h1 = getHalfHeight(rPv, pv);
+      const h2 = getHalfHeight(rIc, ic);
+      const h3 = getHalfHeight(rInit, ordInit);
+      const h4 = getHalfHeight(rPaid, ordPaid);
+
+      const top0 = 80 - h0, bot0 = 80 + h0;
+      const top1 = 80 - h1, bot1 = 80 + h1;
+      const top2 = 80 - h2, bot2 = 80 + h2;
+      const top3 = 80 - h3, bot3 = 80 + h3;
+      const top4 = 80 - h4, bot4 = 80 + h4;
+
+      const pathD = `M 0 ${top0.toFixed(1)} ` +
+        `C 100 ${top0.toFixed(1)}, 100 ${top1.toFixed(1)}, 200 ${top1.toFixed(1)} ` +
+        `C 300 ${top1.toFixed(1)}, 300 ${top2.toFixed(1)}, 400 ${top2.toFixed(1)} ` +
+        `C 500 ${top2.toFixed(1)}, 500 ${top3.toFixed(1)}, 600 ${top3.toFixed(1)} ` +
+        `C 700 ${top3.toFixed(1)}, 700 ${top4.toFixed(1)}, 800 ${top4.toFixed(1)} ` +
+        `L 1000 ${top4.toFixed(1)} ` +
+        `L 1000 ${bot4.toFixed(1)} ` +
+        `L 800 ${bot4.toFixed(1)} ` +
+        `C 700 ${bot4.toFixed(1)}, 700 ${bot3.toFixed(1)}, 600 ${bot3.toFixed(1)} ` +
+        `C 500 ${bot3.toFixed(1)}, 500 ${bot2.toFixed(1)}, 400 ${bot2.toFixed(1)} ` +
+        `C 300 ${bot2.toFixed(1)}, 300 ${bot1.toFixed(1)}, 200 ${bot1.toFixed(1)} ` +
+        `C 100 ${bot1.toFixed(1)}, 100 ${bot0.toFixed(1)}, 0 ${bot0.toFixed(1)} Z`;
+
+      const pathEl = document.getElementById('meta-funnel-path');
+      if (pathEl) pathEl.setAttribute('d', pathD);
+
+      const d1 = document.getElementById('funnel-div-1');
+      if (d1) { d1.setAttribute('y1', top1.toFixed(1)); d1.setAttribute('y2', bot1.toFixed(1)); }
+      const d2 = document.getElementById('funnel-div-2');
+      if (d2) { d2.setAttribute('y1', top2.toFixed(1)); d2.setAttribute('y2', bot2.toFixed(1)); }
+      const d3 = document.getElementById('funnel-div-3');
+      if (d3) { d3.setAttribute('y1', top3.toFixed(1)); d3.setAttribute('y2', bot3.toFixed(1)); }
+      const d4 = document.getElementById('funnel-div-4');
+      if (d4) { d4.setAttribute('y1', top4.toFixed(1)); d4.setAttribute('y2', bot4.toFixed(1)); }
+
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setEl('funnel-ribbon-cnt-clicks', clicks.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-clicks', '100%');
+
+      setEl('funnel-ribbon-cnt-pageviews', pv.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-pageviews', `${(clicks > 0 ? (pv / clicks * 100) : 0).toFixed(1)}%`);
+
+      setEl('funnel-ribbon-cnt-ic', ic.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-ic', `${(clicks > 0 ? (ic / clicks * 100) : 0).toFixed(1)}%`);
+
+      setEl('funnel-ribbon-cnt-orders-init', ordInit.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-orders-init', `${(clicks > 0 ? (ordInit / clicks * 100) : 0).toFixed(1)}%`);
+
+      setEl('funnel-ribbon-cnt-orders-paid', ordPaid.toLocaleString('pt-BR'));
+      setEl('funnel-ribbon-pct-orders-paid', `${(clicks > 0 ? (ordPaid / clicks * 100) : 0).toFixed(1)}%`);
+    }
+
+    // ==================== GRÁFICOS: HORÁRIO | CANAIS | MÉTODOS DE PAGAMENTO ====================
+    function renderRevenueChart(hourlyData) {
+      const ctx = document.getElementById('revenueChart');
+      if (!ctx) return;
+      if (revenueChartInstance) revenueChartInstance.destroy();
+
+      const labels = Array.from({length: 24}, (_, i) => `${String(i).padStart(2, '0')}h`);
+      const values = Array(24).fill(0);
+      if (Array.isArray(hourlyData)) {
+        hourlyData.forEach(d => {
+          const h = parseInt(d.hour, 10);
+          if (h >= 0 && h < 24) values[h] = d.value || 0;
+        });
+      }
+
+      revenueChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Vendas (R$)',
+            data: values,
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 1.5,
+            pointHoverRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` R$ ${Number(ctx.raw).toFixed(2)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#64748B', font: { size: 9 }, maxTicksLimit: 12 }
+            },
+            y: {
+              grid: { color: '#1E293B' },
+              ticks: {
+                color: '#64748B',
+                font: { size: 9 },
+                callback: (v) => 'R$ ' + v
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderSourcesChart(sourcesData) {
+      const ctx = document.getElementById('sourcesChart');
+      const legEl = document.getElementById('sources-legend');
+      if (!ctx) return;
+      if (sourcesChartInstance) sourcesChartInstance.destroy();
+
+      const dataArr = (sourcesData && sourcesData.length > 0) ? sourcesData : [
+        { name: 'Direto / Orgânico', value: 0, color: '#10B981' },
+        { name: 'Facebook Ads', value: 0, color: '#1877F2' },
+        { name: 'Instagram', value: 0, color: '#E4405F' },
+        { name: 'Google Ads', value: 0, color: '#4285F4' }
+      ];
+
+      const labels = dataArr.map(d => d.name);
+      const values = dataArr.map(d => d.value || 1);
+      const colors = dataArr.map(d => d.color || '#8B5CF6');
+      const totalVal = dataArr.reduce((a, b) => a + (b.value || 0), 0);
+
+      sourcesChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` R$ ${Number(dataArr[ctx.dataIndex].value || 0).toFixed(2)}`
+              }
+            }
+          }
+        }
+      });
+
+      if (legEl) {
+        legEl.innerHTML = dataArr.slice(0, 4).map(d => {
+          const pct = totalVal > 0 ? ((d.value / totalVal) * 100).toFixed(0) : '0';
+          return `
+            <div class="flex items-center justify-between py-0.5">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${d.color};"></span>
+                <span class="text-slate-300 font-medium truncate">${d.name}</span>
+              </div>
+              <span class="font-bold text-white text-xs">${pct}% (R$ ${Number(d.value).toFixed(2)})</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderPaymentMethodsChart(methodsData) {
+      const ctx = document.getElementById('paymentMethodsChart');
+      const legEl = document.getElementById('payment-methods-legend');
+      if (!ctx) return;
+      if (paymentMethodsChartInstance) paymentMethodsChartInstance.destroy();
+
+      const dataArr = (methodsData && methodsData.length > 0) ? methodsData : [
+        { name: 'PIX', count: 0, value: 0, color: '#10B981' },
+        { name: 'Cartão de Crédito', count: 0, value: 0, color: '#6366F1' },
+        { name: 'Boleto', count: 0, value: 0, color: '#F59E0B' },
+        { name: 'Outros', count: 0, value: 0, color: '#8B5CF6' }
+      ];
+
+      const labels = dataArr.map(d => d.name);
+      const values = dataArr.map(d => d.count || (d.value > 0 ? d.value : 1));
+      const colors = dataArr.map(d => d.color || '#6366F1');
+      const totalCount = dataArr.reduce((a, b) => a + (b.count || 0), 0);
+
+      paymentMethodsChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` ${dataArr[ctx.dataIndex].count} vendas (R$ ${Number(dataArr[ctx.dataIndex].value || 0).toFixed(2)})`
+              }
+            }
+          }
+        }
+      });
+
+      if (legEl) {
+        legEl.innerHTML = dataArr.slice(0, 4).map(d => {
+          const pct = totalCount > 0 ? ((d.count / totalCount) * 100).toFixed(0) : '0';
+          return `
+            <div class="flex items-center justify-between py-0.5">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${d.color};"></span>
+                <span class="text-slate-300 font-medium truncate">${d.name}</span>
+              </div>
+              <span class="font-bold text-white text-xs">${pct}% (${d.count} un)</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // ==================== SINCRONIZAÇÃO DINÂMICA DO PIXEL & PROMPT IA ====================
+    function updatePixelSnippets() {
+      const selector = document.getElementById('script-pixel-selector');
+      let pixelId = selector?.value || '';
+      if (!pixelId && cachedRegisteredPixels.length > 0) {
+        pixelId = cachedRegisteredPixels[0].pixel_id;
+      }
+      const displayId = pixelId || 'SEU_PIXEL_ID';
+
+      const scriptEl = document.getElementById('script-meta-pixel-code');
+      if (scriptEl) {
+        scriptEl.textContent = `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${displayId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${displayId}&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->`;
+      }
+
+      const promptEl = document.getElementById('ai-prompt-content');
+      if (promptEl) {
+        const origin = window.location.origin;
+        promptEl.value = `Instale o rastreamento profissional completo da minha landing page/site com o TrackPro e Facebook Pixel.
+
+1. Dentro da tag <head> do site (antes de fechar </head>), adicione estes DOIS scripts exatamente nesta ordem:
+
+<!-- 1. Script Global TrackPro (Captura e Repasse de UTMs + CAPI) -->
+<script src="${origin}/trackpro.js" async><\/script>
+
+<!-- 2. Meta Pixel Oficial do Facebook -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${displayId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${displayId}&ev=PageView&noscript=1"
+/></noscript>
+
+2. Em todos os botões ou links que levam para o checkout de pagamento, garanta que qualquer parâmetro UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck) presente na URL da página seja automaticamente anexado no link do checkout ao clicar.`;
+      }
+    }
+
+    function copyPixelCode(pixelId) {
+      const code = `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->`;
+      navigator.clipboard.writeText(code);
+      alert(`Script do Pixel (${pixelId}) copiado com sucesso! Cole na tag <head> do seu site.`);
+    }
+
+    function copyPixelAiPrompt(pixelId) {
+      const origin = window.location.origin;
+      const promptText = `Instale o rastreamento profissional completo da minha landing page/site com o TrackPro e Facebook Pixel.
+
+1. Dentro da tag <head> do site (antes de fechar </head>), adicione estes DOIS scripts exatamente nesta ordem:
+
+<!-- 1. Script Global TrackPro (Captura e Repasse de UTMs + CAPI) -->
+<script src="${origin}/trackpro.js" async><\/script>
+
+<!-- 2. Meta Pixel Oficial do Facebook -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
+/></noscript>
+
+2. Em todos os botões ou links que levam para o checkout de pagamento, garanta que qualquer parâmetro UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck) presente na URL da página seja automaticamente anexado no link do checkout ao clicar.`;
+      navigator.clipboard.writeText(promptText);
+      alert(`Mini-Prompt para IA copiado com o Pixel (${pixelId})! Cole no Cursor, v0 ou ChatGPT.`);
+    }
 
     // ==================== DEFINIÇÕES DE MÉTRICAS (PADRÃO UTMIFY) ====================
     const METRIC_DEFS = {
@@ -2114,14 +2518,19 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       { key: 'status', label: 'Status (Ativo/Pausado)', fixed: true },
       { key: 'name', label: 'Nome da Campanha', fixed: true },
       { key: 'budget', label: 'Orçamento Diário' },
-      { key: 'spent', label: 'Gasto Total' },
-      { key: 'sales', label: 'Vendas Aprovadas' },
+      { key: 'spent', label: 'Gasto no Período' },
+      { key: 'sales', label: 'Vendas (Compras)' },
+      { key: 'initiate_checkouts', label: 'IC (Checkouts Iniciados)' },
+      { key: 'cost_per_ic', label: 'Custo por IC (CPA IC)' },
+      { key: 'impressions', label: 'Impressões' },
+      { key: 'clicks', label: 'Cliques' },
+      { key: 'ctr', label: 'CTR (%)' },
+      { key: 'cpc', label: 'CPC' },
+      { key: 'cpm', label: 'CPM' },
       { key: 'revenue', label: 'Faturamento' },
       { key: 'roas', label: 'ROAS Real' },
       { key: 'cpa', label: 'CPA Médio' },
-      { key: 'profit', label: 'Lucro Estimado' },
-      { key: 'ctr', label: 'CTR Médio' },
-      { key: 'clicks', label: 'Cliques' },
+      { key: 'profit', label: 'Lucro Est.' },
       { key: 'actions', label: 'Ações (Duplicar/Editar)', fixed: true }
     ];
 
@@ -2131,6 +2540,11 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       'budget',
       'spent',
       'sales',
+      'initiate_checkouts',
+      'cost_per_ic',
+      'impressions',
+      'clicks',
+      'ctr',
       'revenue',
       'roas',
       'cpa',
@@ -2138,7 +2552,11 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
     ];
 
     let userVisibleMetrics = JSON.parse(localStorage.getItem('trackpro_visible_metrics') || 'null') || [...DEFAULT_VISIBLE_METRICS];
-    let userVisibleColumns = JSON.parse(localStorage.getItem('trackpro_visible_columns') || 'null') || [...DEFAULT_VISIBLE_COLUMNS];
+    let userVisibleColumns = JSON.parse(localStorage.getItem('trackpro_visible_columns') || 'null');
+    if (!userVisibleColumns || !userVisibleColumns.includes('initiate_checkouts')) {
+      userVisibleColumns = [...DEFAULT_VISIBLE_COLUMNS];
+      localStorage.setItem('trackpro_visible_columns', JSON.stringify(userVisibleColumns));
+    }
     let cardSizes = JSON.parse(localStorage.getItem('trackpro_card_sizes') || '{}');
     let draggedMetricKey = null;
     let lastCachedKpis = null;
@@ -2695,24 +3113,9 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
         // 3. Atualiza Cards Dinâmicos
         renderDynamicKpiCards(data.kpis);
 
-        // 4. Atualiza Funil Contínuo de Conversão (Meta ads Ribbon)
-        if (data.funnel && data.funnel.ribbon) {
-          const rib = data.funnel.ribbon;
-          const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-          setTxt('funnel-ribbon-pct-clicks', rib.clicks?.pct || '100%');
-          setTxt('funnel-ribbon-cnt-clicks', Number(rib.clicks?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-pageviews', rib.pageviews?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-pageviews', Number(rib.pageviews?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-ic', rib.ic?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-ic', Number(rib.ic?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-orders-init', rib.orders_initiated?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-orders-init', Number(rib.orders_initiated?.count || 0).toLocaleString('pt-BR'));
-
-          setTxt('funnel-ribbon-pct-orders-paid', rib.orders_paid?.pct || '0.0%');
-          setTxt('funnel-ribbon-cnt-orders-paid', Number(rib.orders_paid?.count || 0).toLocaleString('pt-BR'));
+        // 4. Atualiza Funil Contínuo Adaptativo de Conversão (Meta Ads Ribbon Dinâmico)
+        if (data.funnel) {
+          updateFunnelRibbon(data.funnel);
         }
 
         // 3. Tabela de Pedidos Recentes
@@ -2751,7 +3154,9 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
           lastOrderCount = totalOrders;
         }
 
+        renderRevenueChart(data.revenueChart || []);
         renderSourcesChart(data.sourcesChart || []);
+        renderPaymentMethodsChart(data.paymentMethodsChart || []);
 
         if (currentTab === 'campaigns') loadCampaignsData();
         if (currentTab === 'rules') loadRulesData();
@@ -3085,15 +3490,20 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       const colLabels = {
         status: 'Status',
         name: 'Nome da Campanha',
-        budget: 'Orçamento Diário',
-        spent: 'Gasto Total',
+        budget: 'Orçamento',
+        spent: 'Gasto',
         sales: 'Vendas',
-        revenue: 'Faturamento',
-        roas: 'ROAS Real',
-        cpa: 'CPA Médio',
-        profit: 'Lucro Est.',
-        ctr: 'CTR Médio',
+        initiate_checkouts: 'IC (Checkouts)',
+        cost_per_ic: 'CPA IC',
+        impressions: 'Impressões',
         clicks: 'Cliques',
+        ctr: 'CTR',
+        cpc: 'CPC',
+        cpm: 'CPM',
+        revenue: 'Faturamento',
+        roas: 'ROAS',
+        cpa: 'CPA',
+        profit: 'Lucro Est.',
         actions: 'Ações'
       };
 
@@ -3107,14 +3517,12 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       }
 
       if (!campaigns || campaigns.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${cols.length + 1}" class="py-8 text-center text-slate-500">Nenhuma campanha cadastrada. Clique em "+ Nova Campanha" para criar ou "Conectar Facebook" para importar.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${cols.length + 1}" class="py-8 text-center text-slate-500">Nenhuma campanha rodou no período selecionado. Selecione 'Todo o período' para ver o histórico.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = campaigns.map(c => {
         const profit = Math.max(0, (c.revenue || 0) - (c.spent || 0));
-        const clicks = Math.round((c.spent || 0) * 1.8);
-        const ctr = (clicks > 0) ? 2.4 : 0.0;
         const isChecked = selectedCampaignIds.has(c.id);
 
         let rowHtml = `<tr class="hover:bg-slate-800/30 transition-colors ${isChecked ? 'bg-brand-500/5' : ''}">`;
@@ -3132,35 +3540,53 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
                 </button>
               </td>`;
           } else if (col === 'name') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.name}</td>`;
-          } else if (col === 'budget') {
             rowHtml += `
               <td class="py-3 px-4">
-                <button onclick="editCampaignBudget(${c.id}, ${c.daily_budget})" class="font-mono text-xs text-brand-400 hover:underline flex items-center gap-1">
-                  R$ ${Number(c.daily_budget).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
+                <div class="font-bold text-white hover:text-brand-400 cursor-pointer" onclick="filterByCampaign(${c.id})">${c.name}</div>
+                <div class="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                  <span>${c.objective || 'OUTCOME_SALES'}</span>
+                  <span>•</span>
+                  <span>${(c.adsets || []).length} conjuntos</span>
+                </div>
+              </td>`;
+          } else if (col === 'budget') {
+            rowHtml += `
+              <td class="py-3 px-4 font-mono text-brand-400">
+                <button onclick="editCampaignBudget(${c.id}, ${c.daily_budget || 0})" class="hover:underline flex items-center gap-1">
+                  R$ ${Number(c.daily_budget || 0).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
                 </button>
               </td>`;
           } else if (col === 'spent') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent).toFixed(2)}</td>`;
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent || 0).toFixed(2)}</td>`;
           } else if (col === 'sales') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.sales}</td>`;
-          } else if (col === 'revenue') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-emerald-400">R$ ${Number(c.revenue).toFixed(2)}</td>`;
-          } else if (col === 'roas') {
-            rowHtml += `<td class="py-3 px-4 font-extrabold ${c.roas >= 2.0 ? 'text-emerald-400' : (c.roas >= 1.0 ? 'text-amber-400' : 'text-rose-400')}">${c.roas.toFixed(2)}x</td>`;
-          } else if (col === 'cpa') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.cpa).toFixed(2)}</td>`;
-          } else if (col === 'profit') {
-            rowHtml += `<td class="py-3 px-4 font-bold text-emerald-400">R$ ${profit.toFixed(2)}</td>`;
-          } else if (col === 'ctr') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-sky-400">${ctr.toFixed(2)}%</td>`;
+            rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.sales || 0}</td>`;
+          } else if (col === 'initiate_checkouts') {
+            rowHtml += `<td class="py-3 px-4 font-bold text-purple-400">${c.initiate_checkouts || 0}</td>`;
+          } else if (col === 'cost_per_ic') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-purple-300">${c.cost_per_ic > 0 ? ('R$ ' + Number(c.cost_per_ic).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'impressions') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-400">${Number(c.impressions || 0).toLocaleString('pt-BR')}</td>`;
           } else if (col === 'clicks') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${clicks}</td>`;
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${Number(c.clicks || 0).toLocaleString('pt-BR')}</td>`;
+          } else if (col === 'ctr') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-amber-400">${Number(c.ctr || 0).toFixed(2)}%</td>`;
+          } else if (col === 'cpc') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${c.cpc > 0 ? ('R$ ' + Number(c.cpc).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'cpm') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${c.cpm > 0 ? ('R$ ' + Number(c.cpm).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'revenue') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-emerald-400 font-bold">R$ ${Number(c.revenue || 0).toFixed(2)}</td>`;
+          } else if (col === 'roas') {
+            rowHtml += `<td class="py-3 px-4 font-extrabold ${Number(c.roas || 0) >= 2.0 ? 'text-emerald-400' : 'text-slate-300'}">${Number(c.roas || 0).toFixed(2)}x</td>`;
+          } else if (col === 'cpa') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${c.cpa > 0 ? ('R$ ' + Number(c.cpa).toFixed(2)) : '-'}</td>`;
+          } else if (col === 'profit') {
+            rowHtml += `<td class="py-3 px-4 font-mono text-emerald-400 font-bold">R$ ${profit.toFixed(2)}</td>`;
           } else if (col === 'actions') {
             rowHtml += `
               <td class="py-3 px-4 text-right space-x-1.5">
-                <button onclick="duplicateCampaign(${c.id})" class="px-2.5 py-1 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold" title="Duplicar Campanha">
-                  Duplicar
+                <button onclick="duplicateCampaign(${c.id})" class="px-2.5 py-1 bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 rounded-lg text-xs font-semibold flex items-center gap-1 inline-flex">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Duplicar
                 </button>
               </td>`;
           }
@@ -3172,7 +3598,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       lucide.createIcons();
     }
 
-    function renderAdsetsTable(adsets) {
+function renderAdsetsTable(adsets) {
       const tbody = document.getElementById('adsets-tbody');
       if (!tbody) return;
 
@@ -3655,30 +4081,54 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       try {
         const res = await fetch('/api/pixels');
         const data = await res.json();
+        cachedRegisteredPixels = data.pixels || [];
         const grid = document.getElementById('pixels-grid');
-        if (!grid) return;
 
-        if (!data.pixels || data.pixels.length === 0) {
-          grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhum Pixel adicional cadastrado. Clique em "+ Adicionar Pixel Meta" para configurar contingência ou multi-produtos.</div>';
-        } else {
-          grid.innerHTML = data.pixels.map(p => `
-            <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-                  <h4 class="font-bold text-sm text-white">${p.name}</h4>
+        // Atualiza seletor de pixel da aba Webhooks
+        const selector = document.getElementById('script-pixel-selector');
+        if (selector) {
+          if (cachedRegisteredPixels.length === 0) {
+            selector.innerHTML = '<option value="">Nenhum pixel cadastrado</option>';
+          } else {
+            selector.innerHTML = cachedRegisteredPixels.map(p => `<option value="${p.pixel_id}">${p.pixel_id} — ${p.name}</option>`).join('');
+          }
+          updatePixelSnippets();
+        }
+
+        if (grid) {
+          if (cachedRegisteredPixels.length === 0) {
+            grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500 bg-dark-900 border border-slate-800 rounded-2xl">Nenhum Pixel cadastrado ainda. Clique no botão acima para adicionar seu Pixel Meta.</div>';
+          } else {
+            grid.innerHTML = cachedRegisteredPixels.map(p => `
+              <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-3 flex flex-col justify-between">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+                      <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                    </div>
+                    <button onclick="deletePixel(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs p-1 rounded hover:bg-slate-800"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                  </div>
+                  <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-blue-400 select-all">
+                    ID: ${p.pixel_id}
+                  </div>
+                  <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span class="flex items-center gap-1 text-emerald-400 font-semibold"><i data-lucide="check" class="w-3.5 h-3.5"></i> CAPI Conectado</span>
+                    ${p.test_event_code ? `<span class="font-mono text-[11px] text-amber-400">Teste: ${p.test_event_code}</span>` : ''}
+                  </div>
                 </div>
-                <button onclick="deletePixel(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                  <button onclick="copyPixelCode('${p.pixel_id}')" class="py-1.5 px-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all">
+                    <i data-lucide="code" class="w-3 h-3"></i> Copiar Script
+                  </button>
+                  <button onclick="copyPixelAiPrompt('${p.pixel_id}')" class="py-1.5 px-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i> Prompt IA
+                  </button>
+                </div>
               </div>
-              <div class="bg-dark-950 p-2.5 rounded-xl border border-slate-800 font-mono text-xs text-indigo-400 select-all">
-                ID: ${p.pixel_id}
-              </div>
-              <div class="flex items-center justify-between text-xs text-slate-400">
-                <span class="flex items-center gap-1 text-emerald-400 font-semibold"><i data-lucide="check" class="w-3.5 h-3.5"></i> CAPI Conectado</span>
-                ${p.test_event_code ? `<span class="font-mono text-[11px] text-amber-400">Teste: ${p.test_event_code}</span>` : ''}
-              </div>
-            </div>
-          `).join('');
+            `).join('');
+          }
         }
 
         // Logs CAPI
@@ -3706,7 +4156,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       }
     }
 
-    async function submitNewPixel() {
+async function submitNewPixel() {
       const name = document.getElementById('pixel-name-input').value;
       const pixel_id = document.getElementById('pixel-id-input').value;
       const access_token = document.getElementById('pixel-token-input').value;

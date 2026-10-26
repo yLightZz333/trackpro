@@ -1,38 +1,28 @@
-// TrackPro PWA Service Worker
-const CACHE_NAME = 'trackpro-cache-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest'
-];
+// TrackPro PWA Service Worker v2.5 - Auto Purge Cache
+const CACHE_NAME = 'trackpro-v2-5-nocache';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
+      return Promise.all(keys.map((key) => caches.delete(key)));
     })
   );
-  clients.claim();
+  if (self.clients && self.clients.claim) {
+    self.clients.claim();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((networkResponse) => {
         return networkResponse;
       })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });

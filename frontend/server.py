@@ -20,7 +20,7 @@ import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Garante saída UTF-8 no Windows
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -28,6 +28,24 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
     except Exception:
         pass
+
+def load_env_file():
+    env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        k, v = line.split('=', 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+        except Exception:
+            pass
+
+load_env_file()
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trackpro.db')
 DEMO_TOKEN = 'a8b3c4d5-e6f7-4a1b-9c8d-123456789abc'
@@ -162,6 +180,19 @@ def init_db():
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS ads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ad_set_id INTEGER,
+        campaign_id INTEGER,
+        name TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        creative_type TEXT DEFAULT 'video',
+        spent_cents INTEGER DEFAULT 0,
+        sales_count INTEGER DEFAULT 0,
+        revenue_cents INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS facebook_ad_accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL DEFAULT 1,
@@ -245,6 +276,56 @@ def init_db():
         response_body TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS facebook_oauth_states (
+        state TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS facebook_connections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        meta_user_id TEXT,
+        meta_user_name TEXT,
+        access_token TEXT NOT NULL,
+        token_type TEXT DEFAULT 'bearer',
+        expires_at TEXT,
+        permissions TEXT,
+        status TEXT NOT NULL DEFAULT 'connected',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS meta_oauth_config (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        app_id TEXT,
+        app_secret TEXT,
+        redirect_uri TEXT,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS meta_campaign_insights (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        ad_account_id TEXT NOT NULL,
+        campaign_id TEXT NOT NULL,
+        campaign_name TEXT,
+        impressions INTEGER DEFAULT 0,
+        reach INTEGER DEFAULT 0,
+        clicks INTEGER DEFAULT 0,
+        spend_cents INTEGER DEFAULT 0,
+        ctr REAL DEFAULT 0,
+        cpc_cents INTEGER DEFAULT 0,
+        cpm_cents INTEGER DEFAULT 0,
+        frequency REAL DEFAULT 0,
+        conversions INTEGER DEFAULT 0,
+        cost_per_conversion_cents INTEGER DEFAULT 0,
+        date_start TEXT,
+        date_stop TEXT,
+        synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(ad_account_id, campaign_id, date_start, date_stop)
+    );
     """)
 
     # Migrações de colunas
@@ -267,7 +348,19 @@ def init_db():
         ('automated_rules', 'schedule_resume_time', 'TEXT'),
         ('automated_rules', 'action_value', 'REAL DEFAULT 20'),
         ('campaigns', 'ad_account_id', 'TEXT'),
-        ('campaigns', 'external_campaign_id', 'TEXT')
+        ('campaigns', 'external_campaign_id', 'TEXT'),
+        ('campaigns', 'effective_status', 'TEXT'),
+        ('campaigns', 'objective', 'TEXT'),
+        ('campaigns', 'impressions', 'INTEGER DEFAULT 0'),
+        ('campaigns', 'clicks', 'INTEGER DEFAULT 0'),
+        ('campaigns', 'conversions', 'INTEGER DEFAULT 0'),
+        ('campaigns', 'cpa_cents', 'INTEGER DEFAULT 0'),
+        ('facebook_ad_accounts', 'timezone_name', 'TEXT DEFAULT "America/Sao_Paulo"'),
+        ('facebook_ad_accounts', 'account_status', 'INTEGER DEFAULT 1'),
+        ('facebook_ad_accounts', 'is_selected', 'INTEGER DEFAULT 1'),
+        ('facebook_ad_accounts', 'last_sync_at', 'TEXT'),
+        ('facebook_ad_accounts', 'sync_status', 'TEXT DEFAULT "pending"'),
+        ('facebook_ad_accounts', 'sync_error', 'TEXT')
     ]
     for table, col, col_type in migrations:
         try:
@@ -290,8 +383,426 @@ def init_db():
     if not dash:
         cursor.execute("INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default) VALUES (1, 'Geral', 'all', 1)")
 
+        # Inicializa conexão Meta com token permanente se ainda não estiver conectado
+    try:
+        active_conn = cursor.execute("SELECT id FROM facebook_connections WHERE user_id = 1 AND status = 'connected'").fetchone()
+        if not active_conn and DEFAULT_META_SYSTEM_TOKEN:
+            sync_meta_system_token(DEFAULT_META_SYSTEM_TOKEN)
+    except Exception as e:
+        print(f"[TrackPro Startup] Aviso ao sincronizar Meta: {e}")
+
     conn.commit()
     conn.close()
+
+# ==================== CONFIGURAÇÃO E INTEGRAÇÃO OFICIAL META (OAUTH 2.0) ====================
+META_GRAPH_VERSION = os.environ.get('META_GRAPH_VERSION', 'v19.0')
+META_OAUTH_SCOPES = "ads_read,public_profile"
+DEFAULT_META_SYSTEM_TOKEN = os.environ.get(
+    'META_SYSTEM_TOKEN',
+    'EAAP3aw4jAzkBS5ZBSHgj5bnUZAEkmidzcUEdXZCCglpZBykiL8UcgCZAjIUcuY26HEGceD6s3DSHBTZA73ntdZAtGBVvbpeyTNaOd53uFTsJodLtez9ayaK7YBqdrw3nfxAFOsQXUVuKPZAHr5zAqztJQwsLaGVQ4QQLslvkLoZBUbniEv4P0OMRoZATopMBYsWgZDZD'
+)
+
+def get_meta_config(conn=None, host_header=None):
+    close_conn = False
+    if conn is None:
+        conn = get_db()
+        close_conn = True
+    
+    app_id = os.environ.get('META_APP_ID', '').strip()
+    app_secret = os.environ.get('META_APP_SECRET', '').strip()
+    redirect_uri = os.environ.get('META_REDIRECT_URI', '').strip()
+    
+    try:
+        cfg = conn.execute("SELECT app_id, app_secret, redirect_uri FROM meta_oauth_config WHERE id = 1").fetchone()
+        if cfg:
+            if not app_id and cfg['app_id']:
+                app_id = cfg['app_id'].strip()
+            if not app_secret and cfg['app_secret']:
+                app_secret = cfg['app_secret'].strip()
+            if not redirect_uri and cfg['redirect_uri']:
+                redirect_uri = cfg['redirect_uri'].strip()
+    except Exception:
+        pass
+        
+    if not redirect_uri:
+        if host_header:
+            scheme = 'http' if ('localhost' in host_header or '127.0.0.1' in host_header) else 'https'
+            redirect_uri = f"{scheme}://{host_header}/api/integrations/meta/callback"
+        else:
+            redirect_uri = "https://meutrackpro.onrender.com/api/integrations/meta/callback"
+            
+    if close_conn:
+        conn.close()
+        
+    return {
+        "app_id": app_id,
+        "app_secret": app_secret,
+        "redirect_uri": redirect_uri,
+        "is_configured": bool(app_id and app_secret)
+    }
+
+def call_meta_graph_api(endpoint, method='GET', params=None, body=None, access_token=None):
+    base_url = f"https://graph.facebook.com/{META_GRAPH_VERSION}"
+    if endpoint.startswith('http://') or endpoint.startswith('https://'):
+        url = endpoint
+    else:
+        url = f"{base_url}/{endpoint.lstrip('/')}"
+        
+    query = {}
+    if params:
+        query.update(params)
+    if access_token and 'access_token' not in url and 'access_token' not in query:
+        query['access_token'] = access_token
+    
+    if query:
+        url += ('&' if '?' in url else '?') + urllib.parse.urlencode(query)
+    
+    headers = {
+        'Accept': 'application/json',
+        'User-Agent': 'TrackPro-Marketing-Tracker/3.0'
+    }
+    
+    req_data = None
+    if body is not None:
+        if isinstance(body, dict):
+            req_data = json.dumps(body).encode('utf-8')
+            headers['Content-Type'] = 'application/json'
+        elif isinstance(body, bytes):
+            req_data = body
+        else:
+            req_data = str(body).encode('utf-8')
+            
+    req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = resp.read().decode('utf-8')
+            return json.loads(data) if data else {}
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode('utf-8', errors='ignore')
+        try:
+            err_json = json.loads(err_body)
+            err_msg = err_json.get('error', {}).get('message', str(e))
+        except Exception:
+            err_msg = err_body or str(e)
+        raise Exception(f"Meta Graph API ({e.code}): {err_msg}")
+    except Exception as e:
+        raise Exception(f"Erro ao comunicar com Meta Graph API: {str(e)}")
+
+def fetch_all_meta_pages(endpoint, params=None, access_token=None, max_pages=15):
+    all_data = []
+    current_params = dict(params or {})
+    current_endpoint = endpoint
+    
+    for _ in range(max_pages):
+        res = call_meta_graph_api(current_endpoint, params=current_params, access_token=access_token)
+        items = res.get('data', [])
+        if isinstance(items, list):
+            all_data.extend(items)
+        else:
+            break
+            
+        paging = res.get('paging', {})
+        cursors = paging.get('cursors', {})
+        after = cursors.get('after')
+        next_url = paging.get('next')
+        
+        if next_url and after:
+            current_params['after'] = after
+        elif next_url:
+            current_endpoint = next_url
+            current_params = {}
+        else:
+            break
+            
+    return all_data
+
+def compute_date_range(period, start_date='', end_date=''):
+    today_dt = datetime.now()
+    if period == 'today':
+        d_str = today_dt.strftime('%Y-%m-%d')
+        return d_str, d_str, 'today'
+    elif period == 'yesterday':
+        yest_str = (today_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+        return yest_str, yest_str, 'yesterday'
+    elif period == 'last_7_days':
+        s_str = (today_dt - timedelta(days=7)).strftime('%Y-%m-%d')
+        e_str = today_dt.strftime('%Y-%m-%d')
+        return s_str, e_str, 'last_7d'
+    elif period == 'last_week':
+        s_str = (today_dt - timedelta(days=14)).strftime('%Y-%m-%d')
+        e_str = (today_dt - timedelta(days=7)).strftime('%Y-%m-%d')
+        return s_str, e_str, 'last_week_mon_sun'
+    elif period == 'this_month':
+        s_str = today_dt.strftime('%Y-%m-01')
+        e_str = today_dt.strftime('%Y-%m-%d')
+        return s_str, e_str, 'this_month'
+    elif period == 'last_month':
+        first_this = today_dt.replace(day=1)
+        last_month_end = first_this - timedelta(days=1)
+        s_str = last_month_end.strftime('%Y-%m-01')
+        e_str = last_month_end.strftime('%Y-%m-%d')
+        return s_str, e_str, 'last_month'
+    elif period == 'custom' and start_date and end_date:
+        return start_date, end_date, None
+    elif period == 'all':
+        return None, None, 'maximum'
+    else:
+        d_str = today_dt.strftime('%Y-%m-%d')
+        return d_str, d_str, 'today'
+
+
+def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_date=''):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    conn_row = cursor.execute("SELECT access_token FROM facebook_connections WHERE user_id = ? AND status = 'connected' ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+    fallback_token = conn_row['access_token'] if conn_row else None
+
+    # Contas selecionadas
+    accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = ? AND is_selected = 1", (user_id,)).fetchall()
+    if not accounts:
+        accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = ? AND status = 'ACTIVE' LIMIT 1", (user_id,)).fetchall()
+
+    if not accounts:
+        conn.close()
+        return {"success": False, "error": "Nenhuma conta de anúncio ativa ou selecionada para sincronizar.", "synced": 0, "errors": []}
+
+    total_synced_campaigns = 0
+    sync_errors = []
+
+    for acc in accounts:
+        acc_id = acc['account_id']
+        token = acc['access_token'] or fallback_token
+        if not token:
+            continue
+
+        cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'syncing' WHERE id = ?", (acc['id'],))
+        conn.commit()
+
+        try:
+            # 1. Busca todas as campanhas com paginação
+            camps_raw = fetch_all_meta_pages(f"act_{acc_id}/campaigns", params={
+                'fields': 'id,name,status,effective_status,objective,created_time,updated_time,daily_budget,lifetime_budget',
+                'limit': '50'
+            }, access_token=token, max_pages=15)
+
+            # 2. Busca insights no nível de campanha com período selecionado
+            s_r, e_r, preset = compute_date_range(period, start_date, end_date)
+
+            ins_params = {
+                'level': 'campaign',
+                'fields': 'campaign_id,campaign_name,impressions,reach,clicks,spend,ctr,cpc,cpm,frequency,actions,cost_per_action_type,date_start,date_stop',
+                'limit': '50'
+            }
+            if s_r and e_r and period == 'custom':
+                ins_params['time_range'] = json.dumps({'since': s_r, 'until': e_r})
+            elif preset:
+                ins_params['date_preset'] = preset
+            else:
+                ins_params['date_preset'] = 'maximum'
+
+            insights_raw = fetch_all_meta_pages(f"act_{acc_id}/insights", params=ins_params, access_token=token, max_pages=15)
+
+            insights_by_camp = {}
+            for ins in insights_raw:
+                c_id = ins.get('campaign_id')
+                if c_id:
+                    insights_by_camp[str(c_id)] = ins
+
+            for c in camps_raw:
+                c_ext_id = str(c.get('id', ''))
+                c_name = c.get('name', 'Campanha Meta')
+                eff_status = c.get('effective_status') or c.get('status', 'ACTIVE')
+                c_status = 'active' if eff_status == 'ACTIVE' else 'paused'
+                objective = c.get('objective', 'OUTCOME_SALES')
+                daily_b = int(float(c.get('daily_budget') or 5000))
+
+                ins = insights_by_camp.get(c_ext_id, {})
+                spend_float = float(ins.get('spend') or 0.0)
+                spend_cents = int(spend_float * 100)
+                impressions = int(ins.get('impressions') or 0)
+                reach = int(ins.get('reach') or 0)
+                clicks = int(ins.get('clicks') or 0)
+                ctr = float(ins.get('ctr') or 0.0)
+                cpc_cents = int(float(ins.get('cpc') or 0.0) * 100)
+                cpm_cents = int(float(ins.get('cpm') or 0.0) * 100)
+                freq = float(ins.get('frequency') or 1.0)
+                d_start = ins.get('date_start')
+                d_stop = ins.get('date_stop')
+
+                actions = ins.get('actions', [])
+                conversions = 0
+                if isinstance(actions, list):
+                    for act in actions:
+                        act_type = act.get('action_type', '')
+                        if act_type in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase', 'initiate_checkout']:
+                            conversions += int(act.get('value', 0))
+
+                cpa_cents = 0
+                cost_actions = ins.get('cost_per_action_type', [])
+                if isinstance(cost_actions, list):
+                    for ca in cost_actions:
+                        if ca.get('action_type') in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase']:
+                            cpa_cents = int(float(ca.get('value', 0)) * 100)
+
+                if conversions > 0 and cpa_cents == 0 and spend_cents > 0:
+                    cpa_cents = int(spend_cents / conversions)
+
+                if d_start and d_stop:
+                    cursor.execute("""
+                        INSERT INTO meta_campaign_insights (
+                            user_id, ad_account_id, campaign_id, campaign_name, impressions, reach, clicks,
+                            spend_cents, ctr, cpc_cents, cpm_cents, frequency, conversions, cost_per_conversion_cents,
+                            date_start, date_stop, synced_at
+                        ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(ad_account_id, campaign_id, date_start, date_stop) DO UPDATE SET
+                            impressions = excluded.impressions,
+                            reach = excluded.reach,
+                            clicks = excluded.clicks,
+                            spend_cents = excluded.spend_cents,
+                            ctr = excluded.ctr,
+                            cpc_cents = excluded.cpc_cents,
+                            cpm_cents = excluded.cpm_cents,
+                            frequency = excluded.frequency,
+                            conversions = excluded.conversions,
+                            cost_per_conversion_cents = excluded.cost_per_conversion_cents,
+                            synced_at = CURRENT_TIMESTAMP
+                    """, (acc_id, c_ext_id, c_name, impressions, reach, clicks, spend_cents, ctr, cpc_cents, cpm_cents, freq, conversions, cpa_cents, d_start, d_stop))
+
+                existing_c = cursor.execute("SELECT id FROM campaigns WHERE external_campaign_id = ? OR name = ?", (c_ext_id, c_name)).fetchone()
+                if existing_c:
+                    cursor.execute("""
+                        UPDATE campaigns
+                        SET name = ?, status = ?, effective_status = ?, objective = ?, daily_budget_in_cents = ?,
+                            total_spent_in_cents = ?, ad_account_id = ?, external_campaign_id = ?,
+                            impressions = ?, clicks = ?, conversions = ?, cpa_cents = ?
+                        WHERE id = ?
+                    """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents, existing_c['id']))
+                else:
+                    cursor.execute("""
+                        INSERT INTO campaigns (
+                            user_id, name, platform, status, effective_status, objective, daily_budget_in_cents,
+                            total_spent_in_cents, ad_account_id, external_campaign_id, impressions, clicks, conversions, cpa_cents
+                        ) VALUES (1, ?, 'facebook', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents))
+
+                total_synced_campaigns += 1
+
+            now_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'ok', sync_error = NULL, last_sync_at = ? WHERE id = ?", (now_str, acc['id']))
+
+        except Exception as e:
+            err_text = str(e)
+            sync_errors.append(f"Conta {acc_id}: {err_text}")
+            cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'error', sync_error = ? WHERE id = ?", (err_text, acc['id']))
+
+    conn.commit()
+    conn.close()
+    return {
+        "success": len(sync_errors) == 0,
+        "synced": total_synced_campaigns,
+        "errors": sync_errors
+    }
+
+def sync_meta_system_token(token=None, user_id=1):
+    final_token = (token or DEFAULT_META_SYSTEM_TOKEN).strip()
+    if not final_token:
+        return {"success": False, "error": "Token não fornecido."}
+    
+    try:
+        user_info = call_meta_graph_api('me', params={'fields': 'id,name'}, access_token=final_token)
+        meta_user_id = str(user_info.get('id', '122096450511530140'))
+        meta_user_name = user_info.get('name', 'Trackeamento')
+        
+        perms = ["ads_read", "public_profile"]
+        try:
+            p_data = call_meta_graph_api('me/permissions', access_token=final_token)
+            p_list = [p.get('permission') for p in p_data.get('data', []) if p.get('status') == 'granted']
+            if p_list:
+                perms = p_list
+        except Exception:
+            pass
+            
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM facebook_connections WHERE user_id = ?", (user_id,))
+        cursor.execute("""
+            INSERT INTO facebook_connections (user_id, meta_user_id, meta_user_name, access_token, expires_at, permissions, status, updated_at)
+            VALUES (?, ?, ?, ?, '2099-12-31 23:59:59', ?, 'connected', CURRENT_TIMESTAMP)
+        """, (user_id, meta_user_id, meta_user_name, final_token, json.dumps(perms)))
+        
+        cursor.execute("UPDATE facebook_ad_accounts SET is_selected = 0 WHERE user_id = ?", (user_id,))
+        ad_accounts_data = fetch_all_meta_pages('me/adaccounts', params={
+            'fields': 'id,name,account_id,account_status,currency,timezone_name,business_name',
+            'limit': '50'
+        }, access_token=final_token, max_pages=15)
+        
+        saved_accounts = []
+        for acc in ad_accounts_data:
+            raw_id = acc.get('account_id') or acc.get('id', '').replace('act_', '')
+            name = acc.get('name') or f"Conta {raw_id}"
+            currency = acc.get('currency', 'USD')
+            tz = acc.get('timezone_name', 'America/Sao_Paulo')
+            status_code = acc.get('account_status', 1)
+            status_str = 'ACTIVE' if status_code == 1 else 'DISABLED'
+            
+            existing = cursor.execute("SELECT id FROM facebook_ad_accounts WHERE account_id = ? AND user_id = ?", (raw_id, user_id)).fetchone()
+            if existing:
+                cursor.execute("""
+                    UPDATE facebook_ad_accounts 
+                    SET name = ?, access_token = ?, currency = ?, timezone_name = ?, account_status = ?, status = ?, is_selected = 1
+                    WHERE id = ?
+                """, (name, final_token, currency, tz, status_code, status_str, existing['id']))
+            else:
+                cursor.execute("""
+                    INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, timezone_name, account_status, status, is_selected)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """, (user_id, raw_id, name, final_token, currency, tz, status_code, status_str))
+                
+            saved_accounts.append({
+                "account_id": raw_id,
+                "name": name,
+                "currency": currency,
+                "timezone": tz,
+                "status": status_str
+            })
+            
+        conn.commit()
+        conn.close()
+        
+        sync_res = sync_meta_campaigns_internal(user_id=user_id, period='all')
+        
+        return {
+            "success": True,
+            "user": {"id": meta_user_id, "name": meta_user_name},
+            "accounts": saved_accounts,
+            "campaigns_synced": sync_res.get("synced", 0)
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def get_order_date_condition(period, start_date='', end_date='', col='created_at'):
+    if period == 'today':
+        return f"date({col}, 'localtime') = date('now', 'localtime')", []
+    elif period == 'yesterday':
+        return f"date({col}, 'localtime') = date('now', 'localtime', '-1 day')", []
+    elif period == 'last_7_days':
+        return f"{col} >= datetime('now', 'localtime', '-7 days')", []
+    elif period == 'last_week':
+        return f"{col} >= datetime('now', 'localtime', '-14 days') AND {col} < datetime('now', 'localtime', '-7 days')", []
+    elif period == 'this_month':
+        return f"strftime('%Y-%m', {col}, 'localtime') = strftime('%Y-%m', 'now', 'localtime')", []
+    elif period == 'last_month':
+        return f"strftime('%Y-%m', {col}, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')", []
+    elif period == 'custom':
+        if start_date and end_date:
+            return f"date({col}, 'localtime') >= ? AND date({col}, 'localtime') <= ?", [start_date, end_date]
+        elif start_date:
+            return f"date({col}, 'localtime') >= ?", [start_date]
+        elif end_date:
+            return f"date({col}, 'localtime') <= ?", [end_date]
+    return "", []
 
 # ==================== PARSER UNIVERSAL DE WEBHOOKS ====================
 def parse_webhook_payload(headers, body):
@@ -796,12 +1307,25 @@ class TrackProHandler(BaseHTTPRequestHandler):
             return
 
         # Pixel JS com Link Forwarder Automático (Kiwify, Hotmart, Greenn, Cakto, Wiapy)
-        if path in ['/tracking/pixel.js', '/tracking/pixel']:
+        if path in ['/trackpro.js', '/pixel.js', '/tracking/pixel.js', '/tracking/pixel']:
             token = params.get('token', [''])[0]
+            host = self.headers.get('Host', 'meutrackpro.onrender.com')
+            scheme = 'http' if ('localhost' in host or '127.0.0.1' in host) else 'https'
+            server_origin = f"{scheme}://{host}"
             script = f"""(function(){{
   'use strict';
   var TOKEN = '{token}';
-  var API = window.location.origin;
+  var SERVER_ORIGIN = '{server_origin}';
+  var curScript = document.currentScript || (function() {{
+    var scripts = document.getElementsByTagName('script');
+    for (var i = scripts.length - 1; i >= 0; i--) {{
+      if (scripts[i].src && (scripts[i].src.indexOf('trackpro.js') !== -1 || scripts[i].src.indexOf('pixel.js') !== -1)) {{
+        return scripts[i];
+      }}
+    }}
+    return null;
+  }})();
+  var API = (curScript && curScript.src) ? (new URL(curScript.src)).origin : SERVER_ORIGIN;
 
   function getQueryParam(name) {{
     var search = window.location.search.substring(1);
@@ -866,49 +1390,58 @@ class TrackProHandler(BaseHTTPRequestHandler):
   if (!stored.fbp) stored.fbp = fbp;
   if (fbc && !stored.fbc) stored.fbc = fbc;
 
-  fetch(API + '/api/tracking/event', {{
-    method: 'POST',
-    headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
-    body: JSON.stringify({{
-      event_type: 'pageview',
-      utm_source: stored.utm_source,
-      utm_medium: stored.utm_medium,
-      utm_campaign: stored.utm_campaign,
-      utm_content: stored.utm_content,
-      utm_term: stored.utm_term,
-      src: stored.src,
-      sck: stored.sck,
-      fbc: stored.fbc,
-      fbp: stored.fbp,
-      page_url: window.location.href,
-      referrer: document.referrer
-    }})
-  }}).catch(function(){{}});
+  try {{
+    fetch(API + '/api/tracking/event', {{
+      method: 'POST',
+      mode: 'cors',
+      headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
+      body: JSON.stringify({{
+        event_type: 'pageview',
+        utm_source: stored.utm_source,
+        utm_medium: stored.utm_medium,
+        utm_campaign: stored.utm_campaign,
+        utm_content: stored.utm_content,
+        utm_term: stored.utm_term,
+        src: stored.src,
+        sck: stored.sck,
+        fbc: stored.fbc,
+        fbp: stored.fbp,
+        page_url: window.location.href,
+        referrer: document.referrer
+      }})
+    }}).catch(function(){{}});
+  }} catch(e){{}}
+
+  var checkouts = ['kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com', 'eduzz.com', 'braip.com', 'monetizze.com.br', 'perfectpay.com.br', 'ticto.com.br', 'kirvano.com', 'doppus.com', 'lastlink.com', 'pepper.com.br'];
+
+  function decorateCheckoutUrl(url) {{
+    if (!url || typeof url !== 'string') return url;
+    var isCheckout = checkouts.some(function(domain) {{ return url.indexOf(domain) !== -1; }});
+    if (!isCheckout) return url;
+    try {{
+      var parsed = new URL(url, window.location.href);
+      if (stored.utm_source && !parsed.searchParams.get('utm_source')) parsed.searchParams.set('utm_source', stored.utm_source);
+      if (stored.utm_medium && !parsed.searchParams.get('utm_medium')) parsed.searchParams.set('utm_medium', stored.utm_medium);
+      if (stored.utm_campaign && !parsed.searchParams.get('utm_campaign')) parsed.searchParams.set('utm_campaign', stored.utm_campaign);
+      if (stored.utm_content && !parsed.searchParams.get('utm_content')) parsed.searchParams.set('utm_content', stored.utm_content);
+      if (stored.utm_term && !parsed.searchParams.get('utm_term')) parsed.searchParams.set('utm_term', stored.utm_term);
+      if (stored.src && !parsed.searchParams.get('src')) parsed.searchParams.set('src', stored.src);
+      if (stored.sck && !parsed.searchParams.get('sck')) parsed.searchParams.set('sck', stored.sck);
+      if (stored.fbc && !parsed.searchParams.get('fbc')) parsed.searchParams.set('fbc', stored.fbc);
+      if (stored.fbp && !parsed.searchParams.get('fbp')) parsed.searchParams.set('fbp', stored.fbp);
+      return parsed.toString();
+    }} catch(e) {{
+      return url;
+    }}
+  }}
 
   function decorateCheckoutLinks() {{
     var links = document.querySelectorAll('a[href]');
-    var checkouts = ['kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com'];
-    
     links.forEach(function(link) {{
       var href = link.getAttribute('href');
-      if (!href) return;
-      var isCheckout = checkouts.some(function(domain) {{ return href.indexOf(domain) !== -1; }});
-      if (isCheckout) {{
-        var separator = href.indexOf('?') !== -1 ? '&' : '?';
-        var params = [];
-        if (stored.utm_source) params.push('utm_source=' + encodeURIComponent(stored.utm_source));
-        if (stored.utm_medium) params.push('utm_medium=' + encodeURIComponent(stored.utm_medium));
-        if (stored.utm_campaign) params.push('utm_campaign=' + encodeURIComponent(stored.utm_campaign));
-        if (stored.utm_content) params.push('utm_content=' + encodeURIComponent(stored.utm_content));
-        if (stored.utm_term) params.push('utm_term=' + encodeURIComponent(stored.utm_term));
-        if (stored.src) params.push('src=' + encodeURIComponent(stored.src));
-        if (stored.sck) params.push('sck=' + encodeURIComponent(stored.sck));
-        if (stored.fbc) params.push('fbc=' + encodeURIComponent(stored.fbc));
-        if (stored.fbp) params.push('fbp=' + encodeURIComponent(stored.fbp));
-
-        if (params.length > 0) {{
-          link.setAttribute('href', href + separator + params.join('&'));
-        }}
+      if (href) {{
+        var newHref = decorateCheckoutUrl(href);
+        if (newHref !== href) link.setAttribute('href', newHref);
       }}
     }});
   }}
@@ -918,6 +1451,21 @@ class TrackProHandler(BaseHTTPRequestHandler):
   }} else {{
     document.addEventListener('DOMContentLoaded', decorateCheckoutLinks);
   }}
+
+  if (window.MutationObserver) {{
+    var obs = new MutationObserver(function() {{ decorateCheckoutLinks(); }});
+    obs.observe(document.body || document.documentElement, {{ childList: true, subtree: true }});
+  }}
+
+  document.addEventListener('click', function(e) {{
+    var target = e.target;
+    while (target && target.tagName !== 'A' && target !== document.body) {{
+      target = target.parentElement;
+    }}
+    if (target && target.tagName === 'A' && target.getAttribute('href')) {{
+      target.setAttribute('href', decorateCheckoutUrl(target.getAttribute('href')));
+    }}
+  }}, true);
 
   window.TrackPro = {{
     getUtms: function() {{ return stored; }},
@@ -932,45 +1480,90 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self.wfile.write(script.encode('utf-8'))
             return
 
-        # Dashboard Overview API (com suporte a filtros por dashboard/workspace)
+        # Dashboard Overview API (com suporte a filtros por período, contas, plataformas e produtos)
         if path in ['/api/dashboard', '/api/dashboard/overview']:
             conn = get_db()
             cursor = conn.cursor()
             
+            period = params.get('period', ['today'])[0]
             platform_filter = params.get('platform', ['all'])[0]
+            source_filter = params.get('source', ['all'])[0]
+            ad_account_filter = params.get('ad_account', ['all'])[0]
+            product_filter = params.get('product', ['all'])[0]
             dash_id = params.get('dashboard_id', [''])[0]
+            
             if dash_id:
                 d_row = cursor.execute("SELECT platform_filter FROM custom_dashboards WHERE id = ?", (dash_id,)).fetchone()
                 if d_row and d_row['platform_filter']:
                     platform_filter = d_row['platform_filter']
 
-            where_clause = ""
-            where_params = []
-            if platform_filter and platform_filter != 'all':
-                where_clause = "WHERE platform = ?"
-                where_params = [platform_filter]
+            # Filtro de Período SQLite
+            date_clause = ""
+            date_params = []
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
 
-            if where_clause:
-                paid_filter = where_clause + " AND status = 'paid'"
-                pending_filter = where_clause + " AND status = 'waiting_payment'"
-            else:
-                paid_filter = "WHERE status = 'paid'"
-                pending_filter = "WHERE status = 'waiting_payment'"
+            if period == 'today':
+                date_clause = "date(created_at, 'localtime') = date('now', 'localtime')"
+            elif period == 'yesterday':
+                date_clause = "date(created_at, 'localtime') = date('now', 'localtime', '-1 day')"
+            elif period == 'last_7_days':
+                date_clause = "created_at >= datetime('now', 'localtime', '-7 days')"
+            elif period == 'last_week':
+                date_clause = "created_at >= datetime('now', 'localtime', '-14 days') AND created_at < datetime('now', 'localtime', '-7 days')"
+            elif period == 'this_month':
+                date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')"
+            elif period == 'last_month':
+                date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')"
+            elif period == 'custom':
+                if start_date and end_date:
+                    date_clause = "date(created_at, 'localtime') >= ? AND date(created_at, 'localtime') <= ?"
+                    date_params = [start_date, end_date]
+                elif start_date:
+                    date_clause = "date(created_at, 'localtime') >= ?"
+                    date_params = [start_date]
+                elif end_date:
+                    date_clause = "date(created_at, 'localtime') <= ?"
+                    date_params = [end_date]
+
+            order_conds = []
+            order_params = []
+            if date_clause:
+                order_conds.append(date_clause)
+                order_params.extend(date_params)
+            if platform_filter and platform_filter != 'all':
+                order_conds.append("platform = ?")
+                order_params.append(platform_filter)
+            if source_filter and source_filter != 'all':
+                order_conds.append("utm_source = ?")
+                order_params.append(source_filter)
+            if product_filter and product_filter != 'all':
+                order_conds.append("product_id = ?")
+                order_params.append(product_filter)
+
+            base_where = ("WHERE " + " AND ".join(order_conds)) if order_conds else ""
+            paid_where = (base_where + " AND status = 'paid'") if base_where else "WHERE status = 'paid'"
+            pending_where = (base_where + " AND status = 'waiting_payment'") if base_where else "WHERE status = 'waiting_payment'"
 
             # 1. Vendas Aprovadas
-            query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {paid_filter}"
-            row_paid = cursor.execute(query_paid, where_params).fetchone()
+            query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {paid_where}"
+            row_paid = cursor.execute(query_paid, order_params).fetchone()
             tot_revenue = (row_paid['total'] or 0) / 100.0
             paid_ord = row_paid['count'] or 0
 
             # 2. Vendas Pendentes (Pix/Boleto aguardando)
-            query_pending = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {pending_filter}"
-            row_pending = cursor.execute(query_pending, where_params).fetchone()
+            query_pending = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {pending_where}"
+            row_pending = cursor.execute(query_pending, order_params).fetchone()
             pending_revenue = (row_pending['total'] or 0) / 100.0
             pending_ord = row_pending['count'] or 0
 
-            # 3. Gasto em Anúncios
-            row_spent = cursor.execute("SELECT COALESCE(SUM(total_spent_in_cents), 0) as total FROM campaigns").fetchone()
+            # 3. Gasto em Anúncios (filtrado por Conta se aplicável)
+            camp_where = ""
+            camp_params = []
+            if ad_account_filter and ad_account_filter != 'all':
+                camp_where = "WHERE ad_account_id = ?"
+                camp_params = [ad_account_filter]
+            row_spent = cursor.execute(f"SELECT COALESCE(SUM(total_spent_in_cents), 0) as total FROM campaigns {camp_where}", camp_params).fetchone()
             tot_spent = (row_spent['total'] or 0) / 100.0
 
             # 4. Taxas e Impostos Parametrizados (Configurações Financeiras)
@@ -980,11 +1573,12 @@ class TrackProHandler(BaseHTTPRequestHandler):
             inv_pct = (fin['invoice_tax_percent'] if fin else 6.0) / 100.0
             cost_pct = (fin['product_cost_percent'] if fin else 0.0) / 100.0
 
-            # 5. Lucratividade e Retorno
-            net_revenue = max(0, tot_revenue * (1.0 - gw_pct) - (paid_ord * gw_fix))
-            taxes = tot_revenue * inv_pct
-            prod_costs = tot_revenue * cost_pct
-            real_profit = net_revenue - tot_spent - taxes - prod_costs
+            # 5. Lucratividade e Retorno com dedução de impostos no faturamento líquido
+            taxes = round(tot_revenue * inv_pct, 2)
+            gateway_fees = round(tot_revenue * gw_pct + (paid_ord * gw_fix), 2)
+            net_revenue = max(0.0, round(tot_revenue - gateway_fees - taxes, 2))
+            prod_costs = round(tot_revenue * cost_pct, 2)
+            real_profit = round(net_revenue - tot_spent - prod_costs, 2)
             
             roi = round((real_profit / tot_spent * 100.0), 1) if tot_spent > 0 else 0
             roas = round(tot_revenue / tot_spent, 2) if tot_spent > 0 else 0
@@ -992,9 +1586,22 @@ class TrackProHandler(BaseHTTPRequestHandler):
             ticket_medio = round(tot_revenue / paid_ord, 2) if paid_ord > 0 else 0
 
             # 6. Tráfego e Funil (Pixel & Cliques)
-            row_pv = cursor.execute("SELECT COUNT(*) as count FROM tracking_events WHERE event_type = 'pageview'").fetchone()
+            event_conds = []
+            event_params = []
+            if date_clause:
+                event_conds.append(date_clause)
+                event_params.extend(date_params)
+            if source_filter and source_filter != 'all':
+                event_conds.append("utm_source = ?")
+                event_params.append(source_filter)
+            event_where = ("WHERE " + " AND ".join(event_conds)) if event_conds else ""
+
+            pv_where = "WHERE event_type = 'pageview'" if not event_where else (event_where + " AND event_type = 'pageview'")
+            row_pv = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {pv_where}", event_params).fetchone()
             pageviews = (row_pv['count'] or 0)
-            row_ic = cursor.execute("SELECT COUNT(*) as count FROM tracking_events WHERE event_type = 'initiate_checkout'").fetchone()
+
+            ic_where = "WHERE event_type = 'initiate_checkout'" if not event_where else (event_where + " AND event_type = 'initiate_checkout'")
+            row_ic = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events {ic_where}", event_params).fetchone()
             initiate_checkout = (row_ic['count'] or 0) or int(paid_ord * 1.8 + pending_ord * 1.2)
             
             cliques = max(int(pageviews * 1.15), int(tot_spent * 1.8))
@@ -1004,7 +1611,42 @@ class TrackProHandler(BaseHTTPRequestHandler):
             cpc = round(tot_spent / cliques, 2) if cliques > 0 else 0
             cpm = round((tot_spent / impressoes * 1000.0), 2) if impressoes > 0 else 0
             connect_rate = round(min(100.0, (pageviews / cliques * 100.0)), 1) if cliques > 0 else 100.0
+            taxa_ic = round((initiate_checkout / pageviews * 100.0), 1) if pageviews > 0 else (round(initiate_checkout / cliques * 100.0, 1) if cliques > 0 else 0)
             taxa_checkout = round((paid_ord / initiate_checkout * 100.0), 1) if initiate_checkout > 0 else 0
+            taxa_geral = round((paid_ord / cliques * 100.0), 2) if cliques > 0 else 0
+
+            # Estágios do Funil Contínuo
+            vendas_iniciadas = paid_ord + pending_ord
+            vendas_aprovadas = paid_ord
+
+            pct_clicks = 100.0 if cliques > 0 else 0.0
+            pct_pv = round((pageviews / cliques * 100.0), 1) if cliques > 0 else 0.0
+            pct_ic = round((initiate_checkout / cliques * 100.0), 1) if cliques > 0 else 0.0
+            pct_ord_init = round((vendas_iniciadas / cliques * 100.0), 1) if cliques > 0 else 0.0
+            pct_ord_paid = round((vendas_aprovadas / cliques * 100.0), 1) if cliques > 0 else 0.0
+
+            funnel_data = {
+                "impressions": impressoes,
+                "clicks": cliques,
+                "pageviews": pageviews,
+                "initiate_checkout": initiate_checkout,
+                "orders_initiated": vendas_iniciadas,
+                "purchases": vendas_aprovadas,
+                "ribbon": {
+                    "clicks": {"label": "CLIQUES", "count": cliques, "pct": f"{pct_clicks:.0f}%"},
+                    "pageviews": {"label": "VIS. PÁGINA", "count": pageviews, "pct": f"{pct_pv:.1f}%"},
+                    "ic": {"label": "ICS", "count": initiate_checkout, "pct": f"{pct_ic:.1f}%"},
+                    "orders_initiated": {"label": "VENDAS INIC.", "count": vendas_iniciadas, "pct": f"{pct_ord_init:.1f}%"},
+                    "orders_paid": {"label": "VENDAS APR.", "count": vendas_aprovadas, "pct": f"{pct_ord_paid:.1f}%"}
+                },
+                "rates": {
+                    "ctr": ctr,
+                    "connect_rate": connect_rate,
+                    "pv_to_ic": taxa_ic,
+                    "ic_to_purchase": taxa_checkout,
+                    "overall_conversion": taxa_geral
+                }
+            }
 
             # 7. Recorrência & LTV (SaaS / Assinaturas)
             mrr = round(tot_revenue * 0.4, 2) if paid_ord > 0 else 0
@@ -1014,8 +1656,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
             churn_rate = 3.5 if paid_ord > 0 else 0
 
             # Fontes de tráfego
-            query_sources = f"SELECT utm_source, COUNT(*) as count, SUM(price_in_cents) as total FROM orders {paid_filter} GROUP BY utm_source"
-            sources_rows = cursor.execute(query_sources, where_params).fetchall()
+            query_sources = f"SELECT utm_source, COUNT(*) as count, SUM(price_in_cents) as total FROM orders {paid_where} GROUP BY utm_source"
+            sources_rows = cursor.execute(query_sources, order_params).fetchall()
             color_map = {'facebook': '#1877F2', 'instagram': '#E4405F', 'google': '#4285F4', 'tiktok': '#00F2FE', 'direto': '#10B981'}
             sources_chart = [
                 {
@@ -1030,10 +1672,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 SELECT o.id, o.order_external_id, o.customer_name, o.customer_email, o.price_in_cents,
                        o.status, o.platform, o.created_at, o.utm_source, o.utm_campaign, o.utm_content
                 FROM orders o
-                {where_clause}
+                {base_where}
                 ORDER BY o.created_at DESC LIMIT 15
             """
-            recent_rows = cursor.execute(query_orders, where_params).fetchall()
+            recent_rows = cursor.execute(query_orders, order_params).fetchall()
             recent_orders = [
                 {
                     "id": r['order_external_id'],
@@ -1051,7 +1693,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             ]
 
             # Campanhas
-            camp_rows = cursor.execute("SELECT * FROM campaigns ORDER BY total_spent_in_cents DESC").fetchall()
+            camp_rows = cursor.execute(f"SELECT * FROM campaigns {camp_where} ORDER BY total_spent_in_cents DESC", camp_params).fetchall()
             campaign_summary = [
                 {
                     "id": c['id'],
@@ -1063,6 +1705,16 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 } for c in camp_rows
             ]
 
+            # Opções de Filtro (para popular dinamicamente os selects da barra Resumo)
+            acc_rows = cursor.execute("SELECT account_id, name FROM facebook_ad_accounts WHERE user_id = 1").fetchall()
+            prod_rows = cursor.execute("SELECT id, name FROM products WHERE user_id = 1").fetchall()
+            filter_options = {
+                "ad_accounts": [{"id": r['account_id'], "name": r['name']} for r in acc_rows],
+                "platforms": ["Kiwify", "Hotmart", "Greenn", "Cakto", "Wiapy"],
+                "products": [{"id": str(p['id']), "name": p['name']} for p in prod_rows],
+                "sources": ["facebook", "instagram", "google", "tiktok", "direto"]
+            }
+
             conn.close()
 
             resp = {
@@ -1070,6 +1722,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "faturamento": tot_revenue,
                     "faturamentoLiquido": round(net_revenue, 2),
                     "lucroReal": round(real_profit, 2),
+                    "impostos": taxes,
+                    "aliquotaImposto": round(inv_pct * 100, 1),
+                    "taxasGateway": gateway_fees,
+                    "custoProdutos": prod_costs,
                     "gastoAds": tot_spent,
                     "roi": roi,
                     "roas": roas,
@@ -1088,14 +1744,17 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "connectRate": connect_rate,
                     "initiateCheckout": initiate_checkout,
                     "taxaCheckout": taxa_checkout,
+                    "taxaGeral": taxa_geral,
                     "mrr": mrr,
                     "ltv": ltv,
                     "churnRate": churn_rate
                 },
+                "funnel": funnel_data,
                 "revenueChart": [],
                 "sourcesChart": sources_chart,
                 "recentOrders": recent_orders,
-                "campaignSummary": campaign_summary
+                "campaignSummary": campaign_summary,
+                "filterOptions": filter_options
             }
             self._send_json(resp)
             return
@@ -1142,59 +1801,574 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"accounts": [dict(r) for r in rows]})
             return
 
-        # Campanhas e Conjuntos
+        # Campanhas e Conjuntos com Filtro de Período, Conta e Status
         if path in ['/api/campaigns', '/api/facebook/campaigns']:
             conn = get_db()
             cursor = conn.cursor()
-            c_rows = cursor.execute("SELECT * FROM campaigns WHERE user_id = 1 ORDER BY id DESC").fetchall()
-            
+            period = params.get('period', [''])[0].strip()
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
+            ad_account_id = params.get('ad_account_id', [''])[0].strip()
+            status_filter = params.get('status', [''])[0].strip()
+            search_query = params.get('search', [''])[0].strip().lower()
+
+            c_where = ["user_id = 1"]
+            c_params = []
+            if ad_account_id and ad_account_id != 'all':
+                clean_acc = ad_account_id.replace('act_', '')
+                c_where.append("(ad_account_id = ? OR ad_account_id = ?)")
+                c_params.extend([ad_account_id, clean_acc])
+            if status_filter and status_filter != 'all':
+                c_where.append("status = ?")
+                c_params.append(status_filter)
+            if search_query:
+                c_where.append("LOWER(name) LIKE ?")
+                c_params.append(f"%{search_query}%")
+
+            where_str = " WHERE " + " AND ".join(c_where)
+            c_rows = cursor.execute(f"SELECT * FROM campaigns{where_str} ORDER BY id DESC", c_params).fetchall()
+
+            # Condição de data para pedidos
+            order_date_clause, order_date_params = get_order_date_condition(period, start_date, end_date, col='created_at')
+
+            # Range de data para meta_campaign_insights
+            s_range, e_range, _ = compute_date_range(period, start_date, end_date)
+
             campaigns = []
             for c in c_rows:
                 c_id = c['id']
+                c_name = c['name']
+                ext_id = c.get('external_campaign_id') or c_name
                 adsets = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (c_id,)).fetchall()
-                
-                # Calcula ROAS e vendas da campanha
-                order_calc = cursor.execute("""
-                    SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as rev
-                    FROM orders WHERE utm_campaign = ? AND status = 'paid'
-                """, (c['name'],)).fetchone()
-                
-                vendas = order_calc['count'] if order_calc else 0
+
+                # 1. Calcula pedidos vinculados à campanha no período
+                order_q = "SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE (utm_campaign = ? OR utm_campaign = ?) AND status = 'paid'"
+                order_p = [c_name, ext_id]
+                if order_date_clause:
+                    order_q += f" AND {order_date_clause}"
+                    order_p.extend(order_date_params)
+                order_calc = cursor.execute(order_q, order_p).fetchone()
+                order_vendas = order_calc['count'] if order_calc else 0
                 faturamento = (order_calc['rev'] if order_calc else 0) / 100.0
+
+                # 2. Calcula gasto e métricas da Meta no período
                 gasto = (c['total_spent_in_cents'] or 0) / 100.0
-                roas = round(faturamento / gasto, 2) if gasto > 0 else 0
-                cpa = round(gasto / vendas, 2) if vendas > 0 else 0
+                impressoes = c.get('impressions') or 0
+                cliques = c.get('clicks') or 0
+                meta_convs = c.get('conversions') or 0
+
+                if s_range and e_range and period != 'all':
+                    ins_q = """
+                        SELECT COALESCE(SUM(spend_cents), 0) as spend,
+                               COALESCE(SUM(impressions), 0) as impr,
+                               COALESCE(SUM(clicks), 0) as clk,
+                               COALESCE(SUM(conversions), 0) as conv
+                        FROM meta_campaign_insights
+                        WHERE (campaign_id = ? OR campaign_name = ?)
+                          AND date_start >= ? AND date_stop <= ?
+                    """
+                    ins_row = cursor.execute(ins_q, (ext_id, c_name, s_range, e_range)).fetchone()
+                    if ins_row and (ins_row['spend'] > 0 or ins_row['impr'] > 0):
+                        gasto = ins_row['spend'] / 100.0
+                        impressoes = ins_row['impr']
+                        cliques = ins_row['clk']
+                        meta_convs = ins_row['conv']
+
+                vendas = max(order_vendas, meta_convs)
+                roas = round(faturamento / gasto, 2) if gasto > 0 else 0.0
+                cpa = round(gasto / vendas, 2) if vendas > 0 else 0.0
+                ctr = round((cliques / impressoes * 100.0), 2) if impressoes > 0 else 0.0
+                cpc = round(gasto / cliques, 2) if cliques > 0 else 0.0
 
                 campaigns.append({
                     "id": c_id,
-                    "name": c['name'],
+                    "name": c_name,
                     "platform": c['platform'],
                     "status": c['status'],
+                    "effective_status": c.get('effective_status') or c['status'],
+                    "objective": c.get('objective') or 'VENDAS',
                     "daily_budget": (c['daily_budget_in_cents'] or 0) / 100.0,
                     "spent": gasto,
                     "sales": vendas,
                     "revenue": faturamento,
                     "roas": roas,
                     "cpa": cpa,
+                    "impressions": impressoes,
+                    "clicks": cliques,
+                    "ctr": ctr,
+                    "cpc": cpc,
                     "ad_account_id": c['ad_account_id'],
                     "adsets": [dict(a) for a in adsets]
                 })
 
             conn.close()
-            self._send_json({"campaigns": campaigns})
+            self._send_json({"campaigns": campaigns, "period": period, "start_date": s_range, "end_date": e_range})
             return
 
-        # Conjuntos de Anúncio isolados
+        # Meta OAuth Status Check
+        if path in ['/api/integrations/meta/status', '/api/auth/facebook/status']:
+            conn = get_db()
+            cfg = get_meta_config(conn, self.headers.get('Host'))
+            conn_row = conn.execute("SELECT * FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
+            accounts = conn.execute("SELECT id, account_id, name, currency, timezone_name, status, account_status, is_selected, last_sync_at, sync_status FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY is_selected DESC, id DESC").fetchall()
+            
+            perms = []
+            if conn_row and conn_row['permissions']:
+                try:
+                    perms = json.loads(conn_row['permissions'])
+                except Exception:
+                    perms = [p.strip() for p in conn_row['permissions'].split(',') if p.strip()]
+
+            total_acc = len(accounts)
+            selected_acc = sum(1 for a in accounts if a['is_selected'] == 1)
+
+            resp = {
+                "configured": cfg['is_configured'],
+                "app_id": (cfg['app_id'][:4] + '***' + cfg['app_id'][-2:]) if len(cfg['app_id']) > 6 else cfg['app_id'],
+                "redirect_uri": cfg['redirect_uri'],
+                "connected": bool(conn_row),
+                "meta_user_name": conn_row['meta_user_name'] if conn_row else None,
+                "meta_user_id": conn_row['meta_user_id'] if conn_row else None,
+                "expires_at": conn_row['expires_at'] if conn_row else None,
+                "permissions": perms,
+                "total_accounts": total_acc,
+                "selected_accounts": selected_acc,
+                "ad_accounts": [dict(a) for a in accounts]
+            }
+            conn.close()
+            self._send_json(resp)
+            return
+
+        # Listagem de Contas de Anúncio Meta (com suporte a is_selected)
+        if path in ['/api/integrations/meta/ad-accounts', '/api/facebook/accounts', '/api/adaccounts']:
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT id, account_id, name, currency, timezone_name, status, account_status, is_selected, last_sync_at, sync_status, sync_error FROM facebook_ad_accounts WHERE user_id = 1 ORDER BY is_selected DESC, id DESC").fetchall()
+            conn.close()
+            self._send_json({"accounts": [dict(r) for r in rows]})
+            return
+
+        # Iniciar Fluxo Oficial Meta OAuth 2.0 (Escopos estritos: ads_read, public_profile)
+        if path in ['/api/integrations/meta/connect', '/api/auth/facebook', '/api/auth/facebook/login']:
+            conn = get_db()
+            cfg = get_meta_config(conn, self.headers.get('Host'))
+            
+            if not cfg['is_configured']:
+                conn.close()
+                self._send_json({
+                    "error": "Meta App ID ou Secret não configurados.",
+                    "configured": False,
+                    "redirect_uri": cfg['redirect_uri']
+                }, 400)
+                return
+
+            state = uuid.uuid4().hex
+            conn.execute("INSERT OR REPLACE INTO facebook_oauth_states (state, user_id, created_at) VALUES (?, 1, CURRENT_TIMESTAMP)", (state,))
+            conn.commit()
+            conn.close()
+
+            scopes = META_OAUTH_SCOPES
+            oauth_url = (
+                f"https://www.facebook.com/{META_GRAPH_VERSION}/dialog/oauth?"
+                f"client_id={urllib.parse.quote(cfg['app_id'])}"
+                f"&redirect_uri={urllib.parse.quote(cfg['redirect_uri'])}"
+                f"&state={urllib.parse.quote(state)}"
+                f"&scope={urllib.parse.quote(scopes)}"
+                f"&response_type=code"
+            )
+
+            self.send_response(302)
+            self.send_header('Location', oauth_url)
+            self._send_cors_headers()
+            self.end_headers()
+            return
+
+        # Callback Oficial da Meta (Facebook OAuth 2.0)
+        if path in ['/api/integrations/meta/callback', '/api/auth/facebook/callback']:
+            code = params.get('code', [''])[0]
+            state = params.get('state', [''])[0]
+            error = params.get('error', [''])[0]
+            error_desc = params.get('error_description', [params.get('error_message', ['Erro na autorização da Meta'])])[0]
+
+            conn = get_db()
+            cfg = get_meta_config(conn, self.headers.get('Host'))
+
+            if error or not code:
+                conn.close()
+                html_err = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Erro ao Conectar Meta Ads</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0B0F19] text-white flex items-center justify-center min-h-screen p-4 font-sans">
+  <div class="bg-[#111827] border border-rose-500/30 p-8 rounded-2xl max-w-md w-full text-center shadow-2xl space-y-4">
+    <div class="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/30">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </div>
+    <h2 class="text-xl font-bold text-white">Falha na Autorização Meta</h2>
+    <p class="text-slate-300 text-xs leading-relaxed">{error_desc}</p>
+    <button onclick="window.close()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs">
+      Fechar Janela
+    </button>
+  </div>
+</body>
+</html>"""
+                self.send_response(400)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(html_err.encode('utf-8'))
+                return
+
+            # Validação anti-CSRF do State
+            state_row = conn.execute("SELECT state FROM facebook_oauth_states WHERE state = ?", (state,)).fetchone()
+            if not state_row:
+                conn.close()
+                self.send_response(400)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(b"<h1>Erro de Seguranca: Token CSRF (state) invalido ou expirado. Tente novamente.</h1>")
+                return
+            conn.execute("DELETE FROM facebook_oauth_states WHERE state = ?", (state,))
+            conn.commit()
+
+            try:
+                # 1. Troca de code por short-lived token
+                token_resp = call_meta_graph_api('oauth/access_token', params={
+                    'client_id': cfg['app_id'],
+                    'client_secret': cfg['app_secret'],
+                    'redirect_uri': cfg['redirect_uri'],
+                    'code': code
+                })
+                short_token = token_resp.get('access_token')
+                if not short_token:
+                    raise Exception("A Meta nao retornou access_token na troca de codigo.")
+
+                # 2. Troca por Long-Lived Token (60 dias)
+                long_resp = call_meta_graph_api('oauth/access_token', params={
+                    'grant_type': 'fb_exchange_token',
+                    'client_id': cfg['app_id'],
+                    'client_secret': cfg['app_secret'],
+                    'fb_exchange_token': short_token
+                })
+                final_token = long_resp.get('access_token', short_token)
+                expires_in = long_resp.get('expires_in', 5184000)
+                expires_at = datetime.fromtimestamp(datetime.utcnow().timestamp() + int(expires_in)).strftime('%Y-%m-%d %H:%M:%S')
+
+                # 3. Identifica usuario da Meta
+                user_info = call_meta_graph_api('me', params={'fields': 'id,name,email'}, access_token=final_token)
+                meta_user_id = user_info.get('id', '')
+                meta_user_name = user_info.get('name', 'Usuario Meta')
+
+                # 4. Identifica permissoes
+                perms_data = call_meta_graph_api('me/permissions', access_token=final_token)
+                granted_perms = [p.get('permission') for p in perms_data.get('data', []) if p.get('status') == 'granted']
+
+                # 5. Salva conexao
+                conn.execute("""
+                    INSERT INTO facebook_connections (user_id, meta_user_id, meta_user_name, access_token, expires_at, permissions, status, updated_at)
+                    VALUES (1, ?, ?, ?, ?, ?, 'connected', CURRENT_TIMESTAMP)
+                """, (meta_user_id, meta_user_name, final_token, expires_at, json.dumps(granted_perms)))
+
+                # 6. Busca TODAS as Contas de Anúncio reais autorizadas com PAGINAÇÃO
+                ad_accounts_data = fetch_all_meta_pages('me/adaccounts', params={
+                    'fields': 'id,name,account_id,account_status,currency,timezone_name,business_name',
+                    'limit': '50'
+                }, access_token=final_token, max_pages=15)
+
+                accounts_saved = 0
+                for acc in ad_accounts_data:
+                    raw_id = acc.get('account_id') or acc.get('id', '').replace('act_', '')
+                    name = acc.get('name') or f"Conta {raw_id}"
+                    currency = acc.get('currency', 'BRL')
+                    tz = acc.get('timezone_name', 'America/Sao_Paulo')
+                    status_code = acc.get('account_status', 1)
+                    status_str = 'ACTIVE' if status_code == 1 else 'DISABLED'
+                    
+                    existing = conn.execute("SELECT id FROM facebook_ad_accounts WHERE account_id = ? AND user_id = 1", (raw_id,)).fetchone()
+                    if existing:
+                        conn.execute("""
+                            UPDATE facebook_ad_accounts 
+                            SET name = ?, access_token = ?, currency = ?, timezone_name = ?, account_status = ?, status = ?, is_selected = 1
+                            WHERE id = ?
+                        """, (name, final_token, currency, tz, status_code, status_str, existing['id']))
+                    else:
+                        conn.execute("""
+                            INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, timezone_name, account_status, status, is_selected)
+                            VALUES (1, ?, ?, ?, ?, ?, ?, ?, 1)
+                        """, (raw_id, name, final_token, currency, tz, status_code, status_str))
+                    accounts_saved += 1
+
+                conn.commit()
+                conn.close()
+
+                html_ok = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Meta Conectada com Sucesso</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0B0F19] text-white flex items-center justify-center min-h-screen p-4 font-sans">
+  <div class="bg-[#111827] border border-emerald-500/30 p-8 rounded-2xl max-w-md w-full text-center shadow-2xl space-y-4">
+    <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto border border-emerald-500/30">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+    </div>
+    <h2 class="text-xl font-bold text-white">Conta Meta Conectada!</h2>
+    <p class="text-slate-300 text-xs leading-relaxed">
+      Perfil de <strong>{meta_user_name}</strong> autenticado com sucesso via OAuth 2.0 oficial. {accounts_saved} conta(s) de anúncio importada(s) para o TrackPro.
+    </p>
+    <button onclick="finishLogin()" class="w-full py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-500/20 transition-all">
+      Concluir e Voltar
+    </button>
+  </div>
+  <script>
+    function finishLogin() {{
+      if (window.opener && !window.opener.closed) {{
+        window.opener.postMessage({{ type: 'TRACKPRO_FB_CONNECTED', user: '{meta_user_name}', count: {accounts_saved} }}, '*');
+      }}
+      window.close();
+    }}
+    setTimeout(finishLogin, 1500);
+  </script>
+</body>
+</html>"""
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(html_ok.encode('utf-8'))
+                return
+
+            except Exception as e:
+                conn.close()
+                html_fail = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Erro ao Validar Token Meta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0B0F19] text-white flex items-center justify-center min-h-screen p-4 font-sans">
+  <div class="bg-[#111827] border border-rose-500/30 p-8 rounded-2xl max-w-md w-full text-center shadow-2xl space-y-4">
+    <div class="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/30">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </div>
+    <h2 class="text-xl font-bold text-white">Falha na Validacao do Token</h2>
+    <p class="text-slate-300 text-xs leading-relaxed">{str(e)}</p>
+    <button onclick="window.close()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs">
+      Fechar Janela
+    </button>
+  </div>
+</body>
+</html>"""
+                self.send_response(500)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(html_fail.encode('utf-8'))
+                return
+
+        # Métricas de Campanhas Meta (com agregação de vendas e ROAS real)
+        if path == '/api/meta/campaigns':
+            conn = get_db()
+            cursor = conn.cursor()
+            sel_rows = cursor.execute("SELECT account_id FROM facebook_ad_accounts WHERE user_id = 1 AND is_selected = 1").fetchall()
+            sel_ids = [r['account_id'] for r in sel_rows]
+            
+            if sel_ids:
+                placeholders = ','.join(['?'] * len(sel_ids))
+                c_rows = cursor.execute(f"SELECT * FROM campaigns WHERE (ad_account_id IN ({placeholders}) OR ad_account_id IS NULL) ORDER BY id DESC", sel_ids).fetchall()
+            else:
+                c_rows = cursor.execute("SELECT * FROM campaigns ORDER BY id DESC").fetchall()
+
+            res_camps = []
+            for c in c_rows:
+                cd = dict(c)
+                spent = (cd.get('total_spent_in_cents') or 0) / 100.0
+                c_name = cd['name']
+                ext_id = cd.get('external_campaign_id') or c_name
+                
+                sales_row = cursor.execute("SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE (utm_campaign = ? OR utm_campaign = ?) AND status = 'paid'", (c_name, ext_id)).fetchone()
+                order_sales = sales_row['cnt'] if sales_row else 0
+                order_rev = (sales_row['rev'] if sales_row else 0) / 100.0
+                
+                meta_convs = cd.get('conversions') or 0
+                tot_convs = max(order_sales, meta_convs)
+                
+                roas = round(order_rev / spent, 2) if spent > 0 else 0.0
+                cpa = round(spent / tot_convs, 2) if tot_convs > 0 else (round((cd.get('cpa_cents') or 0) / 100.0, 2))
+                
+                impr = cd.get('impressions') or 0
+                clicks = cd.get('clicks') or 0
+                ctr = round((clicks / impr * 100.0), 2) if impr > 0 else 0.0
+                cpc = round(spent / clicks, 2) if clicks > 0 else 0.0
+
+                cd['spent'] = spent
+                cd['daily_budget'] = (cd.get('daily_budget_in_cents') or 0) / 100.0
+                cd['sales'] = tot_convs
+                cd['revenue'] = order_rev
+                cd['roas'] = roas
+                cd['cpa'] = cpa
+                cd['impressions'] = impr
+                cd['clicks'] = clicks
+                cd['ctr'] = ctr
+                cd['cpc'] = cpc
+                res_camps.append(cd)
+                
+            conn.close()
+            self._send_json({"campaigns": res_camps})
+            return
+
+        # Insights Agregados da Meta por Período
+        if path == '/api/meta/insights':
+            conn = get_db()
+            cursor = conn.cursor()
+            start_date = params.get('start_date', [''])[0]
+            end_date = params.get('end_date', [''])[0]
+
+            query = "SELECT COALESCE(SUM(spend_cents), 0) as spend, COALESCE(SUM(impressions), 0) as impr, COALESCE(SUM(clicks), 0) as clk, COALESCE(SUM(conversions), 0) as conv FROM meta_campaign_insights WHERE user_id = 1"
+            q_params = []
+            if start_date:
+                query += " AND date_start >= ?"
+                q_params.append(start_date)
+            if end_date:
+                query += " AND date_stop <= ?"
+                q_params.append(end_date)
+
+            row = cursor.execute(query, q_params).fetchone()
+            spent = (row['spend'] if row else 0) / 100.0
+            impr = row['impr'] if row else 0
+            clk = row['clk'] if row else 0
+            conv = row['conv'] if row else 0
+            ctr = round((clk / impr * 100.0), 2) if impr > 0 else 0.0
+            cpc = round(spent / clk, 2) if clk > 0 else 0.0
+            cpa = round(spent / conv, 2) if conv > 0 else 0.0
+
+            conn.close()
+            self._send_json({
+                "spend": spent,
+                "impressions": impr,
+                "clicks": clk,
+                "conversions": conv,
+                "ctr": ctr,
+                "cpc": cpc,
+                "cpa": cpa
+            })
+            return
+
+        # Conjuntos de Anúncio com Filtro por Período e Campanhas Selecionadas
         if path in ['/api/facebook/adsets', '/api/adsets']:
             conn = get_db()
             cursor = conn.cursor()
-            camp_id = params.get('campaign_id', [''])[0]
-            if camp_id:
-                rows = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (camp_id,)).fetchall()
+            period = params.get('period', [''])[0].strip()
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
+            camp_param = params.get('campaign_ids', params.get('campaign_id', ['']))[0]
+            
+            if camp_param:
+                c_ids = [c.strip() for c in camp_param.split(',') if c.strip().isdigit()]
+                if c_ids:
+                    placeholders = ','.join(['?'] * len(c_ids))
+                    rows = cursor.execute(f"SELECT a.*, c.name as campaign_name FROM ad_sets a LEFT JOIN campaigns c ON a.campaign_id = c.id WHERE a.campaign_id IN ({placeholders}) ORDER BY a.id DESC", c_ids).fetchall()
+                else:
+                    rows = []
             else:
-                rows = cursor.execute("SELECT a.*, c.name as campaign_name FROM ad_sets a LEFT JOIN campaigns c ON a.campaign_id = c.id").fetchall()
+                rows = cursor.execute("SELECT a.*, c.name as campaign_name FROM ad_sets a LEFT JOIN campaigns c ON a.campaign_id = c.id ORDER BY a.id DESC").fetchall()
+            
+            order_date_clause, order_date_params = get_order_date_condition(period, start_date, end_date, col='created_at')
+
+            adsets_list = []
+            for r in rows:
+                item = dict(r)
+                spent = (item.get('spent_cents') or 0) / 100.0
+                daily_budget = (item.get('daily_budget_cents') or 5000) / 100.0
+                
+                order_q = "SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE utm_content = ? AND status = 'paid'"
+                order_p = [item['name']]
+                if order_date_clause:
+                    order_q += f" AND {order_date_clause}"
+                    order_p.extend(order_date_params)
+                    
+                sales = cursor.execute(order_q, order_p).fetchone()
+                sales_count = sales['cnt'] if sales else 0
+                revenue = (sales['rev'] if sales else 0) / 100.0
+                roas = round(revenue / spent, 2) if spent > 0 else 0
+                cpa = round(spent / sales_count, 2) if sales_count > 0 else 0
+                item['spent'] = spent
+                item['daily_budget'] = daily_budget
+                item['sales'] = sales_count
+                item['revenue'] = revenue
+                item['roas'] = roas
+                item['cpa'] = cpa
+                adsets_list.append(item)
             conn.close()
-            self._send_json({"adsets": [dict(r) for r in rows]})
+            self._send_json({"adsets": adsets_list})
+            return
+
+        # Anúncios (Criativos) com Filtro por Período, Campanhas e Conjuntos
+        if path in ['/api/facebook/ads', '/api/ads']:
+            conn = get_db()
+            cursor = conn.cursor()
+            period = params.get('period', [''])[0].strip()
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
+            camp_param = params.get('campaign_ids', params.get('campaign_id', ['']))[0]
+            adset_param = params.get('adset_ids', params.get('adset_id', ['']))[0]
+            
+            query = """
+                SELECT ad.*, a.name as adset_name, c.name as campaign_name 
+                FROM ads ad 
+                LEFT JOIN ad_sets a ON ad.ad_set_id = a.id 
+                LEFT JOIN campaigns c ON ad.campaign_id = c.id
+            """
+            where_clauses = []
+            where_vals = []
+            if camp_param:
+                c_ids = [c.strip() for c in camp_param.split(',') if c.strip().isdigit()]
+                if c_ids:
+                    where_clauses.append(f"ad.campaign_id IN ({','.join(['?']*len(c_ids))})")
+                    where_vals.extend(c_ids)
+            if adset_param:
+                a_ids = [a.strip() for a in adset_param.split(',') if a.strip().isdigit()]
+                if a_ids:
+                    where_clauses.append(f"ad.ad_set_id IN ({','.join(['?']*len(a_ids))})")
+                    where_vals.extend(a_ids)
+
+            if where_clauses:
+                query += " WHERE " + " AND ".join(where_clauses)
+            query += " ORDER BY ad.id DESC"
+
+            rows = cursor.execute(query, where_vals).fetchall()
+            order_date_clause, order_date_params = get_order_date_condition(period, start_date, end_date, col='created_at')
+
+            ads_list = []
+            for r in rows:
+                item = dict(r)
+                spent = (item.get('spent_cents') or 0) / 100.0
+                
+                order_q = "SELECT COUNT(*) as cnt, COALESCE(SUM(price_in_cents), 0) as rev FROM orders WHERE utm_term = ? AND status = 'paid'"
+                order_p = [item['name']]
+                if order_date_clause:
+                    order_q += f" AND {order_date_clause}"
+                    order_p.extend(order_date_params)
+                    
+                sales = cursor.execute(order_q, order_p).fetchone()
+                sales_count = (item.get('sales_count') or 0) + (sales['cnt'] if sales else 0)
+                revenue = ((item.get('revenue_cents') or 0) + (sales['rev'] if sales else 0)) / 100.0
+                roas = round(revenue / spent, 2) if spent > 0 else 0
+                cpa = round(spent / sales_count, 2) if sales_count > 0 else 0
+                item['spent'] = spent
+                item['sales'] = sales_count
+                item['revenue'] = revenue
+                item['roas'] = roas
+                item['cpa'] = cpa
+                ads_list.append(item)
+            conn.close()
+            self._send_json({"ads": ads_list})
             return
 
         # Regras de Automação
@@ -1294,6 +2468,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 content = f.read()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
             self._send_cors_headers()
             self.end_headers()
             self.wfile.write(content.encode('utf-8'))
@@ -1301,6 +2478,9 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
         # 404
         self._send_json({"error": "Endpoint não encontrado"}, 404)
+
+    def do_DELETE(self):
+        return self.do_POST()
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -1512,14 +2692,218 @@ class TrackProHandler(BaseHTTPRequestHandler):
             camp_id = cursor.lastrowid
 
             # Cria conjunto padrão
+            adset_uuid = f"ADSET-{uuid.uuid4().hex[:6].upper()}"
+            adset_name = f"Conjunto Aberto - {name}"
             cursor.execute("""
                 INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents)
                 VALUES (?, ?, ?, 'active', ?, 0)
-            """, (camp_id, f"ADSET-{uuid.uuid4().hex[:6].upper()}", f"Conjunto Aberto - {name}", budget))
+            """, (camp_id, adset_uuid, adset_name, budget))
+            adset_id = cursor.lastrowid
+
+            # Cria anúncio (criativo) padrão
+            cursor.execute("""
+                INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
+                VALUES (?, ?, ?, 'active', 'video', 0, 0)
+            """, (adset_id, camp_id, f"Criativo 01 - Vídeo - {name}"))
 
             conn.commit()
             conn.close()
             self._send_json({"success": True, "campaign_id": camp_id, "message": f"Campanha {name} criada com sucesso!"})
+            return
+
+        # Seleção de Contas de Anúncio da Meta (is_selected)
+        if path in ['/api/integrations/meta/ad-accounts/select', '/api/facebook/accounts/select']:
+            selected_ids = body.get('selected_account_ids')
+            account_id = body.get('account_id')
+            is_selected = body.get('is_selected')
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            if isinstance(selected_ids, list):
+                cursor.execute("UPDATE facebook_ad_accounts SET is_selected = 0 WHERE user_id = 1")
+                cleaned_ids = [str(a).replace('act_', '').strip() for a in selected_ids if a]
+                if cleaned_ids:
+                    placeholders = ','.join(['?'] * len(cleaned_ids))
+                    cursor.execute(f"UPDATE facebook_ad_accounts SET is_selected = 1 WHERE user_id = 1 AND account_id IN ({placeholders})", cleaned_ids)
+                conn.commit()
+                conn.close()
+                self._send_json({"success": True, "message": f"{len(cleaned_ids)} conta(s) selecionada(s) para tracking!"})
+                return
+            elif account_id is not None and is_selected is not None:
+                clean_id = str(account_id).replace('act_', '').strip()
+                val = 1 if is_selected else 0
+                cursor.execute("UPDATE facebook_ad_accounts SET is_selected = ? WHERE user_id = 1 AND account_id = ?", (val, clean_id))
+                conn.commit()
+                conn.close()
+                self._send_json({"success": True, "message": "Conta de anúncio atualizada!"})
+                return
+            else:
+                conn.close()
+                self._send_json({"error": "Parâmetros inválidos. Envie selected_account_ids ou account_id com is_selected."}, 400)
+                return
+
+        # Configurar Credenciais Oficiais Meta OAuth
+        if path in ['/api/integrations/meta/config', '/api/auth/facebook/config']:
+            app_id = body.get('app_id', '').strip()
+            app_secret = body.get('app_secret', '').strip()
+            redirect_uri = body.get('redirect_uri', '').strip()
+            if not app_id or not app_secret:
+                self._send_json({"error": "App ID e App Secret são obrigatórios"}, 400)
+                return
+            conn = get_db()
+            conn.execute("""
+                INSERT OR REPLACE INTO meta_oauth_config (id, app_id, app_secret, redirect_uri, updated_at)
+                VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (app_id, app_secret, redirect_uri))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Credenciais Meta salvas com sucesso!"})
+            return
+
+        # Desconectar Conta Meta e Revogar Permissões
+        if path in ['/api/integrations/meta/disconnect', '/api/auth/facebook/disconnect']:
+            conn = get_db()
+            conn_row = conn.execute("SELECT access_token FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
+            if conn_row and conn_row['access_token']:
+                try:
+                    call_meta_graph_api('me/permissions', method='DELETE', access_token=conn_row['access_token'])
+                except Exception:
+                    pass
+            conn.execute("UPDATE facebook_connections SET status = 'disconnected' WHERE user_id = 1")
+            conn.execute("UPDATE facebook_ad_accounts SET access_token = NULL WHERE user_id = 1")
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Conta Meta desconectada e permissões revogadas com sucesso."})
+            return
+
+        # Conectar via Token Permanente de System User
+        if path in ['/api/facebook/connect_token', '/api/integrations/meta/connect-token']:
+            token = body.get('access_token') or body.get('token') or DEFAULT_META_SYSTEM_TOKEN
+            res = sync_meta_system_token(token)
+            self._send_json(res, 200 if res.get('success') else 400)
+            return
+
+        # Sincronização Real de Campanhas e Gastos com Paginação e Insights
+        if path in ['/api/integrations/meta/sync', '/api/facebook/sync']:
+            sync_period = body.get('period', 'all')
+            sync_start = body.get('start_date', '')
+            sync_end = body.get('end_date', '')
+            res = sync_meta_campaigns_internal(1, sync_period, sync_start, sync_end)
+            if res.get('success'):
+                self._send_json({
+                    "success": True,
+                    "message": f"Sincronização concluída com sucesso! {res.get('synced', 0)} campanhas atualizadas.",
+                    "synced_campaigns": res.get('synced', 0)
+                }, 200)
+            else:
+                self._send_json({
+                    "error": res.get('error', 'Erro durante a sincronização'),
+                    "details": res.get('errors', [])
+                }, 400)
+            return
+
+        # Ações em Massa (Bulk Actions para Campanhas, Conjuntos e Anúncios)
+        if path == '/api/facebook/bulk_action':
+            entity_type = body.get('entity_type', 'campaigns')
+            action = body.get('action', '')
+            ids = body.get('ids', [])
+            budget_val = float(body.get('budget', 50.0))
+            budget_cents = int(budget_val * 100)
+
+            if not ids or not isinstance(ids, list):
+                self._send_json({"error": "Nenhum item selecionado"}, 400)
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            placeholders = ','.join(['?'] * len(ids))
+
+            if entity_type == 'campaigns':
+                if action == 'delete':
+                    cursor.execute(f"DELETE FROM campaigns WHERE id IN ({placeholders})", ids)
+                    cursor.execute(f"DELETE FROM ad_sets WHERE campaign_id IN ({placeholders})", ids)
+                    cursor.execute(f"DELETE FROM ads WHERE campaign_id IN ({placeholders})", ids)
+                elif action == 'pause':
+                    cursor.execute(f"UPDATE campaigns SET status = 'paused' WHERE id IN ({placeholders})", ids)
+                    cursor.execute(f"UPDATE ad_sets SET status = 'paused' WHERE campaign_id IN ({placeholders})", ids)
+                    cursor.execute(f"UPDATE ads SET status = 'paused' WHERE campaign_id IN ({placeholders})", ids)
+                elif action == 'activate':
+                    cursor.execute(f"UPDATE campaigns SET status = 'active' WHERE id IN ({placeholders})", ids)
+                    cursor.execute(f"UPDATE ad_sets SET status = 'active' WHERE campaign_id IN ({placeholders})", ids)
+                    cursor.execute(f"UPDATE ads SET status = 'active' WHERE campaign_id IN ({placeholders})", ids)
+                elif action == 'budget':
+                    cursor.execute(f"UPDATE campaigns SET daily_budget_in_cents = ? WHERE id IN ({placeholders})", [budget_cents] + ids)
+                elif action == 'duplicate':
+                    for c_id in ids:
+                        c_orig = cursor.execute("SELECT * FROM campaigns WHERE id = ?", (c_id,)).fetchone()
+                        if c_orig:
+                            cursor.execute("""
+                                INSERT INTO campaigns (user_id, name, platform, status, daily_budget_in_cents, total_spent_in_cents, ad_account_id)
+                                VALUES (1, ?, ?, 'active', ?, 0, ?)
+                            """, (f"[CÓPIA] {c_orig['name']}", c_orig['platform'], c_orig['daily_budget_in_cents'], c_orig['ad_account_id']))
+                            new_c_id = cursor.lastrowid
+                            orig_adsets = cursor.execute("SELECT * FROM ad_sets WHERE campaign_id = ?", (c_id,)).fetchall()
+                            for oa in orig_adsets:
+                                cursor.execute("""
+                                    INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents)
+                                    VALUES (?, ?, ?, 'active', ?, 0)
+                                """, (new_c_id, f"ADSET-{uuid.uuid4().hex[:6].upper()}", f"[CÓPIA] {oa['name']}", oa['daily_budget_cents']))
+                                new_a_id = cursor.lastrowid
+                                orig_ads = cursor.execute("SELECT * FROM ads WHERE ad_set_id = ?", (oa['id'],)).fetchall()
+                                for ad in orig_ads:
+                                    cursor.execute("""
+                                        INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
+                                        VALUES (?, ?, ?, 'active', ?, 0, 0)
+                                    """, (new_a_id, new_c_id, f"[CÓPIA] {ad['name']}", ad['creative_type']))
+
+            elif entity_type == 'adsets':
+                if action == 'delete':
+                    cursor.execute(f"DELETE FROM ad_sets WHERE id IN ({placeholders})", ids)
+                    cursor.execute(f"DELETE FROM ads WHERE ad_set_id IN ({placeholders})", ids)
+                elif action == 'pause':
+                    cursor.execute(f"UPDATE ad_sets SET status = 'paused' WHERE id IN ({placeholders})", ids)
+                    cursor.execute(f"UPDATE ads SET status = 'paused' WHERE ad_set_id IN ({placeholders})", ids)
+                elif action == 'activate':
+                    cursor.execute(f"UPDATE ad_sets SET status = 'active' WHERE id IN ({placeholders})", ids)
+                    cursor.execute(f"UPDATE ads SET status = 'active' WHERE ad_set_id IN ({placeholders})", ids)
+                elif action == 'budget':
+                    cursor.execute(f"UPDATE ad_sets SET daily_budget_cents = ? WHERE id IN ({placeholders})", [budget_cents] + ids)
+                elif action == 'duplicate':
+                    for a_id in ids:
+                        oa = cursor.execute("SELECT * FROM ad_sets WHERE id = ?", (a_id,)).fetchone()
+                        if oa:
+                            cursor.execute("""
+                                INSERT INTO ad_sets (campaign_id, external_id, name, status, daily_budget_cents, spent_cents)
+                                VALUES (?, ?, ?, 'active', ?, 0)
+                            """, (oa['campaign_id'], f"ADSET-{uuid.uuid4().hex[:6].upper()}", f"[CÓPIA] {oa['name']}", oa['daily_budget_cents']))
+                            new_a_id = cursor.lastrowid
+                            orig_ads = cursor.execute("SELECT * FROM ads WHERE ad_set_id = ?", (a_id,)).fetchall()
+                            for ad in orig_ads:
+                                cursor.execute("""
+                                    INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
+                                    VALUES (?, ?, ?, 'active', ?, 0, 0)
+                                """, (new_a_id, oa['campaign_id'], f"[CÓPIA] {ad['name']}", ad['creative_type']))
+
+            elif entity_type == 'ads':
+                if action == 'delete':
+                    cursor.execute(f"DELETE FROM ads WHERE id IN ({placeholders})", ids)
+                elif action == 'pause':
+                    cursor.execute(f"UPDATE ads SET status = 'paused' WHERE id IN ({placeholders})", ids)
+                elif action == 'activate':
+                    cursor.execute(f"UPDATE ads SET status = 'active' WHERE id IN ({placeholders})", ids)
+                elif action == 'duplicate':
+                    for ad_id in ids:
+                        ad = cursor.execute("SELECT * FROM ads WHERE id = ?", (ad_id,)).fetchone()
+                        if ad:
+                            cursor.execute("""
+                                INSERT INTO ads (ad_set_id, campaign_id, name, status, creative_type, spent_cents, sales_count)
+                                VALUES (?, ?, ?, 'active', ?, 0, 0)
+                            """, (ad['ad_set_id'], ad['campaign_id'], f"[CÓPIA] {ad['name']}", ad['creative_type']))
+
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": f"Ação '{action}' aplicada com sucesso a {len(ids)} item(ns)!"})
             return
 
         # Alterar Status de Campanha (Ativar / Pausar)

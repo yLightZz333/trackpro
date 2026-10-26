@@ -383,12 +383,24 @@ def init_db():
     if not dash:
         cursor.execute("INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default) VALUES (1, 'Geral', 'all', 1)")
 
+        # Inicializa conexão Meta com token permanente se ainda não estiver conectado
+    try:
+        active_conn = cursor.execute("SELECT id FROM facebook_connections WHERE user_id = 1 AND status = 'connected'").fetchone()
+        if not active_conn and DEFAULT_META_SYSTEM_TOKEN:
+            sync_meta_system_token(DEFAULT_META_SYSTEM_TOKEN)
+    except Exception as e:
+        print(f"[TrackPro Startup] Aviso ao sincronizar Meta: {e}")
+
     conn.commit()
     conn.close()
 
 # ==================== CONFIGURAÇÃO E INTEGRAÇÃO OFICIAL META (OAUTH 2.0) ====================
 META_GRAPH_VERSION = os.environ.get('META_GRAPH_VERSION', 'v19.0')
 META_OAUTH_SCOPES = "ads_read,public_profile"
+DEFAULT_META_SYSTEM_TOKEN = os.environ.get(
+    'META_SYSTEM_TOKEN',
+    'EAAP3aw4jAzkBS5ZBSHgj5bnUZAEkmidzcUEdXZCCglpZBykiL8UcgCZAjIUcuY26HEGceD6s3DSHBTZA73ntdZAtGBVvbpeyTNaOd53uFTsJodLtez9ayaK7YBqdrw3nfxAFOsQXUVuKPZAHr5zAqztJQwsLaGVQ4QQLslvkLoZBUbniEv4P0OMRoZATopMBYsWgZDZD'
+)
 
 def get_meta_config(conn=None, host_header=None):
     close_conn = False
@@ -537,6 +549,238 @@ def compute_date_range(period, start_date='', end_date=''):
     else:
         d_str = today_dt.strftime('%Y-%m-%d')
         return d_str, d_str, 'today'
+
+
+def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_date=''):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    conn_row = cursor.execute("SELECT access_token FROM facebook_connections WHERE user_id = ? AND status = 'connected' ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+    fallback_token = conn_row['access_token'] if conn_row else None
+
+    # Contas selecionadas
+    accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = ? AND is_selected = 1", (user_id,)).fetchall()
+    if not accounts:
+        accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = ? AND status = 'ACTIVE' LIMIT 1", (user_id,)).fetchall()
+
+    if not accounts:
+        conn.close()
+        return {"success": False, "error": "Nenhuma conta de anúncio ativa ou selecionada para sincronizar.", "synced": 0, "errors": []}
+
+    total_synced_campaigns = 0
+    sync_errors = []
+
+    for acc in accounts:
+        acc_id = acc['account_id']
+        token = acc['access_token'] or fallback_token
+        if not token:
+            continue
+
+        cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'syncing' WHERE id = ?", (acc['id'],))
+        conn.commit()
+
+        try:
+            # 1. Busca todas as campanhas com paginação
+            camps_raw = fetch_all_meta_pages(f"act_{acc_id}/campaigns", params={
+                'fields': 'id,name,status,effective_status,objective,created_time,updated_time,daily_budget,lifetime_budget',
+                'limit': '50'
+            }, access_token=token, max_pages=15)
+
+            # 2. Busca insights no nível de campanha com período selecionado
+            s_r, e_r, preset = compute_date_range(period, start_date, end_date)
+
+            ins_params = {
+                'level': 'campaign',
+                'fields': 'campaign_id,campaign_name,impressions,reach,clicks,spend,ctr,cpc,cpm,frequency,actions,cost_per_action_type,date_start,date_stop',
+                'limit': '50'
+            }
+            if s_r and e_r and period == 'custom':
+                ins_params['time_range'] = json.dumps({'since': s_r, 'until': e_r})
+            elif preset:
+                ins_params['date_preset'] = preset
+            else:
+                ins_params['date_preset'] = 'maximum'
+
+            insights_raw = fetch_all_meta_pages(f"act_{acc_id}/insights", params=ins_params, access_token=token, max_pages=15)
+
+            insights_by_camp = {}
+            for ins in insights_raw:
+                c_id = ins.get('campaign_id')
+                if c_id:
+                    insights_by_camp[str(c_id)] = ins
+
+            for c in camps_raw:
+                c_ext_id = str(c.get('id', ''))
+                c_name = c.get('name', 'Campanha Meta')
+                eff_status = c.get('effective_status') or c.get('status', 'ACTIVE')
+                c_status = 'active' if eff_status == 'ACTIVE' else 'paused'
+                objective = c.get('objective', 'OUTCOME_SALES')
+                daily_b = int(float(c.get('daily_budget') or 5000))
+
+                ins = insights_by_camp.get(c_ext_id, {})
+                spend_float = float(ins.get('spend') or 0.0)
+                spend_cents = int(spend_float * 100)
+                impressions = int(ins.get('impressions') or 0)
+                reach = int(ins.get('reach') or 0)
+                clicks = int(ins.get('clicks') or 0)
+                ctr = float(ins.get('ctr') or 0.0)
+                cpc_cents = int(float(ins.get('cpc') or 0.0) * 100)
+                cpm_cents = int(float(ins.get('cpm') or 0.0) * 100)
+                freq = float(ins.get('frequency') or 1.0)
+                d_start = ins.get('date_start')
+                d_stop = ins.get('date_stop')
+
+                actions = ins.get('actions', [])
+                conversions = 0
+                if isinstance(actions, list):
+                    for act in actions:
+                        act_type = act.get('action_type', '')
+                        if act_type in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase', 'initiate_checkout']:
+                            conversions += int(act.get('value', 0))
+
+                cpa_cents = 0
+                cost_actions = ins.get('cost_per_action_type', [])
+                if isinstance(cost_actions, list):
+                    for ca in cost_actions:
+                        if ca.get('action_type') in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase']:
+                            cpa_cents = int(float(ca.get('value', 0)) * 100)
+
+                if conversions > 0 and cpa_cents == 0 and spend_cents > 0:
+                    cpa_cents = int(spend_cents / conversions)
+
+                if d_start and d_stop:
+                    cursor.execute("""
+                        INSERT INTO meta_campaign_insights (
+                            user_id, ad_account_id, campaign_id, campaign_name, impressions, reach, clicks,
+                            spend_cents, ctr, cpc_cents, cpm_cents, frequency, conversions, cost_per_conversion_cents,
+                            date_start, date_stop, synced_at
+                        ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(ad_account_id, campaign_id, date_start, date_stop) DO UPDATE SET
+                            impressions = excluded.impressions,
+                            reach = excluded.reach,
+                            clicks = excluded.clicks,
+                            spend_cents = excluded.spend_cents,
+                            ctr = excluded.ctr,
+                            cpc_cents = excluded.cpc_cents,
+                            cpm_cents = excluded.cpm_cents,
+                            frequency = excluded.frequency,
+                            conversions = excluded.conversions,
+                            cost_per_conversion_cents = excluded.cost_per_conversion_cents,
+                            synced_at = CURRENT_TIMESTAMP
+                    """, (acc_id, c_ext_id, c_name, impressions, reach, clicks, spend_cents, ctr, cpc_cents, cpm_cents, freq, conversions, cpa_cents, d_start, d_stop))
+
+                existing_c = cursor.execute("SELECT id FROM campaigns WHERE external_campaign_id = ? OR name = ?", (c_ext_id, c_name)).fetchone()
+                if existing_c:
+                    cursor.execute("""
+                        UPDATE campaigns
+                        SET name = ?, status = ?, effective_status = ?, objective = ?, daily_budget_in_cents = ?,
+                            total_spent_in_cents = ?, ad_account_id = ?, external_campaign_id = ?,
+                            impressions = ?, clicks = ?, conversions = ?, cpa_cents = ?
+                        WHERE id = ?
+                    """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents, existing_c['id']))
+                else:
+                    cursor.execute("""
+                        INSERT INTO campaigns (
+                            user_id, name, platform, status, effective_status, objective, daily_budget_in_cents,
+                            total_spent_in_cents, ad_account_id, external_campaign_id, impressions, clicks, conversions, cpa_cents
+                        ) VALUES (1, ?, 'facebook', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents))
+
+                total_synced_campaigns += 1
+
+            now_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'ok', sync_error = NULL, last_sync_at = ? WHERE id = ?", (now_str, acc['id']))
+
+        except Exception as e:
+            err_text = str(e)
+            sync_errors.append(f"Conta {acc_id}: {err_text}")
+            cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'error', sync_error = ? WHERE id = ?", (err_text, acc['id']))
+
+    conn.commit()
+    conn.close()
+    return {
+        "success": len(sync_errors) == 0,
+        "synced": total_synced_campaigns,
+        "errors": sync_errors
+    }
+
+def sync_meta_system_token(token=None, user_id=1):
+    final_token = (token or DEFAULT_META_SYSTEM_TOKEN).strip()
+    if not final_token:
+        return {"success": False, "error": "Token não fornecido."}
+    
+    try:
+        user_info = call_meta_graph_api('me', params={'fields': 'id,name'}, access_token=final_token)
+        meta_user_id = str(user_info.get('id', '122096450511530140'))
+        meta_user_name = user_info.get('name', 'Trackeamento')
+        
+        perms = ["ads_read", "public_profile"]
+        try:
+            p_data = call_meta_graph_api('me/permissions', access_token=final_token)
+            p_list = [p.get('permission') for p in p_data.get('data', []) if p.get('status') == 'granted']
+            if p_list:
+                perms = p_list
+        except Exception:
+            pass
+            
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM facebook_connections WHERE user_id = ?", (user_id,))
+        cursor.execute("""
+            INSERT INTO facebook_connections (user_id, meta_user_id, meta_user_name, access_token, expires_at, permissions, status, updated_at)
+            VALUES (?, ?, ?, ?, '2099-12-31 23:59:59', ?, 'connected', CURRENT_TIMESTAMP)
+        """, (user_id, meta_user_id, meta_user_name, final_token, json.dumps(perms)))
+        
+        cursor.execute("UPDATE facebook_ad_accounts SET is_selected = 0 WHERE user_id = ?", (user_id,))
+        ad_accounts_data = fetch_all_meta_pages('me/adaccounts', params={
+            'fields': 'id,name,account_id,account_status,currency,timezone_name,business_name',
+            'limit': '50'
+        }, access_token=final_token, max_pages=15)
+        
+        saved_accounts = []
+        for acc in ad_accounts_data:
+            raw_id = acc.get('account_id') or acc.get('id', '').replace('act_', '')
+            name = acc.get('name') or f"Conta {raw_id}"
+            currency = acc.get('currency', 'USD')
+            tz = acc.get('timezone_name', 'America/Sao_Paulo')
+            status_code = acc.get('account_status', 1)
+            status_str = 'ACTIVE' if status_code == 1 else 'DISABLED'
+            
+            existing = cursor.execute("SELECT id FROM facebook_ad_accounts WHERE account_id = ? AND user_id = ?", (raw_id, user_id)).fetchone()
+            if existing:
+                cursor.execute("""
+                    UPDATE facebook_ad_accounts 
+                    SET name = ?, access_token = ?, currency = ?, timezone_name = ?, account_status = ?, status = ?, is_selected = 1
+                    WHERE id = ?
+                """, (name, final_token, currency, tz, status_code, status_str, existing['id']))
+            else:
+                cursor.execute("""
+                    INSERT INTO facebook_ad_accounts (user_id, account_id, name, access_token, currency, timezone_name, account_status, status, is_selected)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """, (user_id, raw_id, name, final_token, currency, tz, status_code, status_str))
+                
+            saved_accounts.append({
+                "account_id": raw_id,
+                "name": name,
+                "currency": currency,
+                "timezone": tz,
+                "status": status_str
+            })
+            
+        conn.commit()
+        conn.close()
+        
+        sync_res = sync_meta_campaigns_internal(user_id=user_id, period='all')
+        
+        return {
+            "success": True,
+            "user": {"id": meta_user_id, "name": meta_user_name},
+            "accounts": saved_accounts,
+            "campaigns_synced": sync_res.get("synced", 0)
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 def get_order_date_condition(period, start_date='', end_date='', col='created_at'):
     if period == 'today':
@@ -1063,12 +1307,25 @@ class TrackProHandler(BaseHTTPRequestHandler):
             return
 
         # Pixel JS com Link Forwarder Automático (Kiwify, Hotmart, Greenn, Cakto, Wiapy)
-        if path in ['/tracking/pixel.js', '/tracking/pixel']:
+        if path in ['/trackpro.js', '/pixel.js', '/tracking/pixel.js', '/tracking/pixel']:
             token = params.get('token', [''])[0]
+            host = self.headers.get('Host', 'meutrackpro.onrender.com')
+            scheme = 'http' if ('localhost' in host or '127.0.0.1' in host) else 'https'
+            server_origin = f"{scheme}://{host}"
             script = f"""(function(){{
   'use strict';
   var TOKEN = '{token}';
-  var API = window.location.origin;
+  var SERVER_ORIGIN = '{server_origin}';
+  var curScript = document.currentScript || (function() {{
+    var scripts = document.getElementsByTagName('script');
+    for (var i = scripts.length - 1; i >= 0; i--) {{
+      if (scripts[i].src && (scripts[i].src.indexOf('trackpro.js') !== -1 || scripts[i].src.indexOf('pixel.js') !== -1)) {{
+        return scripts[i];
+      }}
+    }}
+    return null;
+  }})();
+  var API = (curScript && curScript.src) ? (new URL(curScript.src)).origin : SERVER_ORIGIN;
 
   function getQueryParam(name) {{
     var search = window.location.search.substring(1);
@@ -1133,49 +1390,58 @@ class TrackProHandler(BaseHTTPRequestHandler):
   if (!stored.fbp) stored.fbp = fbp;
   if (fbc && !stored.fbc) stored.fbc = fbc;
 
-  fetch(API + '/api/tracking/event', {{
-    method: 'POST',
-    headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
-    body: JSON.stringify({{
-      event_type: 'pageview',
-      utm_source: stored.utm_source,
-      utm_medium: stored.utm_medium,
-      utm_campaign: stored.utm_campaign,
-      utm_content: stored.utm_content,
-      utm_term: stored.utm_term,
-      src: stored.src,
-      sck: stored.sck,
-      fbc: stored.fbc,
-      fbp: stored.fbp,
-      page_url: window.location.href,
-      referrer: document.referrer
-    }})
-  }}).catch(function(){{}});
+  try {{
+    fetch(API + '/api/tracking/event', {{
+      method: 'POST',
+      mode: 'cors',
+      headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
+      body: JSON.stringify({{
+        event_type: 'pageview',
+        utm_source: stored.utm_source,
+        utm_medium: stored.utm_medium,
+        utm_campaign: stored.utm_campaign,
+        utm_content: stored.utm_content,
+        utm_term: stored.utm_term,
+        src: stored.src,
+        sck: stored.sck,
+        fbc: stored.fbc,
+        fbp: stored.fbp,
+        page_url: window.location.href,
+        referrer: document.referrer
+      }})
+    }}).catch(function(){{}});
+  }} catch(e){{}}
+
+  var checkouts = ['kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com', 'eduzz.com', 'braip.com', 'monetizze.com.br', 'perfectpay.com.br', 'ticto.com.br', 'kirvano.com', 'doppus.com', 'lastlink.com', 'pepper.com.br'];
+
+  function decorateCheckoutUrl(url) {{
+    if (!url || typeof url !== 'string') return url;
+    var isCheckout = checkouts.some(function(domain) {{ return url.indexOf(domain) !== -1; }});
+    if (!isCheckout) return url;
+    try {{
+      var parsed = new URL(url, window.location.href);
+      if (stored.utm_source && !parsed.searchParams.get('utm_source')) parsed.searchParams.set('utm_source', stored.utm_source);
+      if (stored.utm_medium && !parsed.searchParams.get('utm_medium')) parsed.searchParams.set('utm_medium', stored.utm_medium);
+      if (stored.utm_campaign && !parsed.searchParams.get('utm_campaign')) parsed.searchParams.set('utm_campaign', stored.utm_campaign);
+      if (stored.utm_content && !parsed.searchParams.get('utm_content')) parsed.searchParams.set('utm_content', stored.utm_content);
+      if (stored.utm_term && !parsed.searchParams.get('utm_term')) parsed.searchParams.set('utm_term', stored.utm_term);
+      if (stored.src && !parsed.searchParams.get('src')) parsed.searchParams.set('src', stored.src);
+      if (stored.sck && !parsed.searchParams.get('sck')) parsed.searchParams.set('sck', stored.sck);
+      if (stored.fbc && !parsed.searchParams.get('fbc')) parsed.searchParams.set('fbc', stored.fbc);
+      if (stored.fbp && !parsed.searchParams.get('fbp')) parsed.searchParams.set('fbp', stored.fbp);
+      return parsed.toString();
+    }} catch(e) {{
+      return url;
+    }}
+  }}
 
   function decorateCheckoutLinks() {{
     var links = document.querySelectorAll('a[href]');
-    var checkouts = ['kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com'];
-    
     links.forEach(function(link) {{
       var href = link.getAttribute('href');
-      if (!href) return;
-      var isCheckout = checkouts.some(function(domain) {{ return href.indexOf(domain) !== -1; }});
-      if (isCheckout) {{
-        var separator = href.indexOf('?') !== -1 ? '&' : '?';
-        var params = [];
-        if (stored.utm_source) params.push('utm_source=' + encodeURIComponent(stored.utm_source));
-        if (stored.utm_medium) params.push('utm_medium=' + encodeURIComponent(stored.utm_medium));
-        if (stored.utm_campaign) params.push('utm_campaign=' + encodeURIComponent(stored.utm_campaign));
-        if (stored.utm_content) params.push('utm_content=' + encodeURIComponent(stored.utm_content));
-        if (stored.utm_term) params.push('utm_term=' + encodeURIComponent(stored.utm_term));
-        if (stored.src) params.push('src=' + encodeURIComponent(stored.src));
-        if (stored.sck) params.push('sck=' + encodeURIComponent(stored.sck));
-        if (stored.fbc) params.push('fbc=' + encodeURIComponent(stored.fbc));
-        if (stored.fbp) params.push('fbp=' + encodeURIComponent(stored.fbp));
-
-        if (params.length > 0) {{
-          link.setAttribute('href', href + separator + params.join('&'));
-        }}
+      if (href) {{
+        var newHref = decorateCheckoutUrl(href);
+        if (newHref !== href) link.setAttribute('href', newHref);
       }}
     }});
   }}
@@ -1185,6 +1451,21 @@ class TrackProHandler(BaseHTTPRequestHandler):
   }} else {{
     document.addEventListener('DOMContentLoaded', decorateCheckoutLinks);
   }}
+
+  if (window.MutationObserver) {{
+    var obs = new MutationObserver(function() {{ decorateCheckoutLinks(); }});
+    obs.observe(document.body || document.documentElement, {{ childList: true, subtree: true }});
+  }}
+
+  document.addEventListener('click', function(e) {{
+    var target = e.target;
+    while (target && target.tagName !== 'A' && target !== document.body) {{
+      target = target.parentElement;
+    }}
+    if (target && target.tagName === 'A' && target.getAttribute('href')) {{
+      target.setAttribute('href', decorateCheckoutUrl(target.getAttribute('href')));
+    }}
+  }}, true);
 
   window.TrackPro = {{
     getUtms: function() {{ return stored; }},
@@ -2496,173 +2777,30 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"success": True, "message": "Conta Meta desconectada e permissões revogadas com sucesso."})
             return
 
+        # Conectar via Token Permanente de System User
+        if path in ['/api/facebook/connect_token', '/api/integrations/meta/connect-token']:
+            token = body.get('access_token') or body.get('token') or DEFAULT_META_SYSTEM_TOKEN
+            res = sync_meta_system_token(token)
+            self._send_json(res, 200 if res.get('success') else 400)
+            return
+
         # Sincronização Real de Campanhas e Gastos com Paginação e Insights
         if path in ['/api/integrations/meta/sync', '/api/facebook/sync']:
-            conn = get_db()
-            cursor = conn.cursor()
-
-            conn_row = cursor.execute("SELECT access_token FROM facebook_connections WHERE user_id = 1 AND status = 'connected' ORDER BY id DESC LIMIT 1").fetchone()
-            fallback_token = conn_row['access_token'] if conn_row else None
-
-            # Contas selecionadas
-            accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = 1 AND is_selected = 1").fetchall()
-            if not accounts:
-                accounts = cursor.execute("SELECT * FROM facebook_ad_accounts WHERE user_id = 1 AND status = 'ACTIVE' LIMIT 1").fetchall()
-
-            if not accounts:
-                conn.close()
-                self._send_json({"error": "Nenhuma conta de anúncio ativa ou selecionada para sincronizar."}, 400)
-                return
-
-            total_synced_campaigns = 0
-            sync_errors = []
-
-            for acc in accounts:
-                acc_id = acc['account_id']
-                token = acc['access_token'] or fallback_token
-                if not token:
-                    continue
-
-                cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'syncing' WHERE id = ?", (acc['id'],))
-                conn.commit()
-
-                try:
-                    # 1. Busca todas as campanhas com paginação
-                    camps_raw = fetch_all_meta_pages(f"act_{acc_id}/campaigns", params={
-                        'fields': 'id,name,status,effective_status,objective,created_time,updated_time,daily_budget,lifetime_budget',
-                        'limit': '50'
-                    }, access_token=token, max_pages=15)
-
-                    # 2. Busca insights no nível de campanha com período selecionado
-                    sync_period = body.get('period', 'today')
-                    sync_start = body.get('start_date', '')
-                    sync_end = body.get('end_date', '')
-                    s_r, e_r, preset = compute_date_range(sync_period, sync_start, sync_end)
-
-                    ins_params = {
-                        'level': 'campaign',
-                        'fields': 'campaign_id,campaign_name,impressions,reach,clicks,spend,ctr,cpc,cpm,frequency,actions,cost_per_action_type,date_start,date_stop',
-                        'limit': '50'
-                    }
-                    if s_r and e_r and sync_period == 'custom':
-                        ins_params['time_range'] = json.dumps({'since': s_r, 'until': e_r})
-                    elif preset:
-                        ins_params['date_preset'] = preset
-                    else:
-                        ins_params['date_preset'] = 'last_30d'
-
-                    insights_raw = fetch_all_meta_pages(f"act_{acc_id}/insights", params=ins_params, access_token=token, max_pages=15)
-
-                    # Indexa insights por campaign_id
-                    insights_by_camp = {}
-                    for ins in insights_raw:
-                        c_id = ins.get('campaign_id')
-                        if c_id:
-                            insights_by_camp[c_id] = ins
-
-                    for c in camps_raw:
-                        c_ext_id = str(c.get('id', ''))
-                        c_name = c.get('name', 'Campanha Meta')
-                        eff_status = c.get('effective_status') or c.get('status', 'ACTIVE')
-                        c_status = 'active' if eff_status == 'ACTIVE' else 'paused'
-                        objective = c.get('objective', 'OUTCOME_SALES')
-                        daily_b = int(float(c.get('daily_budget') or 5000))
-
-                        ins = insights_by_camp.get(c_ext_id, {})
-                        spend_float = float(ins.get('spend') or 0.0)
-                        spend_cents = int(spend_float * 100)
-                        impressions = int(ins.get('impressions') or 0)
-                        reach = int(ins.get('reach') or 0)
-                        clicks = int(ins.get('clicks') or 0)
-                        ctr = float(ins.get('ctr') or 0.0)
-                        cpc_cents = int(float(ins.get('cpc') or 0.0) * 100)
-                        cpm_cents = int(float(ins.get('cpm') or 0.0) * 100)
-                        freq = float(ins.get('frequency') or 1.0)
-                        d_start = ins.get('date_start')
-                        d_stop = ins.get('date_stop')
-
-                        # Extrai conversões de compra
-                        actions = ins.get('actions', [])
-                        conversions = 0
-                        if isinstance(actions, list):
-                            for act in actions:
-                                act_type = act.get('action_type', '')
-                                if act_type in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase']:
-                                    conversions += int(act.get('value', 0))
-
-                        # Extrai CPA de compra
-                        cpa_cents = 0
-                        cost_actions = ins.get('cost_per_action_type', [])
-                        if isinstance(cost_actions, list):
-                            for ca in cost_actions:
-                                if ca.get('action_type') in ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase']:
-                                    cpa_cents = int(float(ca.get('value', 0)) * 100)
-
-                        if conversions > 0 and cpa_cents == 0:
-                            cpa_cents = int(spend_cents / conversions)
-
-                        # Salva / atualiza insights
-                        if d_start and d_stop:
-                            cursor.execute("""
-                                INSERT INTO meta_campaign_insights (
-                                    user_id, ad_account_id, campaign_id, campaign_name, impressions, reach, clicks,
-                                    spend_cents, ctr, cpc_cents, cpm_cents, frequency, conversions, cost_per_conversion_cents,
-                                    date_start, date_stop, synced_at
-                                ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                                ON CONFLICT(ad_account_id, campaign_id, date_start, date_stop) DO UPDATE SET
-                                    impressions = excluded.impressions,
-                                    reach = excluded.reach,
-                                    clicks = excluded.clicks,
-                                    spend_cents = excluded.spend_cents,
-                                    ctr = excluded.ctr,
-                                    cpc_cents = excluded.cpc_cents,
-                                    cpm_cents = excluded.cpm_cents,
-                                    frequency = excluded.frequency,
-                                    conversions = excluded.conversions,
-                                    cost_per_conversion_cents = excluded.cost_per_conversion_cents,
-                                    synced_at = CURRENT_TIMESTAMP
-                            """, (acc_id, c_ext_id, c_name, impressions, reach, clicks, spend_cents, ctr, cpc_cents, cpm_cents, freq, conversions, cpa_cents, d_start, d_stop))
-
-                        # Salva / atualiza tabela campaigns
-                        existing_c = cursor.execute("SELECT id FROM campaigns WHERE external_campaign_id = ? OR name = ?", (c_ext_id, c_name)).fetchone()
-                        if existing_c:
-                            cursor.execute("""
-                                UPDATE campaigns
-                                SET name = ?, status = ?, effective_status = ?, objective = ?, daily_budget_in_cents = ?,
-                                    total_spent_in_cents = ?, ad_account_id = ?, external_campaign_id = ?,
-                                    impressions = ?, clicks = ?, conversions = ?, cpa_cents = ?
-                                WHERE id = ?
-                            """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents, existing_c['id']))
-                        else:
-                            cursor.execute("""
-                                INSERT INTO campaigns (
-                                    user_id, name, platform, status, effective_status, objective, daily_budget_in_cents,
-                                    total_spent_in_cents, ad_account_id, external_campaign_id, impressions, clicks, conversions, cpa_cents
-                                ) VALUES (1, ?, 'facebook', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (c_name, c_status, eff_status, objective, daily_b, spend_cents, acc_id, c_ext_id, impressions, clicks, conversions, cpa_cents))
-
-                        total_synced_campaigns += 1
-
-                    now_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-                    cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'ok', sync_error = NULL, last_sync_at = ? WHERE id = ?", (now_str, acc['id']))
-
-                except Exception as e:
-                    err_text = str(e)
-                    sync_errors.append(f"Conta {acc_id}: {err_text}")
-                    cursor.execute("UPDATE facebook_ad_accounts SET sync_status = 'error', sync_error = ? WHERE id = ?", (err_text, acc['id']))
-
-            conn.commit()
-            conn.close()
-
-            if sync_errors and total_synced_campaigns == 0:
-                self._send_json({"error": "Erro ao sincronizar com a Meta: " + "; ".join(sync_errors)}, 500)
-            else:
+            sync_period = body.get('period', 'all')
+            sync_start = body.get('start_date', '')
+            sync_end = body.get('end_date', '')
+            res = sync_meta_campaigns_internal(1, sync_period, sync_start, sync_end)
+            if res.get('success'):
                 self._send_json({
                     "success": True,
-                    "synced_campaigns": total_synced_campaigns,
-                    "accounts_synced": len(accounts),
-                    "message": f"{total_synced_campaigns} campanha(s) sincronizada(s) da Meta com sucesso!"
-                })
+                    "message": f"Sincronização concluída com sucesso! {res.get('synced', 0)} campanhas atualizadas.",
+                    "synced_campaigns": res.get('synced', 0)
+                }, 200)
+            else:
+                self._send_json({
+                    "error": res.get('error', 'Erro durante a sincronização'),
+                    "details": res.get('errors', [])
+                }, 400)
             return
 
         # Ações em Massa (Bulk Actions para Campanhas, Conjuntos e Anúncios)

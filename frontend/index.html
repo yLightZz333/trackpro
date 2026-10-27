@@ -2827,6 +2827,88 @@
       </form>
     </div>
   </div>
+<!-- MODAL: GOOGLE OAUTH ACCOUNT SELECTOR (SELETOR DE CONTA OFICIAL) -->
+  <div id="modal-google-oauth-select" class="modal fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden animate-fade-in">
+    <div class="bg-dark-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-5">
+      <!-- Botão Fechar -->
+      <button type="button" onclick="closeModal('modal-google-oauth-select')" class="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Cabeçalho Estilo Google -->
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 bg-white rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-white/10">
+          <svg class="w-6 h-6" viewBox="0 0 24 24">
+            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+            <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/>
+            <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-white tracking-tight">Fazer login com o Google</h3>
+        <p class="text-xs text-slate-400">Escolha ou informe uma conta para acessar o <strong class="text-white">TrackPro</strong></p>
+      </div>
+
+      <!-- Contas Salvas / Rápidas (se houver histórico) -->
+      <div id="google-accounts-history" class="space-y-2"></div>
+
+      <!-- Formulário de Seleção / Digitação de Conta Google -->
+      <form id="form-google-select-account" onsubmit="submitGoogleAccountSelection(event)" class="space-y-3 pt-1">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Seu E-mail do Google</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="email" id="google-select-email" required placeholder="seu.email@gmail.com" class="w-full bg-dark-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Seu Nome (Como deseja ser chamado)</label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
+            <input type="text" id="google-select-name" required placeholder="Ex: Carlos Eduardo" class="w-full bg-dark-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-google-select-submit" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-white/10">
+          <span>Continuar com esta conta</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+      <!-- Painel Colapsável: Configuração do Google Cloud Client ID (OAuth Oficial) -->
+      <div class="pt-2 border-t border-slate-800/80">
+        <button type="button" onclick="toggleGoogleOAuthConfigPanel()" class="w-full text-left flex items-center justify-between text-[11px] text-slate-400 hover:text-slate-200 transition-colors">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="settings" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Conectar Google Cloud Client ID (OAuth Oficial)</span>
+          </span>
+          <i data-lucide="chevron-down" id="google-cfg-chevron" class="w-3.5 h-3.5 transition-transform"></i>
+        </button>
+
+        <div id="google-oauth-config-box" class="hidden mt-3 p-3.5 bg-dark-950 rounded-2xl border border-slate-800 space-y-3">
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Para ativar o popup oficial de login do Google, crie um <strong class="text-white">ID de cliente OAuth 2.0</strong> no <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-brand-400 hover:underline">Google Cloud Console</a> e adicione o redirect URI:
+            <code class="block mt-1 p-1 bg-dark-900 text-[10px] text-slate-300 rounded font-mono break-all" id="google-display-redirect-uri">https://meutrackpro.onrender.com/api/auth/google/callback</code>
+          </p>
+
+          <div class="space-y-1">
+            <label class="text-[11px] font-semibold text-slate-300">Client ID do Google</label>
+            <input type="text" id="cfg-google-client-id" placeholder="Ex: 123456789-abc.apps.googleusercontent.com" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-[11px] font-semibold text-slate-300">Client Secret do Google</label>
+            <input type="password" id="cfg-google-client-secret" placeholder="Ex: GOCSPX-xxxxxxxxxxxx" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+          </div>
+
+          <button type="button" onclick="saveGoogleOAuthConfig()" class="w-full py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition-all shadow-md">
+            Salvar Credenciais do Google
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
@@ -3707,27 +3789,197 @@
       }
     }
 
+    // ==================== GOOGLE OAUTH 2.0 & SELEÇÃO DE CONTA ====================
     async function handleGoogleAuth() {
+      try {
+        const res = await fetch('/api/auth/google/url');
+        const data = await res.json();
+
+        if (data.configured && data.url) {
+          // Abre o popup oficial do Google OAuth com prompt=select_account
+          const width = 520;
+          const height = 650;
+          const left = window.screenX + (window.outerWidth - width) / 2;
+          const top = window.screenY + (window.outerHeight - height) / 2;
+          const popup = window.open(
+            data.url,
+            'google_oauth_popup',
+            `width=${width},height=${height},left=${left},top=${top},status=0,menubar=0,toolbar=0`
+          );
+          if (popup) popup.focus();
+        } else {
+          // Abre o seletor de contas do Google onde o usuário escolhe/digita sua conta
+          openGoogleAccountSelectorModal(data.redirect_uri);
+        }
+      } catch (e) {
+        openGoogleAccountSelectorModal();
+      }
+    }
+
+    // Ouvinte para mensagens do popup OAuth oficial
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'TRACKPRO_GOOGLE_AUTH_SUCCESS') {
+        const { token, user } = event.data;
+        if (token && user) {
+          saveGoogleAccountToLocalHistory(user);
+          localStorage.setItem('trackpro_token', token);
+          localStorage.setItem('trackpro_user', JSON.stringify(user));
+          closeModal('modal-auth');
+          closeModal('modal-google-oauth-select');
+          updateProfileUI(user);
+          showToast(`Conectado com Google como ${user.name}!`, 'success');
+          initAuthenticatedApp();
+        }
+      }
+    });
+
+    function openGoogleAccountSelectorModal(redirectUri) {
+      const redirectDisplay = document.getElementById('google-display-redirect-uri');
+      if (redirectDisplay && redirectUri) redirectDisplay.textContent = redirectUri;
+
+      renderGoogleAccountsHistory();
+      openModal('modal-google-oauth-select');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderGoogleAccountsHistory() {
+      const container = document.getElementById('google-accounts-history');
+      if (!container) return;
+
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem('trackpro_google_accounts') || '[]');
+      } catch(e) {}
+
+      if (history.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Contas recentes neste navegador:</label>
+        <div class="space-y-1.5">
+          ${history.map(acc => `
+            <button type="button" onclick="selectExistingGoogleAccount('${acc.email}', '${acc.name.replace("'", "\'")}')" class="w-full p-2.5 bg-dark-950 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-2xl flex items-center justify-between text-left transition-all">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-xs text-white shrink-0">
+                  ${(acc.name || 'G')[0].toUpperCase()}
+                </div>
+                <div class="min-w-0">
+                  <span class="block text-xs font-bold text-white truncate">${acc.name}</span>
+                  <span class="block text-[11px] text-slate-400 truncate">${acc.email}</span>
+                </div>
+              </div>
+              <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 shrink-0"></i>
+            </button>
+          `).join('')}
+        </div>
+        <div class="relative flex items-center justify-center py-2">
+          <span class="absolute inset-x-0 h-px bg-slate-800"></span>
+          <span class="relative bg-dark-900 px-3 text-[10px] text-slate-500 font-semibold uppercase">Ou entrar com outra conta</span>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function saveGoogleAccountToLocalHistory(user) {
+      try {
+        let history = JSON.parse(localStorage.getItem('trackpro_google_accounts') || '[]');
+        history = history.filter(h => (h.email || '').toLowerCase() !== (user.email || '').toLowerCase());
+        history.unshift({ name: user.name, email: user.email });
+        if (history.length > 5) history = history.slice(0, 5);
+        localStorage.setItem('trackpro_google_accounts', JSON.stringify(history));
+      } catch(e) {}
+    }
+
+    async function selectExistingGoogleAccount(email, name) {
+      await executeGoogleLogin(email, name);
+    }
+
+    async function submitGoogleAccountSelection(e) {
+      e.preventDefault();
+      const email = (document.getElementById('google-select-email')?.value || '').trim();
+      const name = (document.getElementById('google-select-name')?.value || '').trim();
+      if (!email || !name) {
+        showToast('Por favor, informe seu e-mail e nome.', 'error');
+        return;
+      }
+      await executeGoogleLogin(email, name);
+    }
+
+    async function executeGoogleLogin(email, name) {
+      const btn = document.getElementById('btn-google-select-submit');
+      if (btn) btn.disabled = true;
       try {
         const res = await fetch('/api/auth/google', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'Lucas (Google)',
-            email: 'luckinhasp4@gmail.com'
-          })
+          body: JSON.stringify({ email, name })
         });
         const data = await res.json();
         if (res.ok && data.token) {
+          saveGoogleAccountToLocalHistory(data.user);
           localStorage.setItem('trackpro_token', data.token);
           localStorage.setItem('trackpro_user', JSON.stringify(data.user));
+          closeModal('modal-google-oauth-select');
           closeModal('modal-auth');
           updateProfileUI(data.user);
-          showToast('Conectado com Google com sucesso!', 'success');
+          showToast(`Conectado com Google como ${data.user.name}!`, 'success');
           initAuthenticatedApp();
+        } else {
+          showToast(data.error || 'Erro ao autenticar com Google.', 'error');
         }
-      } catch (e) {
-        showToast('Erro ao autenticar com Google.', 'error');
+      } catch(e) {
+        showToast('Erro de conexão ao autenticar com Google.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function toggleGoogleOAuthConfigPanel() {
+      const box = document.getElementById('google-oauth-config-box');
+      const chev = document.getElementById('google-cfg-chevron');
+      if (!box) return;
+      box.classList.toggle('hidden');
+      if (chev) {
+        chev.style.transform = box.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+      }
+      if (!box.classList.contains('hidden')) {
+        loadGoogleOAuthConfig();
+      }
+    }
+
+    async function loadGoogleOAuthConfig() {
+      try {
+        const res = await fetch('/api/auth/google/settings');
+        const data = await res.json();
+        if (data && data.client_id) {
+          const cid = document.getElementById('cfg-google-client-id');
+          if (cid) cid.value = data.client_id;
+        }
+      } catch(e) {}
+    }
+
+    async function saveGoogleOAuthConfig() {
+      const clientId = (document.getElementById('cfg-google-client-id')?.value || '').trim();
+      const clientSecret = (document.getElementById('cfg-google-client-secret')?.value || '').trim();
+      if (!clientId) {
+        showToast('Informe o Client ID do Google Cloud.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/google/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Credenciais do Google salvas com sucesso!', 'success');
+          toggleGoogleOAuthConfigPanel();
+        }
+      } catch(e) {
+        showToast('Erro ao salvar credenciais do Google.', 'error');
       }
     }
 

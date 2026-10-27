@@ -113,6 +113,14 @@ def init_db():
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS google_oauth_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        client_id TEXT,
+        client_secret TEXT,
+        redirect_uri TEXT,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS telegram_settings (
         user_id INTEGER PRIMARY KEY,
         bot_token TEXT,
@@ -620,6 +628,45 @@ DEFAULT_META_SYSTEM_TOKEN = os.environ.get(
     'META_SYSTEM_TOKEN',
     'EAAP3aw4jAzkBS5ZBSHgj5bnUZAEkmidzcUEdXZCCglpZBykiL8UcgCZAjIUcuY26HEGceD6s3DSHBTZA73ntdZAtGBVvbpeyTNaOd53uFTsJodLtez9ayaK7YBqdrw3nfxAFOsQXUVuKPZAHr5zAqztJQwsLaGVQ4QQLslvkLoZBUbniEv4P0OMRoZATopMBYsWgZDZD'
 )
+
+def get_google_oauth_config(conn=None, host_header=None):
+    close_conn = False
+    if conn is None:
+        conn = get_db()
+        close_conn = True
+
+    client_id = os.environ.get('GOOGLE_CLIENT_ID', '').strip()
+    client_secret = os.environ.get('GOOGLE_CLIENT_SECRET', '').strip()
+    redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI', '').strip()
+
+    try:
+        cfg = conn.execute("SELECT client_id, client_secret, redirect_uri FROM google_oauth_settings WHERE id = 1").fetchone()
+        if cfg:
+            if not client_id and cfg['client_id']:
+                client_id = cfg['client_id'].strip()
+            if not client_secret and cfg['client_secret']:
+                client_secret = cfg['client_secret'].strip()
+            if not redirect_uri and cfg['redirect_uri']:
+                redirect_uri = cfg['redirect_uri'].strip()
+    except Exception:
+        pass
+
+    if not redirect_uri:
+        if host_header:
+            scheme = 'http' if ('localhost' in host_header or '127.0.0.1' in host_header) else 'https'
+            redirect_uri = f"{scheme}://{host_header}/api/auth/google/callback"
+        else:
+            redirect_uri = "https://meutrackpro.onrender.com/api/auth/google/callback"
+
+    if close_conn:
+        conn.close()
+
+    return {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "is_configured": bool(client_id and client_secret)
+    }
 
 def get_meta_config(conn=None, host_header=None):
     close_conn = False
@@ -1974,6 +2021,126 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({
                 "success": True,
                 "settings": dict(row) if row else {"bot_token": "", "chat_id": "", "active": 0}
+            })
+            return
+
+        # Google OAuth URL
+        if path == '/api/auth/google/url':
+            cfg = get_google_oauth_config(host_header=self.headers.get('Host'))
+            if cfg['is_configured']:
+                q = urllib.parse.urlencode({
+                    "client_id": cfg['client_id'],
+                    "redirect_uri": cfg['redirect_uri'],
+                    "response_type": "code",
+                    "scope": "openid email profile",
+                    "access_type": "offline",
+                    "prompt": "select_account"
+                })
+                auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{q}"
+                self._send_json({"configured": True, "url": auth_url, "client_id": cfg['client_id'], "redirect_uri": cfg['redirect_uri']})
+            else:
+                self._send_json({"configured": False, "redirect_uri": cfg['redirect_uri']})
+            return
+
+        # Google OAuth Callback
+        if path == '/api/auth/google/callback':
+            code = params.get('code', [''])[0]
+            error = params.get('error', [''])[0]
+            if error or not code:
+                err_msg = error or 'Código de autorização não recebido do Google.'
+                self._send_html(f"""<!DOCTYPE html><html><body style="background:#0B0F19;color:#fff;font-family:sans-serif;padding:30px;text-align:center;">
+                    <h3 style="color:#f43f5e;">Falha na autenticação do Google</h3>
+                    <p style="color:#94a3b8;font-size:12px;">{err_msg}</p>
+                    <button onclick="window.close()" style="padding:10px 20px;border-radius:10px;background:#334155;color:#fff;border:none;cursor:pointer;">Fechar</button>
+                </body></html>""")
+                return
+
+            cfg = get_google_oauth_config(host_header=self.headers.get('Host'))
+            try:
+                token_data = urllib.parse.urlencode({
+                    "code": code,
+                    "client_id": cfg['client_id'],
+                    "client_secret": cfg['client_secret'],
+                    "redirect_uri": cfg['redirect_uri'],
+                    "grant_type": "authorization_code"
+                }).encode('utf-8')
+                req = urllib.request.Request("https://oauth2.googleapis.com/token", data=token_data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    t_res = json.loads(resp.read().decode('utf-8'))
+                access_token = t_res.get('access_token')
+
+                req_u = urllib.request.Request("https://www.googleapis.com/oauth2/v3/userinfo", headers={"Authorization": f"Bearer {access_token}"})
+                with urllib.request.urlopen(req_u, timeout=10) as resp_u:
+                    userinfo = json.loads(resp_u.read().decode('utf-8'))
+
+                email = (userinfo.get('email') or '').strip().lower()
+                name = userinfo.get('name') or userinfo.get('given_name') or email.split('@')[0].capitalize()
+                if not email:
+                    raise Exception("E-mail não fornecido pelo Google.")
+
+                conn = get_db()
+                cursor = conn.cursor()
+                user = cursor.execute("SELECT * FROM users WHERE lower(email) = ?", (email,)).fetchone()
+                if not user:
+                    hashed = hash_password(secrets.token_hex(16))
+                    cursor.execute("INSERT INTO users (name, email, password, company) VALUES (?, ?, ?, 'Google Account')", (name, email, hashed))
+                    uid = cursor.lastrowid
+                    cursor.execute("INSERT OR IGNORE INTO financial_settings (user_id) VALUES (?)", (uid,))
+                    cursor.execute("INSERT OR IGNORE INTO notification_settings (user_id) VALUES (?)", (uid,))
+                    cursor.execute("INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default) VALUES (?, 'Geral', '', 1)", (uid,))
+                    user_obj = {"id": uid, "name": name, "email": email}
+                else:
+                    user_obj = {"id": user['id'], "name": user['name'], "email": user['email']}
+
+                token = f"tp_{secrets.token_hex(24)}"
+                expires = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d %H:%M:%S')
+                cursor.execute("INSERT INTO user_sessions (user_id, token, ip_address, expires_at) VALUES (?, ?, ?, ?)",
+                               (user_obj['id'], token, self.client_address[0], expires))
+                conn.commit()
+                conn.close()
+
+                cookie = f"tp_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={90*86400}"
+                html_resp = f"""<!DOCTYPE html>
+                <html>
+                <head><meta charset="utf-8"><title>Autenticado com Google</title></head>
+                <body style="background:#0B0F19;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+                  <div style="text-align:center;padding:20px;">
+                    <div style="font-size:32px;margin-bottom:10px;">✔</div>
+                    <h3 style="margin:0 0 8px 0;font-size:16px;">Conectado com o Google!</h3>
+                    <p style="color:#94a3b8;font-size:12px;margin:0;">{email}</p>
+                  </div>
+                  <script>
+                    if (window.opener) {{
+                      window.opener.postMessage({{
+                        type: 'TRACKPRO_GOOGLE_AUTH_SUCCESS',
+                        token: '{token}',
+                        user: {json.dumps(user_obj)}
+                      }}, '*');
+                      setTimeout(() => window.close(), 600);
+                    }} else {{
+                      window.location.href = '/';
+                    }}
+                  </script>
+                </body>
+                </html>"""
+                self._send_html(html_resp, cookie=cookie)
+                return
+            except Exception as ex_g:
+                self._send_html(f"""<!DOCTYPE html><html><body style="background:#0B0F19;color:#fff;font-family:sans-serif;padding:30px;text-align:center;">
+                    <h3 style="color:#f43f5e;">Erro na autenticação do Google</h3>
+                    <p style="color:#94a3b8;font-size:12px;">{ex_g}</p>
+                    <button onclick="window.close()" style="padding:10px 20px;border-radius:10px;background:#334155;color:#fff;border:none;cursor:pointer;">Fechar</button>
+                </body></html>""")
+                return
+
+        # Google OAuth Config Settings (GET)
+        if path == '/api/auth/google/settings':
+            cfg = get_google_oauth_config(host_header=self.headers.get('Host'))
+            self._send_json({
+                "configured": cfg['is_configured'],
+                "client_id": cfg['client_id'],
+                "has_secret": bool(cfg['client_secret']),
+                "redirect_uri": cfg['redirect_uri']
             })
             return
 
@@ -3791,9 +3958,16 @@ self.addEventListener('notificationclick', (e) => {
             }, cookie=cookie)
             return
 
-        if path == '/api/auth/google':
-            email = (body.get('email') or 'lucas.google@trackpro.com').strip().lower()
-            name = (body.get('name') or 'Usuário Google').strip()
+        if path in ['/api/auth/google', '/api/auth/google/select']:
+            email = (body.get('email') or '').strip().lower()
+            name = (body.get('name') or '').strip()
+
+            if not email or '@' not in email or '.' not in email:
+                self._send_json({"error": "Por favor, selecione ou informe um e-mail válido da sua conta Google."}, 400)
+                return
+
+            if not name:
+                name = email.split('@')[0].capitalize()
 
             conn = get_db()
             cursor = conn.cursor()
@@ -3816,12 +3990,34 @@ self.addEventListener('notificationclick', (e) => {
             conn.commit()
             conn.close()
 
+            cookie = f"tp_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={90*86400}"
             self._send_json({
                 "success": True,
                 "token": token,
                 "user": user_obj,
                 "message": f"Conectado com Google como {name}!"
-            })
+            }, cookie=cookie)
+            return
+
+        if path == '/api/auth/google/settings':
+            client_id = (body.get('client_id') or '').strip()
+            client_secret = (body.get('client_secret') or '').strip()
+            redirect_uri = (body.get('redirect_uri') or '').strip()
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO google_oauth_settings (id, client_id, client_secret, redirect_uri, updated_at)
+                VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(id) DO UPDATE SET
+                    client_id = excluded.client_id,
+                    client_secret = CASE WHEN excluded.client_secret != '' THEN excluded.client_secret ELSE client_secret END,
+                    redirect_uri = excluded.redirect_uri,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (client_id, client_secret, redirect_uri))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Configurações do Google OAuth salvas com sucesso!"})
             return
 
         if path == '/api/auth/logout':

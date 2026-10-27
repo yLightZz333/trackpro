@@ -3599,6 +3599,12 @@
       if (closeBtn) {
         closeBtn.style.display = token ? 'block' : 'none';
       }
+      // Auto-preenche o e-mail lembrado se existir
+      const rememberedEmail = localStorage.getItem('trackpro_remember_email');
+      const emailInput = document.getElementById('login-email');
+      if (rememberedEmail && emailInput && !emailInput.value) {
+        emailInput.value = rememberedEmail;
+      }
       openModal('modal-auth');
       switchAuthTab(tab);
     }
@@ -3655,6 +3661,12 @@
       const em = document.getElementById('login-email').value.trim();
       const pw = document.getElementById('login-password').value;
       const btn = document.getElementById('btn-login-submit');
+
+      if (document.getElementById('login-remember')?.checked) {
+        localStorage.setItem('trackpro_remember_email', em);
+      } else {
+        localStorage.removeItem('trackpro_remember_email');
+      }
 
       if (btn) btn.disabled = true;
       try {
@@ -3787,18 +3799,40 @@
 
       try {
         const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          // Servidor em deploy/reinicialização temporária no Render: NÃO descarta a sessão local!
+          console.warn('Servidor temporariamente reiniciando (status ' + res.status + '), mantendo sessão local ativa.');
+          const cachedUser = localStorage.getItem('trackpro_user');
+          if (cachedUser) {
+            try {
+              updateProfileUI(JSON.parse(cachedUser));
+              initAuthenticatedApp();
+            } catch(e) {}
+          }
+          return;
+        }
+
         const data = await res.json();
         if (data.authenticated && data.user) {
           updateProfileUI(data.user);
+          localStorage.setItem('trackpro_user', JSON.stringify(data.user));
           initAuthenticatedApp();
         } else {
-          // Token expirado ou inválido: limpa e pede autenticação
+          // Apenas se o servidor confirmou explicitamente 200 OK com authenticated: false (logout)
           localStorage.removeItem('trackpro_token');
           localStorage.removeItem('trackpro_user');
           openAuthModal('login');
         }
       } catch (e) {
-        console.warn('Erro ao verificar sessão:', e);
+        // Falha de rede (ex: servidor acordando ou reiniciando no Render): mantém usuário conectado
+        console.warn('Erro de rede ao verificar sessão, mantendo sessão ativa:', e);
+        const cachedUser = localStorage.getItem('trackpro_user');
+        if (cachedUser) {
+          try {
+            updateProfileUI(JSON.parse(cachedUser));
+            initAuthenticatedApp();
+          } catch(err) {}
+        }
       }
     }
     function toggleQuickMetaInputs() {

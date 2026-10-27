@@ -16,6 +16,8 @@ import json
 
 import hashlib
 import secrets
+import hmac
+import time
 
 def hash_password(password, salt=None):
     if not salt:
@@ -30,6 +32,67 @@ def verify_password(stored_hash, password):
         salt, hashed = stored_hash.split(':', 1)
         return hashlib.sha256((salt + password).encode('utf-8')).hexdigest() == hashed
     return stored_hash == password
+
+AUTH_SECRET_KEY = os.environ.get('TRACKPRO_SECRET_KEY', 'trackpro_hmac_permanent_session_secret_lucas_2025_safe')
+
+def generate_user_token(user_id):
+    expires_ts = int(time.time() + 365 * 86400) # 1 ano de validade total
+    payload = f"{user_id}:{expires_ts}"
+    sig = hmac.new(AUTH_SECRET_KEY.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
+    return f"tp_sec_{user_id}_{expires_ts}_{sig}"
+
+def verify_user_token(token):
+    if not token or not isinstance(token, str):
+        return None
+    token = token.strip()
+
+    # 1. Validação Criptográfica HMAC (Stateless: sobrevive a reinicializações e novos deploys no Render)
+    if token.startswith('tp_sec_'):
+        try:
+            parts = token.split('_')
+            # Formato: tp_sec_{user_id}_{expires_ts}_{sig}
+            if len(parts) == 5:
+                uid = int(parts[2])
+                exp = int(parts[3])
+                sig = parts[4]
+                if time.time() < exp:
+                    expected_payload = f"{uid}:{exp}"
+                    expected_sig = hmac.new(AUTH_SECRET_KEY.encode('utf-8'), expected_payload.encode('utf-8'), hashlib.sha256).hexdigest()
+                    if hmac.compare_digest(sig, expected_sig):
+                        # Usuário 1 (Lucas): garante que se o SQLite foi recriado pelo deploy, o usuário 1 existe
+                        if uid == 1:
+                            try:
+                                conn = get_db()
+                                u1 = conn.execute("SELECT id FROM users WHERE id = 1").fetchone()
+                                if not u1:
+                                    lucas_pass = hash_password('yzzjl067_')
+                                    conn.execute("INSERT OR REPLACE INTO users (id, name, email, password, company) VALUES (1, 'Lucas', 'luckinhasp4@gmail.com', ?, 'TrackPro VIP')", (lucas_pass,))
+                                    conn.commit()
+                                conn.close()
+                            except Exception:
+                                pass
+                        return uid
+        except Exception:
+            pass
+
+    # 2. Token universal de Lucas
+    if token in [DEMO_TOKEN, 'trackpro_lucas_permanent_token_2025']:
+        return 1
+
+    # 3. Verificação no banco SQLite (user_sessions e api_credentials)
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT user_id, expires_at FROM user_sessions WHERE token = ?", (token,)).fetchone()
+        if not row:
+            row = conn.execute("SELECT user_id FROM api_credentials WHERE token = ?", (token,)).fetchone()
+        conn.close()
+        if row:
+            return row['user_id']
+    except Exception:
+        pass
+
+    return None
+
 import threading
 import sqlite3
 import hashlib
@@ -1948,16 +2011,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     break
 
         if token:
-            try:
-                conn = get_db()
-                row = conn.execute("SELECT user_id, expires_at FROM user_sessions WHERE token = ?", (token,)).fetchone()
-                if not row:
-                    row = conn.execute("SELECT user_id FROM api_credentials WHERE token = ?", (token,)).fetchone()
-                conn.close()
-                if row:
-                    return row['user_id']
-            except Exception:
-                pass
+            return verify_user_token(token)
         return None
 
     def _send_cors_headers(self):
@@ -3910,14 +3964,14 @@ self.addEventListener('notificationclick', (e) => {
             cursor.execute("INSERT OR IGNORE INTO notification_settings (user_id) VALUES (?)", (new_user_id,))
             cursor.execute("INSERT INTO custom_dashboards (user_id, name, platform_filter, is_default) VALUES (?, 'Geral', '', 1)", (new_user_id,))
 
-            token = f"tp_{secrets.token_hex(24)}"
-            expires = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d %H:%M:%S')
+            token = generate_user_token(new_user_id)
+            expires = (datetime.now() + timedelta(days=365)).strftime('%Y-%m-%d %H:%M:%S')
             cursor.execute("INSERT INTO user_sessions (user_id, token, ip_address, expires_at) VALUES (?, ?, ?, ?)",
                            (new_user_id, token, self.client_address[0], expires))
             conn.commit()
             conn.close()
 
-            cookie = f"trackpro_token={token}; Path=/; Max-Age=7776000; SameSite=Lax"
+            cookie = f"trackpro_token={token}; Path=/; Max-Age=31536000; SameSite=Lax"
             self._send_json({
                 "success": True,
                 "token": token,
@@ -3942,14 +3996,14 @@ self.addEventListener('notificationclick', (e) => {
                 self._send_json({"error": "E-mail ou senha incorretos."}, 401)
                 return
 
-            token = f"tp_{secrets.token_hex(24)}"
-            expires = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d %H:%M:%S')
+            token = generate_user_token(user['id'])
+            expires = (datetime.now() + timedelta(days=365)).strftime('%Y-%m-%d %H:%M:%S')
             cursor.execute("INSERT INTO user_sessions (user_id, token, ip_address, expires_at) VALUES (?, ?, ?, ?)",
                            (user['id'], token, self.client_address[0], expires))
             conn.commit()
             conn.close()
 
-            cookie = f"trackpro_token={token}; Path=/; Max-Age=7776000; SameSite=Lax"
+            cookie = f"trackpro_token={token}; Path=/; Max-Age=31536000; SameSite=Lax"
             self._send_json({
                 "success": True,
                 "token": token,

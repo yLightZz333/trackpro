@@ -103,7 +103,7 @@
       .widget-span-4   { grid-column: span 2 / span 2 !important; }
     }
 
-    /* Alinhamento Perfeito no Eixo Y e Suporte a Altura Personalizada Livre */
+    /* Alinhamento Perfeito no Eixo Y e Suporte a Altura Sincronizada por Linha */
     .dashboard-widget {
       align-self: stretch;
       display: flex !important;
@@ -117,6 +117,18 @@
       min-height: 88px;
       padding: 0.85rem 1rem !important;
       box-sizing: border-box !important;
+    }
+
+    #widget-funnel {
+      min-height: 230px !important;
+    }
+
+    #widget-chart-hourly, #widget-chart-sources, #widget-chart-methods {
+      min-height: 200px !important;
+    }
+
+    #widget-table-orders {
+      min-height: 240px !important;
     }
 
     /* Oculta legendas/subtítulos embaixo dos valores (Estilo Clean - Apenas Nome e Valor) */
@@ -626,18 +638,10 @@
                 <span class="text-xs font-extrabold text-white">Modo de Edição Ativo</span>
                 <span class="px-2 py-0.2 rounded text-[9px] font-bold bg-brand-500/20 text-brand-300">Arrastar & Redimensionar</span>
               </div>
-              <p class="text-[11px] text-slate-300">Arraste os elementos para reposicionar, use os botões [+] / [-] ou puxe a alça inferior (⤡) para ajustar a altura.</p>
+              <p class="text-[11px] text-slate-300">Arraste para reposicionar, use [+] / [-] ou puxe a alça (⤡) para ajustar a altura da linha inteira.</p>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap self-end sm:self-auto">
-            <!-- Atalhos de Altura dos Cards (Alinhamento Y Instantâneo) -->
-            <div class="flex items-center gap-1 bg-dark-950/80 border border-slate-800 rounded-xl px-2.5 py-1 text-xs">
-              <span class="text-[10px] font-semibold text-slate-400 mr-1">Altura Y:</span>
-              <button type="button" onclick="setAllMetricCardsHeight(null)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500/15 text-brand-400 hover:bg-brand-500/25 border border-brand-500/30 transition-colors" title="Alinhamento Y Automático (estica por linha)">Auto</button>
-              <button type="button" onclick="setAllMetricCardsHeight(88)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-dark-800 hover:bg-slate-700 text-slate-300 transition-colors">88px</button>
-              <button type="button" onclick="setAllMetricCardsHeight(115)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-dark-800 hover:bg-slate-700 text-slate-300 transition-colors">115px</button>
-              <button type="button" onclick="setAllMetricCardsHeight(140)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-dark-800 hover:bg-slate-700 text-slate-300 transition-colors">140px</button>
-            </div>
             <button onclick="resetDashboardLayout()" class="px-3 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 transition-colors">
               <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 inline mr-1"></i> Restaurar Padrão
             </button>
@@ -5181,8 +5185,30 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       else dashboardWidgetsOrder = [...DEFAULT_DASHBOARD_ORDER];
 
       const savedSettings = localStorage.getItem('trackpro_widget_settings');
-      if (savedSettings) dashboardWidgetSettings = JSON.parse(savedSettings);
-      else dashboardWidgetSettings = {};
+      if (savedSettings) {
+        dashboardWidgetSettings = JSON.parse(savedSettings);
+        // Sanitiza alturas inválidas ou corrompidas para recuperar o funil e gráficos
+        let cleaned = false;
+        if (dashboardWidgetSettings['widget-funnel'] && dashboardWidgetSettings['widget-funnel'].height && dashboardWidgetSettings['widget-funnel'].height < 220) {
+          delete dashboardWidgetSettings['widget-funnel'].height;
+          cleaned = true;
+        }
+        ['widget-chart-hourly', 'widget-chart-sources', 'widget-chart-methods'].forEach(cid => {
+          if (dashboardWidgetSettings[cid] && dashboardWidgetSettings[cid].height && dashboardWidgetSettings[cid].height < 180) {
+            delete dashboardWidgetSettings[cid].height;
+            cleaned = true;
+          }
+        });
+        if (dashboardWidgetSettings['widget-table-orders'] && dashboardWidgetSettings['widget-table-orders'].height && dashboardWidgetSettings['widget-table-orders'].height < 200) {
+          delete dashboardWidgetSettings['widget-table-orders'].height;
+          cleaned = true;
+        }
+        if (cleaned) {
+          localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
+        }
+      } else {
+        dashboardWidgetSettings = {};
+      }
     } catch (e) {
       dashboardWidgetsOrder = [...DEFAULT_DASHBOARD_ORDER];
       dashboardWidgetSettings = {};
@@ -5209,60 +5235,64 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       if (tooltip) tooltip.classList.add('hidden');
     }
 
-    // ==================== AJUSTES DE ALTURA & ALINHAMENTO NO EIXO Y ====================
+    // ==================== AJUSTES DE ALTURA & ALINHAMENTO NO EIXO Y SINCRONIZADO POR LINHA ====================
+    function getWidgetMinHeight(widget) {
+      if (!widget) return 75;
+      const type = widget.dataset.widgetType;
+      if (type === 'funnel') return 220;
+      if (type === 'chart') return 200;
+      if (type === 'table') return 240;
+      return 75; // metric
+    }
+
+    // Identifica com precisão todos os elementos na mesma linha visual do grid
+    function getRowWidgets(targetWidget) {
+      const grid = document.getElementById('dashboard-widgets-grid');
+      if (!grid || !targetWidget) return [targetWidget];
+
+      const allWidgets = Array.from(grid.querySelectorAll('.dashboard-widget'))
+        .filter(w => !w.classList.contains('hidden') && w.offsetParent !== null);
+      if (allWidgets.length <= 1) return [targetWidget];
+
+      const targetRect = targetWidget.getBoundingClientRect();
+      const targetMidY = (targetRect.top + targetRect.bottom) / 2;
+
+      const rowWidgets = allWidgets.filter(w => {
+        if (w === targetWidget) return true;
+        const r = w.getBoundingClientRect();
+        const rMidY = (r.top + r.bottom) / 2;
+        // Mesma linha: centros verticais sobrepostos ou início/topo idêntico
+        return Math.abs(rMidY - targetMidY) < 25 || Math.abs(r.top - targetRect.top) < 15;
+      });
+
+      return rowWidgets.length > 0 ? rowWidgets : [targetWidget];
+    }
+
     function adjustWidgetHeight(btn, delta) {
       const widget = btn.closest('.dashboard-widget');
       if (!widget) return;
-      const isKpi = widget.dataset.widgetType === 'metric';
-      const minH = isKpi ? 70 : 110;
-      const current = widget.offsetHeight || (isKpi ? 88 : 160);
+
+      const rowWidgets = getRowWidgets(widget);
+      const minH = Math.max(...rowWidgets.map(w => getWidgetMinHeight(w)));
+      const current = widget.offsetHeight || minH;
       const targetH = Math.max(minH, Math.min(850, current + delta));
 
-      widget.style.setProperty('min-height', targetH + 'px', 'important');
-      widget.style.setProperty('height', targetH + 'px', 'important');
-
-      const wId = widget.dataset.widgetId;
-      if (wId) {
-        dashboardWidgetSettings[wId] = dashboardWidgetSettings[wId] || {};
-        dashboardWidgetSettings[wId].height = targetH;
-        localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
-        saveCurrentDashboardLayout();
-      }
-
-      showToast(`Altura ajustada para ${targetH}px`, 'info');
-      resizeInternalWidgetCharts(widget);
-    }
-
-    function setAllMetricCardsHeight(targetH) {
-      const grid = document.getElementById('dashboard-widgets-grid');
-      if (!grid) return;
-
-      grid.querySelectorAll('[data-widget-type="metric"]').forEach(card => {
-        const wId = card.dataset.widgetId;
-        if (targetH === null) {
-          card.style.removeProperty('min-height');
-          card.style.removeProperty('height');
-          if (wId && dashboardWidgetSettings[wId]) {
-            delete dashboardWidgetSettings[wId].height;
-          }
-        } else {
-          card.style.setProperty('min-height', targetH + 'px', 'important');
-          card.style.setProperty('height', targetH + 'px', 'important');
-          if (wId) {
-            dashboardWidgetSettings[wId] = dashboardWidgetSettings[wId] || {};
-            dashboardWidgetSettings[wId].height = targetH;
-          }
+      // Aplica a altura sincronizada para TODOS os elementos da mesma linha (linha 100% balanceada e alinhada)
+      rowWidgets.forEach(w => {
+        w.style.setProperty('min-height', targetH + 'px', 'important');
+        w.style.setProperty('height', targetH + 'px', 'important');
+        const wId = w.dataset.widgetId;
+        if (wId) {
+          dashboardWidgetSettings[wId] = dashboardWidgetSettings[wId] || {};
+          dashboardWidgetSettings[wId].height = targetH;
         }
       });
 
       localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
       saveCurrentDashboardLayout();
 
-      if (targetH === null) {
-        showToast('Altura definida como Automática (Cards perfeitamente alinhados no Eixo Y)', 'success');
-      } else {
-        showToast(`Altura de todos os cards definida para ${targetH}px`, 'success');
-      }
+      showToast(`Altura da linha ajustada para ${targetH}px`, 'info');
+      rowWidgets.forEach(w => resizeInternalWidgetCharts(w));
     }
 
     function moveDashboardWidget(btn, direction) {
@@ -5428,17 +5458,30 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       if (!grid) return;
       const dropzone = document.getElementById('dashboard-empty-dropzone');
 
-      // Aplica configurações salvas de tamanho (largura e altura)
+      // Aplica configurações salvas de tamanho (largura e altura com proteção de dimensões mínimas)
       grid.querySelectorAll('.dashboard-widget').forEach(w => {
         const wId = w.dataset.widgetId;
+        const wType = w.dataset.widgetType;
         if (wId && dashboardWidgetSettings[wId]) {
           const conf = dashboardWidgetSettings[wId];
           if (conf.colSpan !== undefined) {
             applyWidgetSpan(w, conf.colSpan);
           }
           if (conf.height) {
-            w.style.setProperty('min-height', conf.height + 'px', 'important');
-            w.style.setProperty('height', conf.height + 'px', 'important');
+            let h = conf.height;
+            if (wType === 'funnel' && h < 220) h = null;
+            if (wType === 'chart' && h < 180) h = null;
+            if (wType === 'table' && h < 200) h = null;
+            if (wType === 'metric' && h < 70) h = null;
+
+            if (h) {
+              w.style.setProperty('min-height', h + 'px', 'important');
+              w.style.setProperty('height', h + 'px', 'important');
+            } else {
+              w.style.removeProperty('min-height');
+              w.style.removeProperty('height');
+              delete dashboardWidgetSettings[wId].height;
+            }
           }
         }
       });
@@ -5550,7 +5593,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       });
     }
 
-    // Inicialização do Resize Handle (Window Pointer Events para Redimensionamento Confiável de Largura e Altura)
+    // Inicialização do Resize Handle (Window Pointer Events para Redimensionamento Sincronizado por Linha)
     function initWidgetResizeHandle(handleEl) {
       if (!handleEl || handleEl._resizeBound) return;
       handleEl._resizeBound = true;
@@ -5574,6 +5617,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         const grid = document.getElementById('dashboard-widgets-grid');
         const colWidth = (grid ? grid.offsetWidth : window.innerWidth) / 8;
 
+        // Captura todos os widgets da mesma linha NO MOMENTO DO CLIQUE
+        const activeRowWidgets = getRowWidgets(widget);
+        const minH = Math.max(...activeRowWidgets.map(w => getWidgetMinHeight(w)));
+
         let moved = false;
 
         let tooltip = document.getElementById('resize-live-tooltip');
@@ -5584,7 +5631,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           document.body.appendChild(tooltip);
         }
 
-        widget.classList.add('ring-2', 'ring-brand-500', 'z-30');
+        // Destaca os widgets da linha sendo redimensionada
+        activeRowWidgets.forEach(w => w.classList.add('ring-2', 'ring-brand-500', 'z-30'));
 
         let currentSpan = parseFloat(widget.dataset.colSpan || '1');
         let currentH = startHeight;
@@ -5604,15 +5652,16 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
               isResizing = false;
               tooltip.classList.remove('hidden');
 
-              // Altura Vertical Livre (com min-height adaptável)
-              const isKpi = widget.dataset.widgetType === 'metric';
-              const minH = isKpi ? 75 : 120;
+              // Altura Vertical Sincronizada em TODA A LINHA (mantém todos perfeitamente alinhados)
               const newHeight = Math.max(minH, Math.min(850, startHeight + dy));
               currentH = Math.round(newHeight);
-              widget.style.setProperty('min-height', currentH + 'px', 'important');
-              widget.style.setProperty('height', currentH + 'px', 'important');
+              
+              activeRowWidgets.forEach(w => {
+                w.style.setProperty('min-height', currentH + 'px', 'important');
+                w.style.setProperty('height', currentH + 'px', 'important');
+              });
 
-              // Largura Horizontal (0.5x, 1x, 2x, 3x, 4x)
+              // Largura Horizontal (apenas para o widget específico sendo puxado)
               const projectedWidth = Math.max(colWidth * 0.4, startWidth + dx);
               let targetSpan = 1;
               if (projectedWidth < colWidth * 1.5) targetSpan = 0.5;
@@ -5627,9 +5676,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
               tooltip.style.left = ev.clientX + 'px';
               tooltip.style.top = (ev.clientY - 12) + 'px';
               const labelSpan = (targetSpan === 0.5) ? '0.5x (Metade)' : `${targetSpan}x`;
-              tooltip.textContent = `📏 ${labelSpan} × ${currentH}px`;
+              tooltip.textContent = `📏 ${labelSpan} × Linha: ${currentH}px`;
 
-              resizeInternalWidgetCharts(widget);
+              activeRowWidgets.forEach(w => resizeInternalWidgetCharts(w));
             });
           }
         }
@@ -5640,7 +5689,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             window.removeEventListener('pointerup', onPointerUp);
             window.removeEventListener('pointercancel', onPointerUp);
 
-            widget.classList.remove('ring-2', 'ring-brand-500', 'z-30');
+            activeRowWidgets.forEach(w => w.classList.remove('ring-2', 'ring-brand-500', 'z-30'));
             if (tooltip) tooltip.classList.add('hidden');
 
             const wId = widget.dataset.widgetId;
@@ -5668,17 +5717,22 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
               return;
             }
 
-            // Se arrastou: salva as novas dimensões de largura e altura
-            if (wId) {
-              dashboardWidgetSettings[wId] = {
-                colSpan: currentSpan,
-                height: currentH
-              };
-              localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
-              saveCurrentDashboardLayout();
-            }
+            // Se arrastou: salva as novas dimensões de altura para toda a linha e largura do widget
+            activeRowWidgets.forEach(w => {
+              const id = w.dataset.widgetId;
+              if (id) {
+                dashboardWidgetSettings[id] = dashboardWidgetSettings[id] || {};
+                dashboardWidgetSettings[id].height = currentH;
+                if (w === widget) {
+                  dashboardWidgetSettings[id].colSpan = currentSpan;
+                }
+              }
+            });
 
-            resizeInternalWidgetCharts(widget);
+            localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
+            saveCurrentDashboardLayout();
+
+            activeRowWidgets.forEach(w => resizeInternalWidgetCharts(w));
           } finally {
             sanitizeDashboardWidgetStates();
           }

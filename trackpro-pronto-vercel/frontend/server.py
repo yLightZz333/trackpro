@@ -1415,6 +1415,7 @@ def parse_webhook_payload(headers, body):
     platform = 'Universal'
     order_id = None
     status = 'paid'
+    payment_method = 'pix'
     customer_name = 'Comprador'
     customer_email = ''
     customer_phone = ''
@@ -1439,6 +1440,7 @@ def parse_webhook_payload(headers, body):
         customer_name = cust.get('full_name') or cust.get('name', 'Comprador Kiwify')
         customer_email = cust.get('email', '')
         customer_phone = cust.get('mobile', '')
+        payment_method = str(body.get('payment_method') or 'pix').lower()
         
         comm = body.get('Commissions', {})
         price_cents = int(comm.get('charge_amount') or comm.get('product_base_price') or 0)
@@ -1593,10 +1595,14 @@ def parse_webhook_payload(headers, body):
     if not order_id:
         order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
 
+    if 'payment_method' not in locals():
+        payment_method = str(body.get('payment_method') or body.get('paymentMethod') or 'pix').lower()
+
     return {
         'platform': platform,
         'order_id': str(order_id),
         'status': status,
+        'payment_method': payment_method,
         'customer_name': customer_name,
         'customer_email': customer_email,
         'customer_phone': customer_phone,
@@ -4917,14 +4923,15 @@ self.addEventListener('notificationclick', (e) => {
             tr = parsed_order.get('tracking', {})
             cursor.execute("""
                 INSERT INTO orders (
-                    user_id, order_external_id, platform, status, customer_name,
+                    user_id, order_external_id, platform, payment_method, status, customer_name,
                     customer_email, customer_phone, customer_ip, price_in_cents,
                     utm_source, utm_medium, utm_campaign, utm_content, utm_term,
                     src, sck, fbc, fbp
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (target_user_id,
                 parsed_order['order_id'],
                 parsed_order['platform'],
+                parsed_order.get('payment_method', 'pix'),
                 parsed_order['status'],
                 parsed_order['customer_name'],
                 parsed_order['customer_email'],

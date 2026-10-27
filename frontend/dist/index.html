@@ -247,12 +247,12 @@
         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
       </button>
 
-      <button onclick="switchTab('notifications')" id="drawer-nav-notifications" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+      <button onclick="switchTab('notifications'); closeMobileSidebar();" id="drawer-nav-notifications" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
         <div class="flex items-center gap-3">
-          <i data-lucide="bell-ring" class="w-5 h-5 text-amber-400"></i>
-          <span>Notificações & Sons</span>
+          <i data-lucide="smartphone" class="w-5 h-5 text-amber-400"></i>
+          <span>Alertas no Celular (Push)</span>
         </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Novo</span>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Push</span>
       </button>
 
       <div class="pt-2 border-t border-slate-800/80">
@@ -314,8 +314,8 @@
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
       </button>
-      <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i> Notificações & Sons
+      <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item hidden w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="smartphone" class="w-4 h-4 text-amber-400"></i> Alertas no Celular
       </button>
     </nav>
 
@@ -356,10 +356,9 @@
         <i data-lucide="refresh-cw" class="w-4 h-4"></i>
       </button>
 
-      <!-- Sino de Notificações Mobile -->
-      <button onclick="toggleNotificationDropdown()" id="notif-bell-mobile" class="relative p-2 bg-dark-800 hover:bg-slate-700 text-amber-400 rounded-xl transition-colors" title="Notificações">
+      <!-- Alertas no Celular Mobile -->
+      <button onclick="switchTab('notifications')" id="notif-bell-mobile" class="p-2 bg-dark-800 hover:bg-slate-700 text-amber-400 rounded-xl transition-colors" title="Alertas no Celular">
         <i data-lucide="bell" class="w-4 h-4"></i>
-        <span id="notif-badge-mobile" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
       </button>
 
       <!-- Avatar do Usuário Mobile -->
@@ -409,22 +408,7 @@
           <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i>
           <span class="hidden xl:inline">Personalizar</span>
         </button>
-        <!-- Central de Notificações com Dropdown -->
-        <div class="relative">
-          <button onclick="toggleNotificationDropdown()" id="notif-bell-desktop" class="relative p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white transition-colors" title="Central de Notificações">
-            <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
-            <span id="notif-badge-desktop" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center">0</span>
-          </button>
-        </div>
 
-        <!-- Som de Venda Ka-ching Toggle -->
-        <button onclick="toggleSound()" id="sound-btn-desktop" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
-          <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
-          <span>Som de Venda Ativo</span>
-        </button>
-        <button onclick="testKachingSound()" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors" title="Testar Som da Caixa Registradora">
-          <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Testar Som
-        </button>
         <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors" title="Atualizar">
           <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
         </button>
@@ -445,35 +429,6 @@
       </div>
     </header>
 
-    <!-- Central de Notificações Universal Flutuante (Funciona tanto em Mobile quanto em Desktop) -->
-    <div id="notif-dropdown" class="hidden fixed top-16 right-3 left-3 sm:left-auto sm:right-6 sm:w-96 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-dark-950/80">
-        <div class="flex items-center gap-2">
-          <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
-          <span class="font-bold text-xs text-white">Notificações em Tempo Real</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="markAllNotificationsRead()" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar lidas</button>
-          <button onclick="clearAllNotifications()" class="text-[11px] text-rose-400 hover:text-rose-300 font-semibold transition-colors flex items-center gap-1" title="Apagar todas as notificações"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar</button>
-          <button onclick="switchTab('notifications'); closeNotificationDropdown();" class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">Ajustes</button>
-          <button onclick="closeNotificationDropdown()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors" title="Fechar">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-      <div id="notif-list-container" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1">
-        <div class="p-4 text-center text-xs text-slate-500">Nenhuma notificação recente.</div>
-      </div>
-      <div class="p-2.5 border-t border-slate-800 bg-dark-950/50 flex items-center justify-between text-xs">
-        <button onclick="simulateSaleAlert()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
-          <i data-lucide="play" class="w-3 h-3"></i> Testar Venda
-        </button>
-        <button onclick="simulatePixAlert()" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
-          <i data-lucide="play" class="w-3 h-3"></i> Testar PIX
-        </button>
-      </div>
-    </div>
-
     <!-- Dropdown do Perfil Universal Flutuante (Funciona tanto em Mobile quanto em Desktop) -->
     <div id="profile-dropdown" class="hidden fixed top-16 right-3 left-3 sm:left-auto sm:right-6 sm:w-64 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-800">
       <div class="p-3 bg-dark-950/80 flex items-center justify-between">
@@ -487,8 +442,8 @@
         </button>
       </div>
       <div class="p-1.5 space-y-0.5">
-        <button onclick="switchTab('notifications'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
-          <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Notificações & Sons
+        <button onclick="switchTab('notifications'); closeProfileDropdown();" class="hidden md:hidden w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
+          <i data-lucide="smartphone" class="w-3.5 h-3.5 text-amber-400"></i> Alertas no Celular
         </button>
         <button onclick="switchTab('accounts'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
           <i data-lucide="facebook" class="w-3.5 h-3.5 text-blue-400"></i> Conectar Meta Ads
@@ -1739,32 +1694,63 @@
 
       <!-- ==================== TAB: NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ==================== -->
       <section id="tab-notifications" class="tab-pane hidden space-y-4 md:space-y-6">
-        <!-- Banner Principal -->
+        <!-- Banner Principal de Notificações Push Mobile -->
         <div class="bg-gradient-to-r from-amber-500/15 via-dark-900 to-dark-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-3">
               <div class="w-12 h-12 bg-gradient-to-tr from-amber-600 to-amber-400 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
-                <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                <i data-lucide="smartphone" class="w-6 h-6"></i>
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="text-xl font-extrabold text-white tracking-tight">Notificações & Sons no Celular</h2>
-                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Estilo UTMify & LowTrack</span>
+                  <h2 class="text-xl font-extrabold text-white tracking-tight">Notificações Push no Celular</h2>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Chega fora do App</span>
                 </div>
-                <p class="text-xs text-slate-300 mt-0.5">Sons de venda aprovada, alertas de PIX gerado, notificações push e resumos programados por horário.</p>
+                <p class="text-xs text-slate-300 mt-0.5">Receba alertas na tela de bloqueio e som de caixa registradora mesmo com o aplicativo fechado ou tela apagada.</p>
               </div>
             </div>
 
             <div class="flex items-center gap-2.5 flex-wrap">
-              <button onclick="requestPushNotificationPermission()" id="btn-enable-push" class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all">
+              <div id="push-status-badge" class="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span class="text-amber-400 font-semibold">Alertas Pendentes</span>
+              </div>
+              <button onclick="subscribeToMobilePush()" id="btn-enable-push" class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer">
                 <i data-lucide="smartphone" class="w-4 h-4"></i>
-                <span id="btn-enable-push-text">Ativar Alertas no Celular</span>
+                <span id="btn-enable-push-text">📲 Ativar Alertas no Celular</span>
               </button>
-              <button onclick="testSelectedSound()" class="px-3.5 py-2.5 bg-dark-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors">
-                <i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
-                <span>Testar Som Selecionado</span>
+              <button onclick="testMobilePushReal('sale')" id="btn-test-push-mobile" class="px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition-all" title="Envia um push de venda real para o celular">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>Testar Push no Celular</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Guia Prático de Notificações com App Fechado (Android vs iPhone) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Card Android -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🤖</span>
+              <span class="text-xs font-bold text-white">Como Funciona no Celular Android</span>
+              <span class="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">100% Automático</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Basta tocar em <strong class="text-white">"Ativar Alertas no Celular"</strong> acima e selecionar <strong class="text-emerald-400">"Permitir"</strong>. As vendas tocarão o Ka-ching e aparecerão na barra de notificações e na tela bloqueada mesmo com o app ou navegador fechados.
+            </p>
+          </div>
+
+          <!-- Card iPhone iOS -->
+          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🍎</span>
+              <span class="text-xs font-bold text-white">Como Funciona no iPhone (iOS 16.4+)</span>
+              <span class="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">Requer PWA</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              No Safari do iPhone, toque no botão de <strong class="text-white">Compartilhar</strong> (ícone com seta para cima) → toque em <strong class="text-white">"Adicionar à Tela de Início"</strong>. Abra o app pelo ícone criado na tela de início e toque em <strong class="text-amber-400">"Ativar Alertas"</strong> para receber push com a tela desligada.
+            </p>
           </div>
         </div>
 
@@ -1967,6 +1953,51 @@
             </button>
           </div>
 
+        </div>
+
+<!-- Integração Robô de Vendas Telegram (Garantia 100% de Entrega no iPhone e Android) -->
+        <div class="bg-dark-900 border border-sky-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center font-bold">
+                <i data-lucide="send" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                  <span>Robô de Vendas no Telegram</span>
+                  <span class="px-2 py-0.5 rounded text-[9px] font-extrabold bg-sky-500/20 text-sky-300 border border-sky-500/30">Opcional • 100% Infalível</span>
+                </h3>
+                <p class="text-xs text-slate-400">Receba notificações de venda instantâneas e detalhes de UTM direto no Telegram do seu celular.</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="telegram-active-toggle" onchange="saveTelegramSettingsToServer()" class="sr-only peer">
+              <div class="w-9 h-5 bg-dark-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500 border border-slate-700"></div>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Bot Token do Telegram:</label>
+              <input type="text" id="telegram-bot-token" placeholder="Ex: 123456789:ABCdefGhIJKlmNoPQRstuVWXyz" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 font-mono">
+              <p class="text-[10px] text-slate-500">Crie seu bot grátis no Telegram falando com <strong class="text-slate-300">@BotFather</strong> e enviando /newbot.</p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Seu Chat ID do Telegram:</label>
+              <input type="text" id="telegram-chat-id" placeholder="Ex: 987654321" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 font-mono">
+              <p class="text-[10px] text-slate-500">Descubra seu Chat ID mandando qualquer mensagem para o bot <strong class="text-slate-300">@userinfobot</strong>.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button" onclick="testTelegramAlert()" class="px-4 py-2 bg-dark-800 hover:bg-slate-700 text-sky-400 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors">
+              <i data-lucide="bell" class="w-3.5 h-3.5"></i> Testar no Telegram
+            </button>
+            <button type="button" onclick="saveTelegramSettingsToServer()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-sky-600/20 transition-all">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i> Salvar Telegram
+            </button>
+          </div>
         </div>
 
         <!-- Histórico Recente de Notificações -->
@@ -3009,34 +3040,132 @@
       saveNotificationSettingsToServer();
     }
 
-    // ==================== PUSH NOTIFICATIONS & MOBILE ALERTS ====================
-    async function requestPushNotificationPermission() {
+    // ==================== REAL MOBILE WEB PUSH (VAPID) & CELULAR ====================
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    async function subscribeToMobilePush() {
       getAudioContext();
-      if (!('Notification' in window)) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+        if (isIOS && !isStandalone) {
+          alert('📱 No iPhone (iOS), para receber notificações com o celular bloqueado:\n\n1. Toque no botão de Compartilhar do Safari (quadrado com seta)\n2. Toque em "Adicionar à Tela de Início"\n3. Abra o app pelo ícone criado na tela inicial e ative os alertas aqui!');
+          return;
+        }
         showToast('Notificações push não suportadas neste navegador.', 'error');
         return;
       }
+
       try {
         const perm = await Notification.requestPermission();
-        if (perm === 'granted') {
-          showToast('🔔 Permissão concedida! Você receberá alertas de vendas em tempo real no celular.', 'success');
-          const btnText = document.getElementById('btn-enable-push-text');
-          if (btnText) btnText.textContent = '✔ Alertas no Celular Ativos';
-          playTrackProSound('kaching', 1.0);
-          showMobileNotification('🎉 Notificações Ativadas!', 'TrackPro está pronto para alertar suas vendas no celular.', 'welcome');
-          saveNotificationSettingsToServer();
-        } else {
-          showToast('Permissão de notificações foi negada no navegador.', 'warning');
+        if (perm !== 'granted') {
+          showToast('Permissão de notificações negada no navegador.', 'warning');
+          return;
         }
-      } catch (e) {
-        showToast('Erro ao solicitar permissão de notificações.', 'error');
+
+        showToast('⏳ Conectando notificações no seu celular...', 'info');
+        const reg = await navigator.serviceWorker.ready;
+
+        const keyRes = await fetch('/api/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.publicKey) {
+          showToast('Erro ao obter chave do servidor push.', 'error');
+          return;
+        }
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+        });
+
+        const subJson = sub.toJSON();
+        const res = await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subJson)
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          showToast('🎉 Celular conectado! Alertas push ativos na tela de bloqueio.', 'success');
+          updatePushStatusUI(true);
+          playTrackProSound('kaching', 1.0);
+        } else {
+          showToast(result.error || 'Erro ao registrar celular.', 'error');
+        }
+      } catch (err) {
+        console.error('Erro ao subscrever Web Push:', err);
+        showToast('Erro ao ativar notificações: ' + err.message, 'error');
+      }
+    }
+
+    async function checkMobilePushStatus() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        updatePushStatusUI(false);
+        return;
+      }
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        updatePushStatusUI(!!sub);
+      } catch(e) {
+        updatePushStatusUI(false);
+      }
+    }
+
+    function updatePushStatusUI(isActive) {
+      const statusBadge = document.getElementById('push-status-badge');
+      const btn = document.getElementById('btn-enable-push');
+      const btnText = document.getElementById('btn-enable-push-text');
+
+      if (isActive) {
+        if (statusBadge) {
+          statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span class="text-emerald-400 font-bold">Alertas Ativos no Celular (Tela de Bloqueio)</span>';
+          statusBadge.className = 'px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-xs';
+        }
+        if (btnText) btnText.textContent = '✔ Notificações Ativas no Celular';
+        if (btn) btn.className = 'px-4 py-2.5 bg-dark-800 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-default';
+      } else {
+        if (statusBadge) {
+          statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold">Alertas no Celular Pendentes</span>';
+          statusBadge.className = 'px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs';
+        }
+        if (btnText) btnText.textContent = '📲 Ativar Alertas no Celular';
+        if (btn) btn.className = 'px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer';
+      }
+    }
+
+    async function testMobilePushReal(type = 'sale') {
+      try {
+        showToast('Enviando alerta push para o celular...', 'info');
+        const res = await fetch('/api/push/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type })
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast('📲 Notificação enviada! Olhe a tela bloqueada / barra do celular.', 'success');
+          playTrackProSound(type === 'pix' ? 'pix' : 'kaching', 1.0);
+        }
+      } catch(e) {
+        showToast('Erro ao disparar teste de push.', 'error');
       }
     }
 
     async function showMobileNotification(title, body, tag = 'sale-alert') {
+      // Usado internamente caso o SW receba eventos locais
       if (!('Notification' in window)) return;
       if (Notification.permission !== 'granted') return;
-
       const options = {
         body: body,
         icon: '/icon-192.png',
@@ -3046,7 +3175,6 @@
         renotify: true,
         data: { url: '/' }
       };
-
       if ('serviceWorker' in navigator) {
         try {
           const reg = await navigator.serviceWorker.ready;
@@ -3054,50 +3182,69 @@
             await reg.showNotification(title, options);
             return;
           }
-        } catch (swErr) {
-          console.warn('ServiceWorker showNotification falhou:', swErr);
-        }
+        } catch (swErr) {}
       }
-
-      try {
-        new Notification(title, options);
-      } catch (e) {
-        console.warn('Notification constructor falhou (esperado em Android/iOS):', e);
-      }
+      try { new Notification(title, options); } catch (e) {}
     }
 
     // ==================== SIMULADOR DE ALERTAS ====================
     async function simulateSaleAlert() {
-      playTrackProSound('kaching', 1.0);
-      showMobileNotification('💸 VENDA APROVADA!', 'Venda de R$ 197,00 aprovada via Cartão de Crédito! (Kiwify)', 'sale');
-      showSaleToast({
-        customer: 'Lucas Silva (Simulação)',
-        amount: 197.00,
-        platform: 'Kiwify',
-        source: 'facebook'
-      });
-      try {
-        await fetch('/api/notifications/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'sale_approved', amount_in_cents: 19700 })
-        });
-        loadNotifications();
-      } catch (e) {}
+      testMobilePushReal('sale');
     }
 
     async function simulatePixAlert() {
-      playTrackProSound('pix', 1.0);
-      showMobileNotification('⚡ PIX GERADO!', 'PIX de R$ 97,00 gerado! Aguardando pagamento do cliente.', 'pix');
-      showToast('⚡ PIX GERADO: R$ 97,00! Cliente aguardando pagamento.', 'info');
+      testMobilePushReal('pix');
+    }
+
+    // ==================== TELEGRAM BOT INTEGRATION ====================
+    async function loadTelegramSettings() {
       try {
-        await fetch('/api/notifications/test', {
+        const res = await fetch('/api/telegram/settings');
+        const d = await res.json();
+        if (d && d.settings) {
+          const tToken = document.getElementById('telegram-bot-token');
+          const tChat = document.getElementById('telegram-chat-id');
+          const tToggle = document.getElementById('telegram-active-toggle');
+          if (tToken) tToken.value = d.settings.bot_token || '';
+          if (tChat) tChat.value = d.settings.chat_id || '';
+          if (tToggle) tToggle.checked = !!d.settings.active;
+        }
+      } catch(e) {}
+    }
+
+    async function saveTelegramSettingsToServer() {
+      const botToken = (document.getElementById('telegram-bot-token')?.value || '').trim();
+      const chatId = (document.getElementById('telegram-chat-id')?.value || '').trim();
+      const active = document.getElementById('telegram-active-toggle')?.checked ?? false;
+
+      try {
+        const res = await fetch('/api/telegram/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'pix_generated', amount_in_cents: 9700 })
+          body: JSON.stringify({ bot_token: botToken, chat_id: chatId, active })
         });
-        loadNotifications();
-      } catch (e) {}
+        const d = await res.json();
+        if (d.success) {
+          showToast(d.message || 'Configurações do Telegram salvas!', 'success');
+        }
+      } catch(e) {
+        showToast('Erro ao salvar Telegram.', 'error');
+      }
+    }
+
+    async function testTelegramAlert() {
+      try {
+        showToast('Enviando mensagem de teste ao Telegram...', 'info');
+        const res = await fetch('/api/telegram/test', { method: 'POST' });
+        const d = await res.json();
+        if (d.success) {
+          showToast('💬 Mensagem de teste enviada para o seu Telegram!', 'success');
+        } else {
+          showToast('Erro ao enviar teste. Verifique seu token e Chat ID.', 'error');
+        }
+      } catch(e) {
+        showToast('Erro ao testar Telegram.', 'error');
+      }
     }
 
     // ==================== RESUMO DIÁRIO PROGRAMADO ====================
@@ -4700,6 +4847,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
     // ==================== TOAST & PUSH NOTIFICATIONS ====================
     function showSaleToast(order) {
+      // No Desktop (PC), não exibe toasts na tela (mantém a visão clean sem distrações)
+      if (window.innerWidth > 768) return;
       const container = document.getElementById('toast-container');
       if (!container) return;
       const toast = document.createElement('div');
@@ -4737,10 +4886,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       }, 5000);
     }
 
-    // Pedir permissão de notificação push
-    if ("Notification" in window && Notification.permission === "default") {
-      setTimeout(() => { Notification.requestPermission(); }, 3000);
-    }
+    // Permissão de push solicitada apenas sob clique voluntário no celular
 
     // ==================== CONTROLE DO MENU LATERAL MOBILE (DRAWER) ====================
     function openMobileSidebar() {
@@ -5710,17 +5856,18 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
           const totalOrders = data.recentOrders.length;
           if (lastOrderCount !== -1 && totalOrders > lastOrderCount) {
-            const latest = data.recentOrders[0];
-            const isPix = (latest.payment_method || '').toLowerCase() === 'pix' && latest.status !== 'paid';
-            if (isPix) {
-              playTrackProSound('pix', 1.0);
-              showMobileNotification('🪙 PIX GERADO!', `PIX de R$ ${Number(latest.amount).toFixed(2).replace('.', ',')} gerado! (${latest.platform || 'Checkout'})`, 'pix');
-            } else {
-              const sound = localStorage.getItem('trackpro_sound_type') || 'kaching';
-              playTrackProSound(sound, 1.0);
-              showMobileNotification('💸 VENDA APROVADA!', `Venda de R$ ${Number(latest.amount).toFixed(2).replace('.', ',')} aprovada via ${latest.payment_method || 'Cartão'}! (${latest.platform || 'Checkout'})`, 'sale');
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+              const latest = data.recentOrders[0];
+              const isPix = (latest.payment_method || '').toLowerCase() === 'pix' && latest.status !== 'paid';
+              if (isPix) {
+                playTrackProSound('pix', 1.0);
+              } else {
+                const sound = localStorage.getItem('trackpro_sound_type') || 'kaching';
+                playTrackProSound(sound, 1.0);
+              }
+              showSaleToast(latest);
             }
-            showSaleToast(latest);
           }
           lastOrderCount = totalOrders;
         }

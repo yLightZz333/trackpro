@@ -30,6 +30,7 @@ def verify_password(stored_hash, password):
         salt, hashed = stored_hash.split(':', 1)
         return hashlib.sha256((salt + password).encode('utf-8')).hexdigest() == hashed
     return stored_hash == password
+import threading
 import sqlite3
 import hashlib
 import uuid
@@ -98,6 +99,28 @@ def init_db():
         user_agent TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         expires_at TEXT NOT NULL
+    );
+
+    
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_agent TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS telegram_settings (
+        user_id INTEGER PRIMARY KEY,
+        bot_token TEXT,
+        chat_id TEXT,
+        active INTEGER DEFAULT 0,
+        notify_sale INTEGER DEFAULT 1,
+        notify_pix INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS notification_settings (
@@ -1744,6 +1767,122 @@ def invalidate_index_html_cache():
     _CACHED_INDEX_HTML = None
     _CACHED_INDEX_HTML_GZIP = None
 
+# ==================== WEB PUSH (VAPID) & MOBILE NOTIFICATIONS ====================
+VAPID_PRIVATE_PEM = """-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgFqdh8DJVGl1i8MMa
+d4cLDnzshPexWf1nQf2SKdNbMZihRANCAAQu0T8s/eZ33jLSf2leoWL5a/4j0WuD
+3qJwMekRyVdoxBHBqW1xBFqlj9Vng5vMEOpJJwy+GHd+sNNplgNz0hGG
+-----END PRIVATE KEY-----"""
+
+VAPID_PUBLIC_KEY = "BC7RPyz95nfeMtJ_aV6hYvlr_iPRa4PeonAx6RHJV2jEEcGpbXEEWqWP1WeDm8wQ6kknDL4Yd36w02mWA3PSEYY"
+VAPID_CLAIMS = {"sub": "mailto:suporte@meutrackpro.com"}
+
+try:
+    from pywebpush import webpush, WebPushException
+    PYWEBPUSH_AVAILABLE = True
+except Exception as _e_wp:
+    PYWEBPUSH_AVAILABLE = False
+    print(f"[PUSH] pywebpush import notice: {_e_wp}")
+
+def dispatch_web_push(user_id, title, body, tag="trackpro-sale-alert", url="/", data=None):
+    """Dispara Web Push em segundo plano para celulares inscritos (chega fora do app / celular bloqueado)"""
+    if not PYWEBPUSH_AVAILABLE:
+        print(f"[PUSH] pywebpush indisponivel. Alerta nao enviado: {title}")
+        return 0
+
+    def _worker():
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            rows = cursor.execute("""
+                SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?
+            """, (user_id or 1,)).fetchall()
+            conn.close()
+
+            if not rows:
+                print(f"[PUSH] Nenhuma assinatura de celular encontrada para o usuario {user_id}")
+                return
+
+            payload = json.dumps({
+                "title": title,
+                "body": body,
+                "tag": tag,
+                "data": {"url": url, **(data or {})}
+            })
+
+            expired_ids = []
+            sent_count = 0
+
+            for r in rows:
+                sub_id = r["id"]
+                sub_info = {
+                    "endpoint": r["endpoint"],
+                    "keys": {
+                        "p256dh": r["p256dh"],
+                        "auth": r["auth"]
+                    }
+                }
+                try:
+                    webpush(
+                        subscription_info=sub_info,
+                        data=payload,
+                        vapid_private_key=VAPID_PRIVATE_PEM,
+                        vapid_claims=VAPID_CLAIMS,
+                        timeout=10
+                    )
+                    sent_count += 1
+                except WebPushException as ex:
+                    print(f"[PUSH] WebPushException (sub {sub_id}): {ex}")
+                    if hasattr(ex, 'response') and ex.response is not None and ex.response.status_code in [404, 410]:
+                        expired_ids.append(sub_id)
+                except Exception as ex_other:
+                    print(f"[PUSH] Falha ao enviar para sub {sub_id}: {ex_other}")
+
+            if expired_ids:
+                try:
+                    c_del = get_db()
+                    c_del.execute(f"DELETE FROM push_subscriptions WHERE id IN ({','.join(['?']*len(expired_ids))})", expired_ids)
+                    c_del.commit()
+                    c_del.close()
+                except Exception:
+                    pass
+
+            print(f"[PUSH] Alerta '{title}' entregue para {sent_count}/{len(rows)} aparelhos.")
+        except Exception as e_top:
+            print(f"[PUSH] Erro no worker de push: {e_top}")
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+def dispatch_telegram_alert(user_id, text):
+    """Envia alerta de venda instantaneo via Telegram se configurado"""
+    def _tg_worker():
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            row = cursor.execute("""
+                SELECT bot_token, chat_id, active FROM telegram_settings WHERE user_id = ? AND active = 1
+            """, (user_id or 1,)).fetchone()
+            conn.close()
+
+            if not row or not row["bot_token"] or not row["chat_id"]:
+                return
+
+            import urllib.request
+            url = f"https://api.telegram.org/bot{row['bot_token']}/sendMessage"
+            payload = json.dumps({
+                "chat_id": row["chat_id"],
+                "text": text,
+                "parse_mode": "HTML"
+            }).encode('utf-8')
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            urllib.request.urlopen(req, timeout=5)
+        except Exception as e_tg:
+            print(f"[TELEGRAM] Erro ao enviar mensagem: {e_tg}")
+
+    t = threading.Thread(target=_tg_worker, daemon=True)
+    t.start()
+
 class TrackProHandler(BaseHTTPRequestHandler):
     
     def _get_current_user_id(self):
@@ -1765,13 +1904,14 @@ class TrackProHandler(BaseHTTPRequestHandler):
             try:
                 conn = get_db()
                 row = conn.execute("SELECT user_id, expires_at FROM user_sessions WHERE token = ?", (token,)).fetchone()
+                if not row:
+                    row = conn.execute("SELECT user_id FROM api_credentials WHERE token = ?", (token,)).fetchone()
                 conn.close()
                 if row:
                     return row['user_id']
             except Exception:
                 pass
-        # Fallback seguro para o perfil principal do Lucas (User 1)
-        return 1
+        return None
 
     def _send_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -1784,11 +1924,13 @@ class TrackProHandler(BaseHTTPRequestHandler):
         self._send_cors_headers()
         self.end_headers()
 
-    def _send_json(self, data, status=200):
+    def _send_json(self, data, status=200, cookie=None):
         body_bytes = json.dumps(data, ensure_ascii=False).encode('utf-8')
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body_bytes)))
+        if cookie:
+            self.send_header('Set-Cookie', cookie)
         self._send_cors_headers()
         self.end_headers()
         self.wfile.write(body_bytes)
@@ -1808,16 +1950,50 @@ class TrackProHandler(BaseHTTPRequestHandler):
         path = parsed.path
         params = parse_qs(parsed.query)
 
+        # Push Notifications (Mobile VAPID & Status)
+        if path == '/api/push/vapid-public-key':
+            self._send_json({"success": True, "publicKey": VAPID_PUBLIC_KEY})
+            return
+
+        if path == '/api/push/status':
+            user_id = self._get_current_user_id() or 1
+            conn = get_db()
+            cursor = conn.cursor()
+            count = cursor.execute("SELECT COUNT(*) FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchone()[0]
+            conn.close()
+            self._send_json({"success": True, "subscribed": count > 0, "deviceCount": count})
+            return
+
+        # Telegram Settings
+        if path == '/api/telegram/settings':
+            user_id = self._get_current_user_id() or 1
+            conn = get_db()
+            cursor = conn.cursor()
+            row = cursor.execute("SELECT bot_token, chat_id, active FROM telegram_settings WHERE user_id = ?", (user_id,)).fetchone()
+            conn.close()
+            self._send_json({
+                "success": True,
+                "settings": dict(row) if row else {"bot_token": "", "chat_id": "", "active": 0}
+            })
+            return
+
+        if path == '/api/system/version':
+            self._send_json({"version": "v2.5.0-lockdown", "pid": os.getpid(), "file": __file__})
+            return
+
         # Autenticação: Dados do Usuário Logado
         if path == '/api/auth/me':
             user_id = self._get_current_user_id()
+            if not user_id:
+                self._send_json({"authenticated": False, "user": None}, 200)
+                return
             conn = get_db()
             cursor = conn.cursor()
             user = cursor.execute("SELECT id, name, email, company, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
             n_set = cursor.execute("SELECT * FROM notification_settings WHERE user_id = ?", (user_id,)).fetchone()
             conn.close()
             if not user:
-                self._send_json({"authenticated": False, "error": "Usuário não encontrado"}, 404)
+                self._send_json({"authenticated": False, "user": None}, 200)
                 return
             self._send_json({
                 "authenticated": True,
@@ -1825,7 +2001,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "id": user['id'],
                     "name": user['name'],
                     "email": user['email'],
-                    "company": user['company'] or 'TrackPro',
+                    "company": user['company'] or '',
                     "created_at": user['created_at']
                 },
                 "notification_settings": dict(n_set) if n_set else {}
@@ -2252,6 +2428,26 @@ self.addEventListener('notificationclick', (e) => {
 
         # Dashboard Overview API (com suporte a filtros por período, contas, plataformas e produtos)
         if path in ['/api/dashboard', '/api/dashboard/overview']:
+            user_id = self._get_current_user_id()
+            if not user_id:
+                self._send_json({
+                    "authenticated": False,
+                    "kpis": {
+                        "faturamento": 0, "faturamentoLiquido": 0, "lucroReal": 0, "gastoAds": 0,
+                        "impostos": 0, "roas": 0, "roi": 0, "vendasAprovadas": 0, "cpa": 0,
+                        "ticketMedio": 0, "connectRate": 0, "initiateCheckout": 0, "vendasPendentes": 0,
+                        "cliques": 0, "impressoes": 0, "ctr": 0, "cpc": 0, "cpm": 0
+                    },
+                    "funnel": {
+                        "clicks": 0, "pageviews": 0, "initiate_checkout": 0, "orders_initiated": 0, "purchases": 0
+                    },
+                    "recentOrders": [],
+                    "revenueChart": [],
+                    "sourcesChart": [],
+                    "paymentMethodsChart": [],
+                    "filterOptions": {"ad_accounts": [], "products": [], "platforms": []}
+                })
+                return
             conn = get_db()
             cursor = conn.cursor()
             
@@ -3415,6 +3611,102 @@ self.addEventListener('notificationclick', (e) => {
         body = self._read_json()
 
         # ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
+        # ==================== PUSH NOTIFICATIONS & TELEGRAM ====================
+        if path == '/api/push/subscribe':
+            user_id = self._get_current_user_id() or 1
+            endpoint = (body.get('endpoint') or '').strip()
+            keys = body.get('keys') or {}
+            p256dh = (keys.get('p256dh') or '').strip()
+            auth = (keys.get('auth') or '').strip()
+            ua = self.headers.get('User-Agent', '')
+
+            if not endpoint or not p256dh or not auth:
+                self._send_json({"error": "Dados de assinatura push incompletos."}, 400)
+                return
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, user_agent, updated_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(endpoint) DO UPDATE SET
+                    p256dh = excluded.p256dh,
+                    auth = excluded.auth,
+                    user_agent = excluded.user_agent,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (user_id, endpoint, p256dh, auth, ua))
+            conn.commit()
+            conn.close()
+
+            # Dispara confirmacao imediata para o celular
+            dispatch_web_push(
+                user_id=user_id,
+                title="🎉 Notificações Ativas no Celular!",
+                body="TrackPro pronto! Você receberá alertas das suas vendas aqui mesmo com a tela bloqueada.",
+                tag="trackpro-welcome"
+            )
+
+            self._send_json({"success": True, "message": "Celular conectado para receber alertas com sucesso!"})
+            return
+
+        if path == '/api/push/unsubscribe':
+            endpoint = (body.get('endpoint') or '').strip()
+            if endpoint:
+                conn = get_db()
+                conn.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,))
+                conn.commit()
+                conn.close()
+            self._send_json({"success": True, "message": "Dispositivo desinscrito com sucesso."})
+            return
+
+        if path == '/api/push/test':
+            user_id = self._get_current_user_id() or 1
+            test_type = body.get('type', 'sale')
+            if test_type == 'pix':
+                title = "⚡ PIX GERADO - R$ 97,00"
+                body_msg = "PIX gerado aguardando pagamento do cliente (Kiwify)"
+            else:
+                title = "💸 VENDA APROVADA - R$ 197,00"
+                body_msg = "Venda de R$ 197,00 aprovada via Cartão! (Kiwify - Lucas Silva)"
+
+            dispatch_web_push(user_id=user_id, title=title, body=body_msg, tag=f"test-{test_type}")
+            dispatch_telegram_alert(user_id=user_id, text=f"🔔 <b>TESTE DE ALERTA TRACKPRO</b>\n\n{title}\n{body_msg}")
+
+            self._send_json({"success": True, "message": "Notificação push disparada para o seu celular!"})
+            return
+
+        if path == '/api/telegram/settings':
+            user_id = self._get_current_user_id() or 1
+            bot_token = (body.get('bot_token') or '').strip()
+            chat_id = (body.get('chat_id') or '').strip()
+            active = 1 if body.get('active') else 0
+
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO telegram_settings (user_id, bot_token, chat_id, active, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    bot_token = excluded.bot_token,
+                    chat_id = excluded.chat_id,
+                    active = excluded.active,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (user_id, bot_token, chat_id, active))
+            conn.commit()
+            conn.close()
+
+            if active and bot_token and chat_id:
+                dispatch_telegram_alert(user_id, "🚀 <b>TrackPro Telegram Ativado!</b>\n\nSeu robô de vendas está conectado. Toda nova venda confirmada ou PIX gerado será avisado aqui em tempo real.")
+
+            self._send_json({"success": True, "message": "Configurações do Telegram salvas com sucesso!"})
+            return
+
+        if path == '/api/telegram/test':
+            user_id = self._get_current_user_id() or 1
+            dispatch_telegram_alert(user_id, "🔔 <b>TESTE TELEGRAM TRACKPRO</b>\n\nSeu robô de notificações do Telegram está funcionando 100%! Vendas aprovadas e PIX serão entregues aqui instantaneamente.")
+            self._send_json({"success": True, "message": "Mensagem de teste enviada ao Telegram!"})
+            return
+
         if path == '/api/auth/register':
             name = (body.get('name') or '').strip()
             email = (body.get('email') or '').strip().lower()
@@ -3458,12 +3750,13 @@ self.addEventListener('notificationclick', (e) => {
             conn.commit()
             conn.close()
 
+            cookie = f"trackpro_token={token}; Path=/; Max-Age=7776000; SameSite=Lax"
             self._send_json({
                 "success": True,
                 "token": token,
                 "user": {"id": new_user_id, "name": name, "email": email},
                 "message": "Conta criada com sucesso! Seja bem-vindo ao TrackPro."
-            })
+            }, cookie=cookie)
             return
 
         if path == '/api/auth/login':
@@ -3489,12 +3782,13 @@ self.addEventListener('notificationclick', (e) => {
             conn.commit()
             conn.close()
 
+            cookie = f"trackpro_token={token}; Path=/; Max-Age=7776000; SameSite=Lax"
             self._send_json({
                 "success": True,
                 "token": token,
                 "user": {"id": user['id'], "name": user['name'], "email": user['email']},
                 "message": f"Bem-vindo de volta, {user['name']}!"
-            })
+            }, cookie=cookie)
             return
 
         if path == '/api/auth/google':
@@ -3633,6 +3927,13 @@ self.addEventListener('notificationclick', (e) => {
             notif_id = cursor.lastrowid
             conn.commit()
             conn.close()
+
+            # Dispara Push real no celular fora do app
+            try:
+                dispatch_web_push(user_id=user_id, title=title, body=msg, tag=test_type)
+                dispatch_telegram_alert(user_id=user_id, text=f"{title}\n{msg}")
+            except Exception:
+                pass
 
             self._send_json({
                 "success": True,
@@ -4330,6 +4631,8 @@ self.addEventListener('notificationclick', (e) => {
             '/api/webhook/greenn',
             '/api/webhook/cakto',
             '/api/webhook/wiapy',
+            '/api/webhook/universal',
+            '/api/webhook/custom',
             '/api/orders/webhook/orders'
         ]
         if path in webhook_routes:
@@ -4340,9 +4643,26 @@ self.addEventListener('notificationclick', (e) => {
             elif 'greenn' in p_lower: parsed_order['platform'] = 'Greenn'
             elif 'cakto' in p_lower: parsed_order['platform'] = 'Cakto'
             elif 'wiapy' in p_lower: parsed_order['platform'] = 'Wiapy'
+            elif 'universal' in p_lower or 'custom' in p_lower:
+                parsed_order['platform'] = body.get('platform') or 'Universal'
 
             conn = get_db()
             cursor = conn.cursor()
+
+            # Resolve user_id do webhook (via ?token=, ?user_id=, header ou fallback)
+            target_user_id = self._get_current_user_id()
+            if not target_user_id:
+                token_q = params.get('token', [''])[0].strip() or self.headers.get('X-User-Token', '').strip()
+                if token_q:
+                    r = cursor.execute("SELECT user_id FROM user_sessions WHERE token = ?", (token_q,)).fetchone()
+                    if not r:
+                        r = cursor.execute("SELECT user_id FROM api_credentials WHERE token = ?", (token_q,)).fetchone()
+                    if r: target_user_id = r['user_id']
+            if not target_user_id:
+                uid_q = params.get('user_id', [''])[0].strip()
+                if uid_q.isdigit(): target_user_id = int(uid_q)
+            if not target_user_id:
+                target_user_id = 1
 
             tr = parsed_order.get('tracking', {})
             cursor.execute("""
@@ -4351,8 +4671,8 @@ self.addEventListener('notificationclick', (e) => {
                     customer_email, customer_phone, customer_ip, price_in_cents,
                     utm_source, utm_medium, utm_campaign, utm_content, utm_term,
                     src, sck, fbc, fbp
-                ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (target_user_id,
                 parsed_order['order_id'],
                 parsed_order['platform'],
                 parsed_order['status'],
@@ -4383,23 +4703,34 @@ self.addEventListener('notificationclick', (e) => {
                 mth = parsed_order.get('payment_method', 'cartao')
 
                 if parsed_order['status'] == 'paid':
+                    sale_title = "💸 VENDA APROVADA!"
+                    sale_msg = f"Venda de R$ {pr_reais:,.2f} aprovada via {mth}! ({plt} - {c_name})".replace(',', 'X').replace('.', ',').replace('X', '.')
                     cursor.execute("""
                         INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
-                        VALUES (?, 'sale_approved', '💸 VENDA APROVADA!', ?, ?, ?)
-                    """, (notif_user_id, f"Venda de R$ {pr_reais:,.2f} aprovada via {mth}! ({plt} - {c_name})".replace(',', 'X').replace('.', ',').replace('X', '.'), pr_cents, mth))
+                        VALUES (?, 'sale_approved', ?, ?, ?, ?)
+                    """, (notif_user_id, sale_title, sale_msg, pr_cents, mth))
                     conn.commit()
+                    # Disparo Web Push no celular e Telegram (fora do app)
+                    dispatch_web_push(notif_user_id, sale_title, sale_msg, tag="trackpro-sale-alert", data={"amount": pr_reais, "platform": plt})
+                    dispatch_telegram_alert(notif_user_id, f"💸 <b>NOVA VENDA APROVADA!</b>\n\n💰 <b>Valor:</b> R$ {pr_reais:,.2f}\n📦 <b>Plataforma:</b> {plt}\n💳 <b>Pagamento:</b> {mth}\n👤 <b>Cliente:</b> {c_name}\n🎯 <b>Campanha:</b> {tr.get('utm_campaign') or 'Orgânico'}")
                 elif parsed_order['status'] == 'waiting_payment':
                     if 'pix' in str(mth).lower():
+                        pix_title = "⚡ PIX GERADO!"
+                        pix_msg = f"PIX de R$ {pr_reais:,.2f} gerado! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.')
                         cursor.execute("""
                             INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
-                            VALUES (?, 'pix_generated', '⚡ PIX GERADO!', ?, ?, 'pix')
-                        """, (notif_user_id, f"PIX de R$ {pr_reais:,.2f} gerado! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.'), pr_cents))
+                            VALUES (?, 'pix_generated', ?, ?, ?, 'pix')
+                        """, (notif_user_id, pix_title, pix_msg, pr_cents))
                         conn.commit()
+                        dispatch_web_push(notif_user_id, pix_title, pix_msg, tag="trackpro-pix-alert", data={"amount": pr_reais, "platform": plt})
+                        dispatch_telegram_alert(notif_user_id, f"⚡ <b>PIX GERADO!</b>\n\n💰 <b>Valor:</b> R$ {pr_reais:,.2f}\n📦 <b>Plataforma:</b> {plt}\n👤 <b>Cliente:</b> {c_name}")
                     elif 'boleto' in str(mth).lower():
+                        bol_title = "📄 BOLETO IMPRESSO!"
+                        bol_msg = f"Boleto de R$ {pr_reais:,.2f} impresso! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.')
                         cursor.execute("""
                             INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
-                            VALUES (?, 'boleto_printed', '📄 BOLETO IMPRESSO!', ?, ?, 'boleto')
-                        """, (notif_user_id, f"Boleto de R$ {pr_reais:,.2f} impresso! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.'), pr_cents))
+                            VALUES (?, 'boleto_printed', ?, ?, ?, 'boleto')
+                        """, (notif_user_id, bol_title, bol_msg, pr_cents))
                         conn.commit()
             except Exception as e_notif:
                 pass

@@ -114,8 +114,14 @@
 
     .dashboard-widget[data-widget-type="metric"] {
       height: 100% !important;
-      min-height: 114px !important;
+      min-height: 88px !important;
       align-self: stretch !important;
+      padding: 0.9rem 1.15rem !important;
+    }
+
+    /* Oculta legendas/subtítulos embaixo dos valores (Estilo Clean - Apenas Nome e Valor) */
+    .kpi-sub-text {
+      display: none !important;
     }
 
     /* Estilo Otimizado e Perfeitamente Alinhado no Eixo Y para tamanho 0.5x */
@@ -5589,8 +5595,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 <span class="kpi-label-text text-[11px] font-semibold uppercase tracking-wider text-slate-300 truncate ml-0.5">${def.label}</span>
               </div>
             </div>
-            <div id="kpi-val-${key}" class="kpi-val-text text-xl md:text-2xl lg:text-3xl font-extrabold text-white tracking-tight truncate">${valFormatted}</div>
-            <span id="kpi-sub-${key}" class="kpi-sub-text text-[11px] ${def.subColor} font-medium mt-1 inline-block truncate">${def.sub}</span>
+            <div id="kpi-val-${key}" class="kpi-val-text text-xl md:text-2xl lg:text-3xl font-extrabold text-white tracking-tight truncate mt-0.5">${valFormatted}</div>
             <div class="absolute -right-2 -bottom-2 opacity-5 ${def.color} pointer-events-none">
               <i data-lucide="${def.icon}" class="w-20 h-20"></i>
             </div>
@@ -5605,8 +5610,6 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           // Atualiza apenas os valores
           const elVal = document.getElementById('kpi-val-' + key);
           if (elVal) elVal.textContent = valFormatted;
-          const elSub = document.getElementById('kpi-sub-' + key);
-          if (elSub) elSub.textContent = def.sub;
         }
       });
 

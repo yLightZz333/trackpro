@@ -62,11 +62,12 @@
       to { transform: translateY(0) scale(1); opacity: 1; }
     }
     .toast-animate { animation: toastSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      /* Dashboard 8-Column Grid System com Suporte a 0.5x, 1x, 2x, 4x */
+      /* Dashboard 8-Column Grid System com Suporte a 0.5x, 1x, 2x, 4x e Alinhamento Perfeito no Eixo Y */
     #dashboard-widgets-grid {
       display: grid !important;
       grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
       grid-auto-flow: dense !important;
+      align-items: stretch !important;
     }
     @media (max-width: 1024px) {
       #dashboard-widgets-grid {
@@ -102,19 +103,35 @@
       .widget-span-4   { grid-column: span 2 / span 2 !important; }
     }
 
-    /* Estilo Otimizado e Legível para tamanho 0.5x */
+    /* Alinhamento Perfeito no Eixo Y para Todos os Widgets na Mesma Linha */
+    .dashboard-widget {
+      height: 100% !important;
+      align-self: stretch !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+    }
+
+    .dashboard-widget[data-widget-type="metric"] {
+      height: 100% !important;
+      min-height: 114px !important;
+      align-self: stretch !important;
+    }
+
+    /* Estilo Otimizado e Perfeitamente Alinhado no Eixo Y para tamanho 0.5x */
     .widget-span-0-5 {
-      padding: 0.85rem 1rem !important;
-      min-height: 95px !important;
+      padding: 1rem 0.85rem !important;
+      height: 100% !important;
+      align-self: stretch !important;
     }
     .widget-span-0-5 .kpi-label-text {
       font-size: 11px !important;
       font-weight: 700 !important;
-      letter-spacing: 0.025em !important;
+      letter-spacing: 0.02em !important;
     }
     .widget-span-0-5 .kpi-val-text {
-      font-size: 1.375rem !important; /* 22px - destaque e legibilidade */
-      line-height: 1.65rem !important;
+      font-size: 1.35rem !important; /* ~22px - destaque e legibilidade */
+      line-height: 1.6rem !important;
       font-weight: 800 !important;
     }
     .widget-span-0-5 .kpi-sub-text {
@@ -5137,6 +5154,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       document.querySelectorAll('.dashboard-widget').forEach(w => {
         w.classList.remove('opacity-40', 'opacity-50', 'scale-[0.98]', 'pointer-events-none');
         w.style.pointerEvents = '';
+        w.style.alignSelf = '';
       });
       const ph = document.getElementById('dashboard-drag-placeholder');
       if (ph) ph.remove();
@@ -5315,10 +5333,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           if (conf.colSpan !== undefined) {
             applyWidgetSpan(w, conf.colSpan);
           }
-          if (conf.height) {
+          if (conf.height && w.dataset.widgetType !== 'metric') {
             w.style.minHeight = conf.height + 'px';
             w.style.height = conf.height + 'px';
-            w.style.alignSelf = 'start';
           }
         }
       });
@@ -5491,7 +5508,6 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
               currentH = Math.round(newHeight);
               widget.style.minHeight = currentH + 'px';
               widget.style.height = currentH + 'px';
-              widget.style.alignSelf = 'start';
 
               // Largura Horizontal (0.5x, 1x, 2x, 3x, 4x)
               const projectedWidth = Math.max(colWidth * 0.4, startWidth + dx);

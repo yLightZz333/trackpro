@@ -460,17 +460,9 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO notification_settings (user_id) VALUES (1)")
     cursor.execute("INSERT OR IGNORE INTO api_credentials (user_id, name, token, active) VALUES (1, 'Token Universal Lucas', ?, 1)", (DEMO_TOKEN,))
 
-    # Inserir notificações de boas-vindas se não houver
-    notif_cnt = cursor.execute("SELECT COUNT(*) FROM notifications WHERE user_id = 1").fetchone()[0]
-    if notif_cnt == 0:
-        cursor.execute("""
-            INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
-            VALUES (1, 'sale_approved', '💸 VENDA APROVADA!', 'Venda de R$ 197,00 aprovada via Cartão de Crédito! (Kiwify)', 19700, 'cartao')
-        """)
-        cursor.execute("""
-            INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
-            VALUES (1, 'pix_generated', '⚡ PIX GERADO!', 'PIX de R$ 97,00 gerado! Cliente: Marcos Vinicius (Aguardando pagamento)', 9700, 'pix')
-        """)
+    # Limpa notificações fictícias de demonstração antigas
+    cursor.execute("DELETE FROM notifications WHERE message LIKE '%Kiwify%' AND amount_in_cents = 19700")
+    cursor.execute("DELETE FROM notifications WHERE message LIKE '%Marcos Vinicius%' AND amount_in_cents = 9700")
 
     # Usuário padrão
     cursor.execute("INSERT OR IGNORE INTO api_credentials (user_id, name, token, active) VALUES (1, 'Token Universal', ?, 1)", (DEMO_TOKEN,))
@@ -3630,6 +3622,15 @@ self.addEventListener('notificationclick', (e) => {
             conn.commit()
             conn.close()
             self._send_json({"success": True, "message": "Todas as notificações marcadas como lidas."})
+            return
+
+        if path == '/api/notifications/clear':
+            user_id = self._get_current_user_id()
+            conn = get_db()
+            conn.execute("DELETE FROM notifications WHERE user_id = ?", (user_id,))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Todas as notificações foram apagadas."})
             return
 
         if path == '/api/notifications/test':

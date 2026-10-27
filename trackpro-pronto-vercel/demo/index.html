@@ -448,6 +448,7 @@
         </div>
         <div class="flex items-center gap-2">
           <button onclick="markAllNotificationsRead()" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar lidas</button>
+          <button onclick="clearAllNotifications()" class="text-[11px] text-rose-400 hover:text-rose-300 font-semibold transition-colors flex items-center gap-1" title="Apagar todas as notificações"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar</button>
           <button onclick="switchTab('notifications'); closeNotificationDropdown();" class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">Ajustes</button>
           <button onclick="closeNotificationDropdown()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors" title="Fechar">
             <i data-lucide="x" class="w-4 h-4"></i>
@@ -1433,18 +1434,12 @@
             </h2>
             <p class="text-xs text-slate-400">Integração oficial OAuth 2.0 da Meta Marketing API com seleção de contas para tracking e sincronização de métricas</p>
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <button id="btn-accounts-header-connect" onclick="openFacebookLoginPopup()" class="px-3.5 py-2 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-blue-600/30">
-              <i data-lucide="facebook" class="w-4 h-4"></i> Conectar conta Meta
+          <div id="meta-accounts-header-actions" class="flex items-center gap-2 flex-wrap">
+            <button onclick="syncMetaCampaigns()" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar Métricas
             </button>
-            <button onclick="openModal('modal-system-user-token')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-emerald-600/20">
-              <i data-lucide="key" class="w-4 h-4"></i> Token Permanente
-            </button>
-            <button onclick="openModal('modal-meta-oauth-setup')" class="px-3 py-2 bg-dark-800 hover:bg-dark-750 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5">
-              <i data-lucide="settings" class="w-3.5 h-3.5"></i> Configurar App
-            </button>
-            <button onclick="openModal('modal-new-account')" class="px-3 py-2 bg-dark-800 hover:bg-dark-750 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium">
-              Adicionar Manual
+            <button onclick="openModal('modal-system-user-token')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-blue-400"></i> Trocar Token
             </button>
           </div>
         </div>
@@ -1471,24 +1466,13 @@
           </div>
         </div>
 
-        <!-- Barra de Ações Rápidas e Seleção de Contas -->
-        <div class="bg-dark-950/60 border border-slate-800 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <span id="accounts-selection-summary" class="text-xs font-semibold text-slate-300">
-              <strong class="text-white" id="selected-accounts-count">0</strong> contas selecionadas para rastreamento
-            </span>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <button onclick="selectAllAccounts(true)" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700/60 transition-colors">
-              Marcar Todas
-            </button>
-            <button onclick="selectAllAccounts(false)" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700/60 transition-colors">
-              Desmarcar Todas
-            </button>
-            <button onclick="syncMetaCampaigns()" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar Selecionadas
-            </button>
-          </div>
+        <!-- Barra de Status de Seleção de Contas -->
+        <div class="bg-dark-950/60 border border-slate-800 rounded-2xl px-4 py-3 flex items-center justify-between">
+          <span id="accounts-selection-summary" class="text-xs font-semibold text-slate-300 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span><strong class="text-white" id="selected-accounts-count">1</strong> conta ativa para rastreamento de campanhas</span>
+          </span>
+          <span class="text-[11px] text-slate-400">Ative ou desative o rastreamento de cada conta individualmente</span>
         </div>
 
         <div id="accounts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1709,137 +1693,42 @@
         <!-- ========================================== -->
         <!-- SEÇÃO COMPLETA: SCRIPTS DO SITE & PROMPT IA -->
         <!-- ========================================== -->
-        <div id="site-tracking-scripts" class="space-y-4 pt-2">
-          <!-- Seletor do Pixel Meta Cadastrado para Preenchimento Automático -->
-          <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                <i data-lucide="crosshair" class="w-5 h-5"></i>
-              </div>
-              <div>
-                <h4 class="font-bold text-sm text-white">Preenchimento Automático do Pixel Meta</h4>
-                <p class="text-xs text-slate-400">Selecione seu pixel cadastrado para gerar os códigos já com seu ID sem precisar alterar manualmente:</p>
-              </div>
+        <!-- SCRIPT GLOBAL DO SITE & PROMPT IA -->
+        <div class="bg-dark-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="code-2" class="w-5 h-5"></i>
             </div>
-            <div class="w-full sm:w-80">
-              <select id="script-pixel-selector" onchange="updatePixelSnippets()" class="w-full bg-dark-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none">
-                <option value="">Carregando pixels...</option>
-              </select>
-            </div>
-          </div>
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
-              <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                <i data-lucide="code-2" class="w-5 h-5 text-brand-400"></i>
-                Scripts de Rastreamento no Site (Head)
-              </h2>
-              <p class="text-xs text-slate-400">Coloque estes <strong>dois códigos dentro da tag &lt;head&gt;</strong> da sua landing page/site (exatamente como na UTMify e LowTrack)</p>
-            </div>
-            <span class="px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5 self-start sm:self-auto">
-              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Pronto para Instalar
-            </span>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <!-- CÓDIGO 1: SCRIPT GLOBAL TRACKPRO -->
-            <div class="bg-dark-900 border border-brand-500/30 rounded-2xl p-5 space-y-3.5 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-xs">1</span>
-                    <h3 class="font-bold text-sm text-white">Script Global do TrackPro (UTMs & Links)</h3>
-                  </div>
-                  <span class="text-[10px] uppercase font-bold text-brand-400 bg-brand-500/10 px-2.5 py-0.5 rounded border border-brand-500/20">Cole no &lt;head&gt;</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Captura automaticamente todas as UTMs (<code class="text-brand-300">utm_source</code>, <code class="text-brand-300">campaign</code>, etc.) e cookies da Meta (<code class="text-brand-300">_fbp</code>, <code class="text-brand-300">_fbc</code>), repassando para todos os botões de checkout (Kiwify, Hotmart, Greenn, Cakto, Eduzz, Braip, etc.).
-                </p>
-                <div class="mt-3 relative">
-                  <pre id="script-trackpro-code" class="bg-dark-950 p-3.5 rounded-xl border border-slate-800 text-[11px] font-mono text-brand-400 select-all overflow-x-auto whitespace-pre-wrap">&lt;script src="https://meutrackpro.onrender.com/trackpro.js" async&gt;&lt;/script&gt;</pre>
-                </div>
+              <div class="flex items-center gap-2">
+                <h4 class="font-bold text-sm text-white">Script Global do TrackPro (UTMs & Links)</h4>
+                <span class="text-[10px] uppercase font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">Cole no &lt;head&gt;</span>
               </div>
-              <div class="pt-2 flex items-center justify-between">
-                <span class="text-[11px] text-slate-500 flex items-center gap-1"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Repasse automático de UTMs</span>
-                <button id="btn-copy-script-trackpro" onclick="copyCodeSnippet('script-trackpro-code', 'btn-copy-script-trackpro')" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all">
-                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código 1
-                </button>
-              </div>
-            </div>
-
-            <!-- CÓDIGO 2: SCRIPT DO PIXEL META ADS -->
-            <div class="bg-dark-900 border border-blue-500/30 rounded-2xl p-5 space-y-3.5 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">2</span>
-                    <h3 class="font-bold text-sm text-white">Pixel da Meta Ads (Facebook Pixel Oficial)</h3>
-                  </div>
-                  <span class="text-[10px] uppercase font-bold text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded border border-blue-500/20">Cole no &lt;head&gt;</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Carrega a biblioteca oficial da Meta no navegador para registrar o PageView. O TrackPro faz a <strong>deduplicação automática</strong> das conversões com o Meta CAPI Server-Side sem duplicar métricas.
-                </p>
-                <div class="mt-3 relative">
-                  <pre id="script-meta-pixel-code" class="bg-dark-950 p-3.5 rounded-xl border border-slate-800 text-[11px] font-mono text-blue-300 select-all overflow-x-auto max-h-36">&lt;!-- Meta Pixel Code --&gt;
-&lt;script&gt;
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '[SEU_PIXEL_ID]');
-fbq('track', 'PageView');
-&lt;/script&gt;
-&lt;noscript&gt;&lt;img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=1"
-/&gt;&lt;/noscript&gt;
-&lt;!-- End Meta Pixel Code --&gt;</pre>
-                </div>
-              </div>
-              <div class="pt-2 flex items-center justify-between">
-                <span class="text-[11px] text-slate-500 flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5 text-blue-400"></i> Deduplicação CAPI ativa</span>
-                <button id="btn-copy-script-meta" onclick="copyCodeSnippet('script-meta-pixel-code', 'btn-copy-script-meta')" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all">
-                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código 2
-                </button>
-              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Captura UTMs automaticamente e repassa para botões de checkout (Kiwify, Hotmart, Greenn, Cakto, etc.).</p>
             </div>
           </div>
-
-          <!-- CARD 3: PROMPT PRONTO PARA IA (CURSOR, V0, CHATGPT, BOLT, LOVABLE) -->
-          <div class="bg-gradient-to-br from-[#16132b] via-dark-900 to-[#0e1626] border-2 border-purple-500/40 rounded-2xl p-5 md:p-6 space-y-4 shadow-2xl relative overflow-hidden">
-            <div class="absolute -right-12 -top-12 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
-              <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center font-bold shadow-lg shadow-purple-500/30">
-                  <i data-lucide="sparkles" class="w-6 h-6"></i>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h3 class="font-bold text-base text-white">Mini-Prompt para IA de Criação de Sites</h3>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Cursor / v0 / ChatGPT / Lovable / Bolt</span>
-                  </div>
-                  <p class="text-xs text-slate-300 mt-0.5">Copie o texto pronto abaixo e cole na IA que está gerando o seu site. Ela vai instalar tudo no &lt;head&gt; e configurar os botões:</p>
-                </div>
-              </div>
-              <button id="btn-copy-ai-prompt" onclick="copyAiPrompt()" class="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all whitespace-nowrap self-start sm:self-auto">
-                <i data-lucide="copy" class="w-4 h-4"></i> Copiar Prompt Completo para IA
-              </button>
-            </div>
-
-            <div class="relative z-10">
-              <textarea id="ai-prompt-content" readonly rows="8" class="w-full bg-dark-950/90 border border-purple-500/30 rounded-xl p-4 text-[11px] font-mono text-purple-200 focus:outline-none select-all resize-none shadow-inner leading-relaxed"></textarea>
-            </div>
-
-            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 relative z-10">
-              <span class="flex items-center gap-1.5"><i data-lucide="info" class="w-3.5 h-3.5 text-purple-400"></i> Funciona com qualquer ferramenta de IA ou desenvolvedor humano</span>
-              <span class="text-slate-500">Substitua apenas o <strong class="text-purple-300">[SEU_PIXEL_ID]</strong> pelo ID do seu Pixel Meta</span>
-            </div>
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <pre class="bg-dark-950 px-3.5 py-2 rounded-xl border border-slate-800 text-[11px] font-mono text-brand-400 select-all overflow-x-auto flex-1 md:flex-initial">&lt;script src="https://meutrackpro.onrender.com/trackpro.js" async&gt;&lt;/script&gt;</pre>
+            <button onclick="copyTextToClipboard('&lt;script src=\'https://meutrackpro.onrender.com/trackpro.js\' async&gt;&lt;/script&gt;', this)" class="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-brand-500/20 shrink-0">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+            </button>
           </div>
         </div>
 
+        <div class="bg-gradient-to-r from-purple-900/20 via-indigo-900/15 to-brand-900/20 border border-purple-500/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-white">Pixel da Meta & Prompt Completo para IA (Cursor, v0, ChatGPT, Bolt)</p>
+              <p class="text-[11px] text-slate-400">Ao cadastrar seu Pixel na aba <strong class="text-slate-300">Pixels Meta</strong>, o prompt já é gerado automaticamente com os dois scripts prontos.</p>
+            </div>
+          </div>
+          <button onclick="switchTab('pixels')" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0">
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i> Ir para Pixels Meta
+          </button>
+        </div>
       </section>
 
       <!-- ==================== TAB: NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ==================== -->
@@ -2081,7 +1970,10 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
               <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
               <h3 class="font-bold text-sm text-white">Histórico de Notificações Recebidas</h3>
             </div>
-            <button onclick="markAllNotificationsRead()" class="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar Todas como Lidas</button>
+            <div class="flex items-center gap-2">
+              <button onclick="markAllNotificationsRead()" class="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors">Marcar Todas como Lidas</button>
+              <button onclick="clearAllNotifications()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold transition-colors flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpar Histórico</button>
+            </div>
           </div>
           <div id="full-notifications-table" class="space-y-2">
             <!-- Linhas de notificações injetadas via JavaScript -->
@@ -3428,6 +3320,17 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       } catch (e) {}
     }
 
+    async function clearAllNotifications() {
+      try {
+        await fetch('/api/notifications/clear', { method: 'POST' });
+      } catch (e) {}
+      cachedNotifications = [];
+      updateNotificationBadges(0);
+      renderNotificationDropdownList([]);
+      renderFullNotificationsTable([]);
+      showToast('Todas as notificações foram apagadas.', 'info');
+    }
+
     // ==================== SALVAR CONFIGURAÇÕES DE NOTIFICAÇÃO NO SERVIDOR ====================
     async function saveNotificationSettingsToServer() {
       const soundType = localStorage.getItem('trackpro_sound_type') || 'kaching';
@@ -3824,13 +3727,15 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
         if (dot) dot.className = isConnected ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse' : 'w-2 h-2 rounded-full bg-slate-500';
       }
 
-      if (quickBanner && quickInputs) {
+      const quickCard = document.getElementById('quick-meta-connect-card');
+      if (quickCard) {
+        // Se já está conectado, oculta o card tutorial para despoluir a tela
         if (isConnected) {
-          quickBanner.classList.remove('hidden');
-          quickInputs.classList.add('hidden');
+          quickCard.classList.add('hidden');
         } else {
-          quickBanner.classList.add('hidden');
-          quickInputs.classList.remove('hidden');
+          quickCard.classList.remove('hidden');
+          if (quickBanner) quickBanner.classList.add('hidden');
+          if (quickInputs) quickInputs.classList.remove('hidden');
         }
       }
 
@@ -4355,7 +4260,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
 2. Em todos os botões ou links que levam para o checkout de pagamento, garanta que qualquer parâmetro UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck) presente na URL da página seja automaticamente anexado no link do checkout ao clicar.`;
       navigator.clipboard.writeText(promptText);
-      alert(`Mini-Prompt para IA copiado com o Pixel (${pixelId})! Cole no Cursor, v0 ou ChatGPT.`);
+      showToast(`Prompt IA copiado com o Pixel (${pixelId}) e Script Global prontos!`, 'success');
     }
 
     // ==================== DEFINIÇÕES DE MÉTRICAS (PADRÃO UTMIFY) ====================
@@ -6769,12 +6674,12 @@ function renderAdsetsTable(adsets) {
                   </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
-                  <button onclick="copyPixelCode('${p.pixel_id}')" class="py-1.5 px-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all">
-                    <i data-lucide="code" class="w-3 h-3"></i> Copiar Script
+                <div class="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
+                  <button onclick="copyPixelAiPrompt('${p.pixel_id}')" class="w-full py-2 px-3 bg-gradient-to-r from-purple-600/30 to-indigo-600/30 hover:from-purple-600/40 hover:to-indigo-600/40 text-purple-200 border border-purple-500/40 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i> Copiar Prompt Completo para IA (com Scripts)
                   </button>
-                  <button onclick="copyPixelAiPrompt('${p.pixel_id}')" class="py-1.5 px-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all">
-                    <i data-lucide="sparkles" class="w-3 h-3"></i> Prompt IA
+                  <button onclick="copyPixelCode('${p.pixel_id}')" class="w-full py-1.5 px-2 bg-dark-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 rounded-lg text-[11px] font-medium flex items-center justify-center gap-1 transition-all">
+                    <i data-lucide="code" class="w-3 h-3"></i> Copiar Apenas Código do Pixel
                   </button>
                 </div>
               </div>

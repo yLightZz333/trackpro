@@ -3835,6 +3835,7 @@ self.addEventListener('notificationclick', (e) => {
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path
+        params = parse_qs(parsed.query)
         body = self._read_json()
 
         # ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================

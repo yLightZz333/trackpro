@@ -2585,12 +2585,23 @@ self.addEventListener('notificationclick', (e) => {
     }}).catch(function(){{}});
   }} catch(e){{}}
 
-  var checkouts = ['kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com', 'eduzz.com', 'braip.com', 'monetizze.com.br', 'perfectpay.com.br', 'ticto.com.br', 'kirvano.com', 'doppus.com', 'lastlink.com', 'pepper.com.br'];
+  var checkouts = [
+    'kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com',
+    'eduzz.com', 'braip.com', 'monetizze.com.br', 'perfectpay.com.br', 'ticto.com.br',
+    'kirvano.com', 'doppus.com', 'lastlink.com', 'pepper.com.br', 'payfast', 'checkout', 'pay.'
+  ];
+
+  function isCheckoutUrl(url) {{
+    if (!url || typeof url !== 'string') return false;
+    var u = url.toLowerCase();
+    if (u.indexOf('javascript:') === 0 || u.indexOf('#') === 0 || u.indexOf('tel:') === 0 || u.indexOf('mailto:') === 0) return false;
+    return checkouts.some(function(domain) {{ return u.indexOf(domain) !== -1; }}) ||
+           /payfast|checkout|kiwify|cakto|hotmart|greenn|wiapy|braip|eduzz|monetizze|ticto|kirvano/i.test(u);
+  }}
 
   function decorateCheckoutUrl(url) {{
     if (!url || typeof url !== 'string') return url;
-    var isCheckout = checkouts.some(function(domain) {{ return url.indexOf(domain) !== -1; }});
-    if (!isCheckout) return url;
+    if (!isCheckoutUrl(url)) return url;
     try {{
       var parsed = new URL(url, window.location.href);
       if (stored.utm_source && !parsed.searchParams.get('utm_source')) parsed.searchParams.set('utm_source', stored.utm_source);
@@ -2608,11 +2619,48 @@ self.addEventListener('notificationclick', (e) => {
     }}
   }}
 
+  function sendInitiateCheckoutEvent(checkoutHref) {{
+    try {{
+      var icPayload = {{
+        event_type: 'initiate_checkout',
+        utm_source: stored.utm_source,
+        utm_medium: stored.utm_medium,
+        utm_campaign: stored.utm_campaign,
+        utm_content: stored.utm_content,
+        utm_term: stored.utm_term,
+        src: stored.src,
+        sck: stored.sck,
+        fbc: stored.fbc,
+        fbp: stored.fbp,
+        page_url: window.location.href,
+        checkout_url: checkoutHref
+      }};
+
+      if (navigator.sendBeacon) {{
+        var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
+        navigator.sendBeacon(API + '/api/tracking/event', blob);
+      }} else {{
+        fetch(API + '/api/tracking/event', {{
+          method: 'POST',
+          mode: 'cors',
+          headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
+          body: JSON.stringify(icPayload),
+          keepalive: true
+        }}).catch(function(){{}});
+      }}
+
+      // Dispara o InitiateCheckout oficial no Meta Pixel da pagina se fbq estiver presente
+      if (window.fbq) {{
+        try {{ fbq('track', 'InitiateCheckout'); }} catch(e){{}}
+      }}
+    }} catch(err) {{}}
+  }}
+
   function decorateCheckoutLinks() {{
     var links = document.querySelectorAll('a[href]');
     links.forEach(function(link) {{
       var href = link.getAttribute('href');
-      if (href) {{
+      if (href && isCheckoutUrl(href)) {{
         var newHref = decorateCheckoutUrl(href);
         if (newHref !== href) link.setAttribute('href', newHref);
       }}
@@ -2635,8 +2683,13 @@ self.addEventListener('notificationclick', (e) => {
     while (target && target.tagName !== 'A' && target !== document.body) {{
       target = target.parentElement;
     }}
-    if (target && target.tagName === 'A' && target.getAttribute('href')) {{
-      target.setAttribute('href', decorateCheckoutUrl(target.getAttribute('href')));
+    if (target && target.tagName === 'A') {{
+      var href = target.getAttribute('href');
+      if (href && isCheckoutUrl(href)) {{
+        var decorated = decorateCheckoutUrl(href);
+        target.setAttribute('href', decorated);
+        sendInitiateCheckoutEvent(decorated);
+      }}
     }}
   }}, true);
 
@@ -4872,6 +4925,7 @@ self.addEventListener('notificationclick', (e) => {
             cursor = conn.cursor()
             cursor.execute("DELETE FROM orders;")
             cursor.execute("DELETE FROM tracking_events;")
+            cursor.execute("DELETE FROM notifications;")
             cursor.execute("DELETE FROM capi_logs;")
             cursor.execute("DELETE FROM rule_logs;")
             cursor.execute("UPDATE campaigns SET total_spent_in_cents = 0;")

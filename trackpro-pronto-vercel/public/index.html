@@ -98,7 +98,7 @@
             <span id="drawer-user-name" class="font-bold text-sm text-white truncate">Lucas</span>
             <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">VIP</span>
           </div>
-          <span id="drawer-user-email" class="text-xs text-slate-400 truncate block">luckinhasp4@gmail.com</span>
+          <span id="drawer-user-email" class="text-xs text-slate-400 truncate block">Não conectado</span>
         </div>
         <button onclick="openAuthModal('login'); closeMobileSidebar();" title="Trocar Conta" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
           <i data-lucide="users" class="w-4 h-4"></i>
@@ -354,7 +354,7 @@
             </div>
             <div class="text-left hidden lg:block">
               <span id="header-user-name" class="block text-xs font-bold text-white leading-tight">Lucas</span>
-              <span id="header-user-email" class="block text-[10px] text-slate-400 leading-tight">luckinhasp4@gmail.com</span>
+              <span id="header-user-email" class="block text-[10px] text-slate-400 leading-tight">Não conectado</span>
             </div>
             <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
           </button>
@@ -395,7 +395,7 @@
       <div class="p-3 bg-dark-950/80 flex items-center justify-between">
         <div>
           <span class="block text-xs font-bold text-white" id="dropdown-user-name">Lucas</span>
-          <span class="block text-[11px] text-slate-400 truncate" id="dropdown-user-email">luckinhasp4@gmail.com</span>
+          <span class="block text-[11px] text-slate-400 truncate" id="dropdown-user-email">Não conectado</span>
           <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold rounded-full">Conta Ativa • VIP</span>
         </div>
         <button onclick="closeProfileDropdown()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors" title="Fechar">
@@ -683,9 +683,11 @@
             </div>
 
             <!-- Resize Handle -->
-            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
-              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
-            </div>
+            <!-- Botão / Alça de Redimensionamento -->
+            <button type="button" class="widget-resize-handle absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-dark-950/90 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/60 text-slate-300 hover:text-brand-400 flex items-center gap-1 cursor-nwse-resize shadow-md select-none z-20 transition-all" title="Clique para alternar largura (1x / 2x / 4x) ou arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="widget-col-indicator text-[10px] font-bold text-slate-300">4x</span>
+            </button>
           </div>
 
           <!-- WIDGET 2: VENDAS POR HORÁRIO (GRÁFICO) -->
@@ -712,9 +714,11 @@
               <canvas id="revenueChart"></canvas>
             </div>
             <!-- Resize Handle -->
-            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
-              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
-            </div>
+            <!-- Botão / Alça de Redimensionamento -->
+            <button type="button" class="widget-resize-handle absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-dark-950/90 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/60 text-slate-300 hover:text-brand-400 flex items-center gap-1 cursor-nwse-resize shadow-md select-none z-20 transition-all" title="Clique para alternar largura (1x / 2x / 4x) ou arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="widget-col-indicator text-[10px] font-bold text-slate-300">2x</span>
+            </button>
           </div>
 
           <!-- WIDGET 3: CANAIS & FONTES (UTM) -->
@@ -741,9 +745,11 @@
             </div>
             <div id="sources-legend" class="space-y-1.5 text-xs text-slate-300"></div>
             <!-- Resize Handle -->
-            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
-              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
-            </div>
+            <!-- Botão / Alça de Redimensionamento -->
+            <button type="button" class="widget-resize-handle absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-dark-950/90 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/60 text-slate-300 hover:text-brand-400 flex items-center gap-1 cursor-nwse-resize shadow-md select-none z-20 transition-all" title="Clique para alternar largura (1x / 2x / 4x) ou arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="widget-col-indicator text-[10px] font-bold text-slate-300">1x</span>
+            </button>
           </div>
 
           <!-- WIDGET 4: VENDAS POR MÉTODO -->
@@ -770,9 +776,11 @@
             </div>
             <div id="payment-methods-legend" class="space-y-1.5 text-xs text-slate-300"></div>
             <!-- Resize Handle -->
-            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
-              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
-            </div>
+            <!-- Botão / Alça de Redimensionamento -->
+            <button type="button" class="widget-resize-handle absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-dark-950/90 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/60 text-slate-300 hover:text-brand-400 flex items-center gap-1 cursor-nwse-resize shadow-md select-none z-20 transition-all" title="Clique para alternar largura (1x / 2x / 4x) ou arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="widget-col-indicator text-[10px] font-bold text-slate-300">1x</span>
+            </button>
           </div>
 
           <!-- WIDGET 5: ÚLTIMAS CONVERSÕES RECEBIDAS -->
@@ -813,9 +821,11 @@
               </table>
             </div>
             <!-- Resize Handle -->
-            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
-              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
-            </div>
+            <!-- Botão / Alça de Redimensionamento -->
+            <button type="button" class="widget-resize-handle absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-dark-950/90 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/60 text-slate-300 hover:text-brand-400 flex items-center gap-1 cursor-nwse-resize shadow-md select-none z-20 transition-all" title="Clique para alternar largura (1x / 2x / 4x) ou arraste para redimensionar largura e altura">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="widget-col-indicator text-[10px] font-bold text-slate-300">4x</span>
+            </button>
           </div>
 
           <!-- DROP ZONE DE FINAL DE PAINEL -->
@@ -2681,7 +2691,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
           <label class="text-xs font-semibold text-slate-300">Seu E-mail</label>
           <div class="relative">
             <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none"></i>
-            <input type="email" id="login-email" required placeholder="ex: luckinhasp4@gmail.com" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
+            <input type="email" id="login-email" required placeholder="ex: seuemail@exemplo.com" class="w-full bg-dark-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 transition-colors">
           </div>
         </div>
 
@@ -2701,7 +2711,6 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
             <input type="checkbox" id="login-remember" checked class="rounded border-slate-700 text-brand-500 focus:ring-0">
             <span>Lembrar de mim</span>
           </label>
-          <button type="button" onclick="fillLucasCredentials()" class="text-brand-400 hover:text-brand-300 font-semibold">Preencher Conta Lucas</button>
         </div>
 
         <button type="submit" id="btn-login-submit" class="w-full py-2.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
@@ -3463,13 +3472,7 @@ src="https://www.facebook.com/tr?id=[SEU_PIXEL_ID]&amp;ev=PageView&amp;noscript=
       }
     }
 
-    function fillLucasCredentials() {
-      const em = document.getElementById('login-email');
-      const pw = document.getElementById('login-password');
-      if (em) em.value = 'luckinhasp4@gmail.com';
-      if (pw) pw.value = 'yzzjl067_';
-      showToast('Credenciais do Lucas preenchidas!', 'info');
-    }
+
 
     async function handleLoginSubmit(e) {
       e.preventDefault();
@@ -4639,6 +4642,49 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       lucide.createIcons();
     }
 
+    // ==================== TOAST GENÉRICO (ALERTAS & FEEDBACK) ====================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      
+      let borderCol = 'border-slate-700/80';
+      let iconName = 'info';
+      let iconCol = 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+      if (type === 'success') {
+        borderCol = 'border-emerald-500/40';
+        iconName = 'check-circle';
+        iconCol = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+      } else if (type === 'error') {
+        borderCol = 'border-rose-500/40';
+        iconName = 'alert-triangle';
+        iconCol = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+      } else if (type === 'warning') {
+        borderCol = 'border-amber-500/40';
+        iconName = 'alert-circle';
+        iconCol = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+      }
+
+      toast.className = `pointer-events-auto bg-dark-900 border ${borderCol} p-3 rounded-2xl shadow-2xl flex items-center gap-3 toast-animate max-w-sm`;
+      toast.innerHTML = `
+        <div class="w-8 h-8 rounded-xl ${iconCol} border flex items-center justify-center flex-shrink-0">
+          <i data-lucide="${iconName}" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold text-slate-200 leading-snug">${message}</p>
+        </div>
+      `;
+      container.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(15px)';
+        toast.style.transition = 'all 0.25s ease';
+        setTimeout(() => toast.remove(), 250);
+      }, 3500);
+    }
+
     // ==================== TOAST & PUSH NOTIFICATIONS ====================
     function showSaleToast(order) {
       const container = document.getElementById('toast-container');
@@ -4864,11 +4910,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         if (!res.ok) throw new Error(data.error || 'Erro ao salvar credenciais');
 
         closeModal('modal-meta-oauth-setup');
-        showSaleToast({
-          customer: 'Meta Platforms',
-          amount: 0,
-          platform: 'Credenciais salvas! Redirecionando para o Facebook...'
-        });
+        showToast('Credenciais salvas! Redirecionando para o Facebook...', 'info');
 
         const width = 640;
         const height = 750;
@@ -4895,11 +4937,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       try {
         const res = await fetch('/api/integrations/meta/disconnect', { method: 'DELETE' });
         const data = await res.json();
-        showSaleToast({
-          customer: 'Meta Desconectada',
-          amount: 0,
-          platform: data.message || 'Conta desconectada com sucesso.'
-        });
+        showToast(data.message || 'Conta desconectada com sucesso.', 'info');
         loadAccountsData();
         refreshData();
         loadCampaignsData();
@@ -4910,19 +4948,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
     async function syncMetaCampaigns() {
       try {
-        showSaleToast({
-          customer: 'Meta Ads',
-          amount: 0,
-          platform: 'Sincronizando campanhas e métricas da Meta...'
-        });
+        showToast('Sincronizando campanhas e métricas da Meta...', 'info');
         const res = await fetch('/api/integrations/meta/sync', { method: 'POST' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao sincronizar');
-        showSaleToast({
-          customer: 'Meta Ads',
-          amount: 0,
-          platform: data.message || 'Campanhas sincronizadas com sucesso!'
-        });
+        showToast(data.message || 'Campanhas sincronizadas com sucesso!', 'success');
         refreshData();
         loadCampaignsData();
         loadAccountsData();
@@ -4940,11 +4970,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao atualizar seleção');
-        showSaleToast({
-          customer: 'Contas Meta',
-          amount: 0,
-          platform: isSelected ? 'Conta ativada para rastreamento!' : 'Conta pausada do rastreamento.'
-        });
+        showToast(isSelected ? 'Conta ativada para rastreamento!' : 'Conta pausada do rastreamento.', 'info');
         loadAccountsData();
         refreshData();
         loadCampaignsData();
@@ -4975,11 +5001,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'TRACKPRO_FB_CONNECTED') {
         playKachingSound();
-        showSaleToast({
-          customer: 'Meta Ads Conectada',
-          amount: 0,
-          platform: `Perfil ${event.data.user} vinculado com sucesso!`
-        });
+        showToast(`Perfil ${event.data.user} vinculado com sucesso!`, 'success');
         refreshData();
         loadAccountsData();
         loadCampaignsData();
@@ -5077,9 +5099,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       const dropzone = document.getElementById('dashboard-empty-dropzone');
       if (dropzone) dropzone.classList.add('hidden');
 
-      if (typeof showSaleToast === 'function') {
-        showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Layout do painel salvo!' });
-      }
+      showToast('Layout do painel salvo com sucesso!', 'success');
     }
 
     function resetDashboardLayout() {
@@ -5105,9 +5125,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       if (window.sourcesChartInstance) sourcesChartInstance.resize();
       if (window.paymentMethodsChartInstance) paymentMethodsChartInstance.resize();
 
-      if (typeof showSaleToast === 'function') {
-        showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Layout padrão restaurado!' });
-      }
+      showToast('Layout padrão restaurado!', 'info');
     }
 
     function saveCurrentDashboardLayout() {
@@ -5146,6 +5164,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => w.classList.remove(c));
             w.classList.add(`col-span-${conf.colSpan}`);
             w.dataset.colSpan = conf.colSpan;
+            const badge = w.querySelector('.widget-col-indicator');
+            if (badge) badge.textContent = `${conf.colSpan}x`;
           }
           if (conf.height) {
             w.style.minHeight = conf.height + 'px';
@@ -5243,13 +5263,14 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       });
     }
 
-    // Inicialização do Resize Handle (Redimensionamento Proporcional Horizontal & Vertical)
+    // Inicialização do Resize Handle (Clique para alternar tamanho ou Arraste livre Horizontal & Vertical)
     function initWidgetResizeHandle(handleEl) {
       if (!handleEl || handleEl._resizeBound) return;
       handleEl._resizeBound = true;
       handleEl.style.touchAction = 'none';
 
       handleEl.addEventListener('pointerdown', (e) => {
+        if (e.button && e.button !== 0) return;
         e.preventDefault();
         e.stopPropagation();
 
@@ -5265,6 +5286,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         const grid = document.getElementById('dashboard-widgets-grid');
         const colWidth = (grid ? grid.offsetWidth : window.innerWidth) / 4;
 
+        let moved = false;
+
         let tooltip = document.getElementById('resize-live-tooltip');
         if (!tooltip) {
           tooltip = document.createElement('div');
@@ -5272,7 +5295,6 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           tooltip.className = 'fixed z-50 bg-brand-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full';
           document.body.appendChild(tooltip);
         }
-        tooltip.classList.remove('hidden');
 
         widget.classList.add('ring-2', 'ring-brand-500', 'z-30');
 
@@ -5283,26 +5305,37 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           const dx = ev.clientX - startX;
           const dy = ev.clientY - startY;
 
-          // Altura Vertical
-          const newHeight = Math.max(110, Math.min(800, startHeight + dy));
-          currentH = Math.round(newHeight);
-          widget.style.minHeight = currentH + 'px';
+          if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+            moved = true;
+          }
 
-          // Largura Horizontal (colSpan 1 a 4)
-          const projectedWidth = Math.max(colWidth * 0.5, startWidth + dx);
-          let targetSpan = Math.round(projectedWidth / colWidth);
-          targetSpan = Math.max(1, Math.min(4, targetSpan));
-          currentSpan = targetSpan;
+          if (moved) {
+            tooltip.classList.remove('hidden');
 
-          ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => widget.classList.remove(c));
-          widget.classList.add(`col-span-${targetSpan}`);
-          widget.dataset.colSpan = targetSpan;
+            // Altura Vertical
+            const newHeight = Math.max(110, Math.min(800, startHeight + dy));
+            currentH = Math.round(newHeight);
+            widget.style.minHeight = currentH + 'px';
 
-          tooltip.style.left = ev.clientX + 'px';
-          tooltip.style.top = (ev.clientY - 12) + 'px';
-          tooltip.textContent = `📏 ${targetSpan} col (${targetSpan * 25}%) × ${currentH}px`;
+            // Largura Horizontal (colSpan 1 a 4)
+            const projectedWidth = Math.max(colWidth * 0.5, startWidth + dx);
+            let targetSpan = Math.round(projectedWidth / colWidth);
+            targetSpan = Math.max(1, Math.min(4, targetSpan));
+            currentSpan = targetSpan;
 
-          resizeInternalWidgetCharts(widget);
+            ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => widget.classList.remove(c));
+            widget.classList.add(`col-span-${targetSpan}`);
+            widget.dataset.colSpan = targetSpan;
+
+            const badge = widget.querySelector('.widget-col-indicator');
+            if (badge) badge.textContent = `${targetSpan}x`;
+
+            tooltip.style.left = ev.clientX + 'px';
+            tooltip.style.top = (ev.clientY - 12) + 'px';
+            tooltip.textContent = `📏 ${targetSpan} col (${targetSpan * 25}%) × ${currentH}px`;
+
+            resizeInternalWidgetCharts(widget);
+          }
         }
 
         function onPointerUp(ev) {
@@ -5315,6 +5348,34 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           if (tooltip) tooltip.classList.add('hidden');
 
           const wId = widget.dataset.widgetId;
+
+          // Se apenas clicou sem arrastar: alterna a largura ciclicamente (1 col -> 2 col -> 4 col -> 1 col)
+          if (!moved) {
+            let nextSpan = 2;
+            if (currentSpan === 1) nextSpan = 2;
+            else if (currentSpan === 2) nextSpan = 4;
+            else nextSpan = 1;
+
+            ['col-span-1', 'col-span-2', 'col-span-3', 'col-span-4'].forEach(c => widget.classList.remove(c));
+            widget.classList.add(`col-span-${nextSpan}`);
+            widget.dataset.colSpan = nextSpan;
+            currentSpan = nextSpan;
+
+            const badge = widget.querySelector('.widget-col-indicator');
+            if (badge) badge.textContent = `${nextSpan}x`;
+
+            if (wId) {
+              dashboardWidgetSettings[wId] = dashboardWidgetSettings[wId] || {};
+              dashboardWidgetSettings[wId].colSpan = nextSpan;
+              localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
+              saveCurrentDashboardLayout();
+            }
+            showToast(`Elemento redimensionado para ${nextSpan} coluna${nextSpan > 1 ? 's' : ''}!`, 'info');
+            resizeInternalWidgetCharts(widget);
+            return;
+          }
+
+          // Se arrastou: salva as novas dimensões
           if (wId) {
             dashboardWidgetSettings[wId] = {
               colSpan: currentSpan,
@@ -5324,6 +5385,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             saveCurrentDashboardLayout();
           }
 
+          showToast(`Tamanho ajustado: ${currentSpan} col × ${currentH}px`, 'info');
           resizeInternalWidgetCharts(widget);
         }
 
@@ -5428,9 +5490,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             <div class="absolute -right-2 -bottom-2 opacity-5 ${def.color} pointer-events-none">
               <i data-lucide="${def.icon}" class="w-20 h-20"></i>
             </div>
-            <div class="widget-resize-handle absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-brand-400 select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity" title="Arraste para redimensionar largura e altura">
-              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5"></i>
-            </div>
+            <button type="button" class="widget-resize-handle absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-dark-950/90 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/60 text-slate-300 hover:text-brand-400 flex items-center gap-1 cursor-nwse-resize shadow-md select-none z-20 transition-all" title="Clique para alternar tamanho (1x / 2x / 4x) ou arraste para redimensionar">
+              <i data-lucide="chevrons-down-right" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="widget-col-indicator text-[10px] font-bold text-slate-300">${card.dataset.colSpan || '1'}x</span>
+            </button>
           `;
 
           if (dropzone) grid.insertBefore(card, dropzone);
@@ -5708,11 +5771,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         });
         const data = await res.json();
         if (data.success) {
-          showSaleToast({
-            customer: 'Ação em Massa',
-            amount: 0,
-            platform: data.message || 'Ação aplicada com sucesso!'
-          });
+          showToast(data.message || 'Ação aplicada com sucesso!', 'success');
           if (currentCampaignSubtab === 'campaigns') selectedCampaignIds.clear();
           else if (currentCampaignSubtab === 'adsets') selectedAdsetIds.clear();
           else if (currentCampaignSubtab === 'ads') selectedAdIds.clear();
@@ -5784,11 +5843,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       }
 
       try {
-        showSaleToast({
-          customer: 'Meta Ads',
-          amount: 0,
-          platform: 'Sincronizando métricas do período selecionado...'
-        });
+        showToast('Sincronizando métricas do período selecionado...', 'info');
 
         const res = await fetch('/api/integrations/meta/sync', {
           method: 'POST',
@@ -5798,11 +5853,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao sincronizar');
 
-        showSaleToast({
-          customer: 'Meta Ads',
-          amount: 0,
-          platform: data.message || 'Métricas do período sincronizadas com sucesso!'
-        });
+        showToast(data.message || 'Métricas do período sincronizadas com sucesso!', 'success');
         loadCampaignsData();
         refreshData();
       } catch (err) {
@@ -6121,7 +6172,7 @@ function renderAdsetsTable(adsets) {
         body: JSON.stringify({ campaign_id: campId })
       });
       const data = await res.json();
-      showSaleToast({ customer: 'Campanha', amount: 0, platform: data.message || 'Campanha duplicada!' });
+      showToast(data.message || 'Campanha duplicada com sucesso!', 'success');
       loadCampaignsData();
     }
 
@@ -6154,7 +6205,7 @@ function renderAdsetsTable(adsets) {
         body: JSON.stringify({ adset_id: adsetId })
       });
       const data = await res.json();
-      showSaleToast({ customer: 'Conjunto', amount: 0, platform: data.message || 'Conjunto duplicado!' });
+      showToast(data.message || 'Conjunto duplicado com sucesso!', 'success');
       loadCampaignsData();
     }
 
@@ -6174,7 +6225,7 @@ function renderAdsetsTable(adsets) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entity_type: 'ads', action: 'duplicate', ids: [adId] })
       });
-      showSaleToast({ customer: 'Criativo', amount: 0, platform: 'Anúncio duplicado com sucesso!' });
+      showToast('Anúncio duplicado com sucesso!', 'success');
       loadCampaignsData();
     }
 
@@ -6331,7 +6382,7 @@ function renderAdsetsTable(adsets) {
       }).catch(() => {});
 
       closeModal('modal-customize-dashboard');
-      showSaleToast({ customer: 'TrackPro', amount: 0, platform: 'Preferências salvas com sucesso!' });
+      showToast('Preferências salvas com sucesso!', 'success');
       refreshData();
     }
 

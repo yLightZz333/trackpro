@@ -677,7 +677,13 @@
                 <span class="widget-drag-handle hidden p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
                   <i data-lucide="grip-vertical" class="w-4 h-4"></i>
                 </span>
-                <h3 class="font-bold text-sm md:text-base text-white">Funil de conversão (Meta ads)</h3>
+                <button type="button" onclick="moveDashboardWidget(this, -1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para trás">
+                  <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="moveDashboardWidget(this, 1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para frente">
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </button>
+                <h3 class="font-bold text-sm md:text-base text-white ml-1">Funil de conversão (Meta ads)</h3>
                 <span class="text-slate-400 hover:text-white cursor-help" title="Funil contínuo oficial: Cliques → Vis. Página → ICs → Vendas Inic. → Vendas Apr. Mostra a porcentagem em relação aos cliques e o volume absoluto em cada etapa.">
                   <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
                 </span>
@@ -690,7 +696,7 @@
 
             <!-- Container do Funil em Fita Fluida -->
             <div class="relative w-full rounded-2xl overflow-hidden py-2 select-none flex-1 flex flex-col justify-center">
-              <svg id="meta-funnel-svg" viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 rounded-xl filter drop-shadow-md">
+              <svg id="meta-funnel-svg" viewBox="0 0 1000 160" preserveAspectRatio="none" class="w-full h-36 md:h-44 min-h-[120px] max-h-[350px] flex-1 rounded-xl filter drop-shadow-md">
                 <defs>
                   <linearGradient id="metaFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stop-color="#1E3A8A" />
@@ -751,21 +757,27 @@
             data-widget-id="widget-chart-hourly"
             data-widget-type="chart"
             data-col-span="2"
-            class="dashboard-widget widget-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[260px]"
+            class="dashboard-widget widget-span-2 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[140px]"
           >
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
                 <span class="widget-drag-handle hidden p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
                   <i data-lucide="grip-vertical" class="w-4 h-4"></i>
                 </span>
-                <div>
+                <button type="button" onclick="moveDashboardWidget(this, -1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para trás">
+                  <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="moveDashboardWidget(this, 1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para frente">
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </button>
+                <div class="ml-1">
                   <h3 class="font-bold text-sm text-white">Vendas por Horário</h3>
                   <span class="text-xs text-slate-400">Distribuição no período ativo</span>
                 </div>
               </div>
               <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Hoje</span>
             </div>
-            <div class="flex-1 flex items-center justify-center min-h-[180px] w-full">
+            <div class="flex-1 flex items-center justify-center min-h-[100px] w-full relative">
               <canvas id="revenueChart"></canvas>
             </div>
             <!-- Resize Handle -->
@@ -781,20 +793,26 @@
             data-widget-id="widget-chart-sources"
             data-widget-type="chart"
             data-col-span="1"
-            class="dashboard-widget widget-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[260px]"
+            class="dashboard-widget widget-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[140px]"
           >
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
                 <span class="widget-drag-handle hidden p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
                   <i data-lucide="grip-vertical" class="w-4 h-4"></i>
                 </span>
-                <div>
+                <button type="button" onclick="moveDashboardWidget(this, -1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para trás">
+                  <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="moveDashboardWidget(this, 1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para frente">
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </button>
+                <div class="ml-1">
                   <h3 class="font-bold text-sm text-white">Canais & Fontes (UTM)</h3>
                   <span class="text-xs text-slate-400">Origem de tráfego das compras</span>
                 </div>
               </div>
             </div>
-            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2 w-full">
+            <div class="flex-1 flex items-center justify-center min-h-[90px] my-2 w-full relative">
               <canvas id="sourcesChart"></canvas>
             </div>
             <div id="sources-legend" class="space-y-1.5 text-xs text-slate-300"></div>
@@ -811,20 +829,26 @@
             data-widget-id="widget-chart-methods"
             data-widget-type="chart"
             data-col-span="1"
-            class="dashboard-widget widget-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[260px]"
+            class="dashboard-widget widget-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col justify-between shadow-xl relative overflow-hidden select-none group transition-all min-h-[140px]"
           >
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
                 <span class="widget-drag-handle hidden p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
                   <i data-lucide="grip-vertical" class="w-4 h-4"></i>
                 </span>
-                <div>
+                <button type="button" onclick="moveDashboardWidget(this, -1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para trás">
+                  <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="moveDashboardWidget(this, 1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para frente">
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </button>
+                <div class="ml-1">
                   <h3 class="font-bold text-sm text-white">Vendas por Método</h3>
                   <span class="text-xs text-slate-400">PIX, Cartão e Boleto</span>
                 </div>
               </div>
             </div>
-            <div class="flex-1 flex items-center justify-center min-h-[160px] my-2 w-full">
+            <div class="flex-1 flex items-center justify-center min-h-[90px] my-2 w-full relative">
               <canvas id="paymentMethodsChart"></canvas>
             </div>
             <div id="payment-methods-legend" class="space-y-1.5 text-xs text-slate-300"></div>
@@ -841,14 +865,20 @@
             data-widget-id="widget-table-orders"
             data-widget-type="table"
             data-col-span="4"
-            class="dashboard-widget widget-span-4 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-xl relative overflow-hidden select-none group transition-all flex flex-col min-h-[300px]"
+            class="dashboard-widget widget-span-4 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-xl relative overflow-hidden select-none group transition-all flex flex-col min-h-[160px]"
           >
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-2">
                 <span class="widget-drag-handle hidden p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
                   <i data-lucide="grip-vertical" class="w-4 h-4"></i>
                 </span>
-                <div>
+                <button type="button" onclick="moveDashboardWidget(this, -1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para trás">
+                  <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="moveDashboardWidget(this, 1)" class="widget-move-btn hidden p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para frente">
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </button>
+                <div class="ml-1">
                   <h3 class="font-bold text-sm text-white">Últimas Conversões Recebidas</h3>
                   <span class="text-xs text-slate-400">Atribuídas com UTM e disparadas para o Meta CAPI</span>
                 </div>
@@ -5099,8 +5129,47 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       }
     }
 
+    function sanitizeDashboardWidgetStates() {
+      document.querySelectorAll('.dashboard-widget').forEach(w => {
+        w.classList.remove('opacity-40', 'opacity-50', 'scale-[0.98]', 'pointer-events-none');
+        w.style.pointerEvents = '';
+      });
+      const ph = document.getElementById('dashboard-drag-placeholder');
+      if (ph) ph.remove();
+      const tooltip = document.getElementById('resize-live-tooltip');
+      if (tooltip) tooltip.classList.add('hidden');
+    }
+
+    function moveDashboardWidget(btn, direction) {
+      const widget = btn.closest('.dashboard-widget');
+      const grid = document.getElementById('dashboard-widgets-grid');
+      if (!widget || !grid) return;
+
+      const widgets = Array.from(grid.querySelectorAll('.dashboard-widget'));
+      const currentIndex = widgets.indexOf(widget);
+      if (currentIndex === -1) return;
+
+      const targetIndex = currentIndex + direction;
+      if (targetIndex < 0 || targetIndex >= widgets.length) return;
+
+      const targetWidget = widgets[targetIndex];
+      if (direction < 0) {
+        grid.insertBefore(widget, targetWidget);
+      } else {
+        grid.insertBefore(widget, targetWidget.nextSibling);
+      }
+
+      widget.classList.add('ring-2', 'ring-emerald-500');
+      setTimeout(() => widget.classList.remove('ring-2', 'ring-emerald-500'), 350);
+
+      saveCurrentDashboardLayout();
+      resizeInternalWidgetCharts(widget);
+    }
+
     function enterDashboardEditMode() {
       isDashboardEditMode = true;
+      sanitizeDashboardWidgetStates();
+
       const banner = document.getElementById('dashboard-edit-banner');
       const btn = document.getElementById('btn-toggle-edit-mode');
       const btnText = document.getElementById('btn-toggle-edit-mode-text');
@@ -5111,13 +5180,15 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         if (btnText) btnText.textContent = '✓ Concluir Edição';
       }
 
-      // Ativa bordas de edição, alças de arrastar e botões de redimensionar
+      // Ativa bordas de edição, botões de mover, alças de arrastar e botões de redimensionar
       document.querySelectorAll('.dashboard-widget').forEach(w => {
         w.classList.add('ring-2', 'ring-brand-500/50', 'bg-dark-900/90');
         const dragHandle = w.querySelector('.widget-drag-handle');
         const resizeHandle = w.querySelector('.widget-resize-handle');
+        const moveBtns = w.querySelectorAll('.widget-move-btn');
         if (dragHandle) dragHandle.classList.remove('hidden');
         if (resizeHandle) resizeHandle.classList.remove('hidden');
+        moveBtns.forEach(b => b.classList.remove('hidden'));
       });
 
       if (window.lucide) lucide.createIcons();
@@ -5125,6 +5196,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
     function exitDashboardEditMode() {
       isDashboardEditMode = false;
+      sanitizeDashboardWidgetStates();
+
       const banner = document.getElementById('dashboard-edit-banner');
       const btn = document.getElementById('btn-toggle-edit-mode');
       const btnText = document.getElementById('btn-toggle-edit-mode-text');
@@ -5135,21 +5208,20 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         if (btnText) btnText.textContent = '✏️ Editar Layout';
       }
 
-      // Oculta alças de arrastar e botões de redimensionar, remove destaques
+      // Oculta alças de arrastar, botões de mover e redimensionar, remove destaques
       document.querySelectorAll('.dashboard-widget').forEach(w => {
         w.classList.remove(
-          'ring-1', 'ring-2', 'ring-brand-500', 'ring-brand-500/40', 'ring-brand-500/50',
+          'ring-1', 'ring-2', 'ring-brand-500', 'ring-brand-500/40', 'ring-brand-500/50', 'ring-emerald-500',
           'opacity-50', 'opacity-40', 'scale-[0.98]',
           'bg-dark-850', 'border-brand-500'
         );
         const dragHandle = w.querySelector('.widget-drag-handle');
         const resizeHandle = w.querySelector('.widget-resize-handle');
+        const moveBtns = w.querySelectorAll('.widget-move-btn');
         if (dragHandle) dragHandle.classList.add('hidden');
         if (resizeHandle) resizeHandle.classList.add('hidden');
+        moveBtns.forEach(b => b.classList.add('hidden'));
       });
-
-      const ph = document.getElementById('dashboard-drag-placeholder');
-      if (ph) ph.remove();
 
       const dropzone = document.getElementById('dashboard-empty-dropzone');
       if (dropzone) dropzone.classList.add('hidden');
@@ -5164,6 +5236,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       // Restaura dimensões padrões no DOM
       document.querySelectorAll('.dashboard-widget').forEach(w => {
         w.style.minHeight = '';
+        w.style.height = '';
+        w.style.alignSelf = '';
         const defSpan = w.id === 'widget-funnel' || w.id === 'widget-table-orders' ? 4 : (w.id === 'widget-chart-hourly' ? 2 : 1);
         applyWidgetSpan(w, defSpan);
       });
@@ -5171,10 +5245,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       applyDashboardLayoutOrder(dashboardWidgetsOrder);
       exitDashboardEditMode();
 
-      // Redimensiona gráficos
-      if (window.revenueChartInstance) revenueChartInstance.resize();
-      if (window.sourcesChartInstance) sourcesChartInstance.resize();
-      if (window.paymentMethodsChartInstance) paymentMethodsChartInstance.resize();
+      resizeInternalWidgetCharts();
 
       showToast('Layout padrão restaurado!', 'info');
     }
@@ -5242,6 +5313,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           }
           if (conf.height) {
             w.style.minHeight = conf.height + 'px';
+            w.style.height = conf.height + 'px';
+            w.style.alignSelf = 'start';
           }
         }
       });
@@ -5257,7 +5330,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       }
     }
 
-    // Inicialização do Drag Handle (Reordenação Suave via Pointer Events)
+    // Inicialização do Drag Handle (Reordenação Suave e Robusta via Window Pointer Events)
     function initWidgetDragHandle(handleEl) {
       if (!handleEl || handleEl._dragBound) return;
       handleEl._dragBound = true;
@@ -5270,73 +5343,90 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         e.stopPropagation();
 
         const widget = handleEl.closest('.dashboard-widget');
-        if (!widget) return;
-
         const grid = document.getElementById('dashboard-widgets-grid');
-        const emptyDropzone = document.getElementById('dashboard-empty-dropzone');
-        if (!grid) return;
+        if (!widget || !grid) return;
 
-        handleEl.setPointerCapture(e.pointerId);
+        sanitizeDashboardWidgetStates();
+
+        const emptyDropzone = document.getElementById('dashboard-empty-dropzone');
+        if (emptyDropzone) emptyDropzone.classList.remove('hidden');
 
         let placeholder = document.getElementById('dashboard-drag-placeholder');
         if (!placeholder) {
           placeholder = document.createElement('div');
           placeholder.id = 'dashboard-drag-placeholder';
-          placeholder.className = 'dashboard-drag-placeholder rounded-2xl border-2 border-dashed border-brand-500 bg-brand-500/10 transition-all flex items-center justify-center text-xs font-bold text-brand-400 select-none animate-pulse min-h-[110px]';
+          placeholder.className = 'dashboard-drag-placeholder rounded-2xl border-2 border-dashed border-brand-500 bg-brand-500/10 transition-all flex items-center justify-center text-xs font-bold text-brand-400 select-none animate-pulse min-h-[90px]';
           placeholder.innerHTML = '<span class="flex items-center gap-1.5"><i data-lucide="arrow-down" class="w-4 h-4"></i> Soltar Aqui</span>';
         }
 
         const span = widget.dataset.colSpan || '1';
         applyWidgetSpan(placeholder, span);
-        placeholder.style.minHeight = Math.max(110, widget.offsetHeight) + 'px';
+        placeholder.style.minHeight = Math.max(85, widget.offsetHeight) + 'px';
 
         grid.insertBefore(placeholder, widget);
-        widget.classList.add('opacity-40', 'scale-[0.98]', 'pointer-events-none');
-        if (emptyDropzone) emptyDropzone.classList.remove('hidden');
+        widget.classList.add('opacity-40', 'scale-[0.98]');
+
+        let isMoving = false;
 
         function onPointerMove(ev) {
-          const elUnder = document.elementFromPoint(ev.clientX, ev.clientY);
-          if (!elUnder) return;
+          if (isMoving) return;
+          isMoving = true;
+          requestAnimationFrame(() => {
+            isMoving = false;
+            try {
+              const widgets = Array.from(grid.querySelectorAll('.dashboard-widget')).filter(w => w !== widget);
+              
+              for (const w of widgets) {
+                const rect = w.getBoundingClientRect();
+                if (ev.clientX >= rect.left && ev.clientX <= rect.right &&
+                    ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+                  const isLeftHalf = (ev.clientX < rect.left + rect.width / 2);
+                  if (isLeftHalf) {
+                    if (placeholder.nextSibling !== w) grid.insertBefore(placeholder, w);
+                  } else {
+                    if (placeholder.previousSibling !== w) grid.insertBefore(placeholder, w.nextSibling);
+                  }
+                  break;
+                }
+              }
 
-          const targetWidget = elUnder.closest('.dashboard-widget');
-          if (targetWidget && targetWidget !== widget && targetWidget !== placeholder) {
-            const rect = targetWidget.getBoundingClientRect();
-            const isAfter = (ev.clientY > rect.top + rect.height / 2) || (ev.clientX > rect.left + rect.width / 2);
-            if (isAfter) {
-              grid.insertBefore(placeholder, targetWidget.nextSibling);
-            } else {
-              grid.insertBefore(placeholder, targetWidget);
-            }
-          } else if (elUnder.closest('#dashboard-empty-dropzone')) {
-            grid.insertBefore(placeholder, emptyDropzone);
-          }
+              if (emptyDropzone) {
+                const dzRect = emptyDropzone.getBoundingClientRect();
+                if (ev.clientX >= dzRect.left && ev.clientX <= dzRect.right &&
+                    ev.clientY >= dzRect.top && ev.clientY <= dzRect.bottom) {
+                  grid.insertBefore(placeholder, emptyDropzone);
+                }
+              }
+            } catch (err) {}
+          });
         }
 
         function onPointerUp(ev) {
-          try { handleEl.releasePointerCapture(ev.pointerId); } catch(err) {}
-          handleEl.removeEventListener('pointermove', onPointerMove);
-          handleEl.removeEventListener('pointerup', onPointerUp);
-          handleEl.removeEventListener('pointercancel', onPointerUp);
+          try {
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+            window.removeEventListener('pointercancel', onPointerUp);
 
-          widget.classList.remove('opacity-40', 'scale-[0.98]', 'pointer-events-none');
-          if (emptyDropzone) emptyDropzone.classList.add('hidden');
+            if (placeholder && placeholder.parentNode === grid) {
+              grid.insertBefore(widget, placeholder);
+              placeholder.remove();
+            }
 
-          if (placeholder && placeholder.parentNode === grid) {
-            grid.insertBefore(widget, placeholder);
-            placeholder.remove();
+            saveCurrentDashboardLayout();
+            resizeInternalWidgetCharts(widget);
+          } finally {
+            sanitizeDashboardWidgetStates();
+            if (emptyDropzone) emptyDropzone.classList.add('hidden');
           }
-
-          saveCurrentDashboardLayout();
-          resizeInternalWidgetCharts(widget);
         }
 
-        handleEl.addEventListener('pointermove', onPointerMove);
-        handleEl.addEventListener('pointerup', onPointerUp);
-        handleEl.addEventListener('pointercancel', onPointerUp);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
       });
     }
 
-    // Inicialização do Resize Handle (Clique para alternar tamanho ou Arraste livre Horizontal & Vertical)
+    // Inicialização do Resize Handle (Window Pointer Events para Redimensionamento Confiável de Largura e Altura)
     function initWidgetResizeHandle(handleEl) {
       if (!handleEl || handleEl._resizeBound) return;
       handleEl._resizeBound = true;
@@ -5351,14 +5441,13 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         const widget = handleEl.closest('.dashboard-widget');
         if (!widget) return;
 
-        handleEl.setPointerCapture(e.pointerId);
+        sanitizeDashboardWidgetStates();
 
         const startX = e.clientX;
         const startY = e.clientY;
         const startWidth = widget.offsetWidth;
         const startHeight = widget.offsetHeight;
         const grid = document.getElementById('dashboard-widgets-grid');
-        // Grid base de 8 colunas: colWidth = 1/8 do grid
         const colWidth = (grid ? grid.offsetWidth : window.innerWidth) / 8;
 
         let moved = false;
@@ -5375,6 +5464,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
         let currentSpan = parseFloat(widget.dataset.colSpan || '1');
         let currentH = startHeight;
+        let isResizing = false;
 
         function onPointerMove(ev) {
           const dx = ev.clientX - startX;
@@ -5384,97 +5474,105 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             moved = true;
           }
 
-          if (moved) {
-            tooltip.classList.remove('hidden');
+          if (moved && !isResizing) {
+            isResizing = true;
+            requestAnimationFrame(() => {
+              isResizing = false;
+              tooltip.classList.remove('hidden');
 
-            // Altura Vertical
-            const minH = (currentSpan === 0.5) ? 80 : 110;
-            const newHeight = Math.max(minH, Math.min(800, startHeight + dy));
-            currentH = Math.round(newHeight);
-            widget.style.minHeight = currentH + 'px';
+              // Altura Vertical Livre (com min-height adaptável)
+              const isKpi = widget.dataset.widgetType === 'metric';
+              const minH = isKpi ? 75 : 120;
+              const newHeight = Math.max(minH, Math.min(850, startHeight + dy));
+              currentH = Math.round(newHeight);
+              widget.style.minHeight = currentH + 'px';
+              widget.style.height = currentH + 'px';
+              widget.style.alignSelf = 'start';
 
-            // Largura Horizontal (0.5x, 1x, 2x, 3x, 4x)
-            const projectedWidth = Math.max(colWidth * 0.4, startWidth + dx);
-            let targetSpan = 1;
-            if (projectedWidth < colWidth * 1.5) targetSpan = 0.5;
-            else if (projectedWidth < colWidth * 3) targetSpan = 1;
-            else if (projectedWidth < colWidth * 5.5) targetSpan = 2;
-            else if (projectedWidth < colWidth * 7.5) targetSpan = 3;
-            else targetSpan = 4;
+              // Largura Horizontal (0.5x, 1x, 2x, 3x, 4x)
+              const projectedWidth = Math.max(colWidth * 0.4, startWidth + dx);
+              let targetSpan = 1;
+              if (projectedWidth < colWidth * 1.5) targetSpan = 0.5;
+              else if (projectedWidth < colWidth * 3) targetSpan = 1;
+              else if (projectedWidth < colWidth * 5.5) targetSpan = 2;
+              else if (projectedWidth < colWidth * 7.5) targetSpan = 3;
+              else targetSpan = 4;
 
-            currentSpan = targetSpan;
-            applyWidgetSpan(widget, targetSpan);
+              currentSpan = targetSpan;
+              applyWidgetSpan(widget, targetSpan);
 
-            tooltip.style.left = ev.clientX + 'px';
-            tooltip.style.top = (ev.clientY - 12) + 'px';
-            const labelSpan = (targetSpan === 0.5) ? '0.5x (Metade)' : `${targetSpan}x`;
-            tooltip.textContent = `📏 ${labelSpan} × ${currentH}px`;
+              tooltip.style.left = ev.clientX + 'px';
+              tooltip.style.top = (ev.clientY - 12) + 'px';
+              const labelSpan = (targetSpan === 0.5) ? '0.5x (Metade)' : `${targetSpan}x`;
+              tooltip.textContent = `📏 ${labelSpan} × ${currentH}px`;
 
-            resizeInternalWidgetCharts(widget);
+              resizeInternalWidgetCharts(widget);
+            });
           }
         }
 
         function onPointerUp(ev) {
-          try { handleEl.releasePointerCapture(ev.pointerId); } catch(err) {}
-          handleEl.removeEventListener('pointermove', onPointerMove);
-          handleEl.removeEventListener('pointerup', onPointerUp);
-          handleEl.removeEventListener('pointercancel', onPointerUp);
+          try {
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+            window.removeEventListener('pointercancel', onPointerUp);
 
-          widget.classList.remove('ring-2', 'ring-brand-500', 'z-30');
-          if (tooltip) tooltip.classList.add('hidden');
+            widget.classList.remove('ring-2', 'ring-brand-500', 'z-30');
+            if (tooltip) tooltip.classList.add('hidden');
 
-          const wId = widget.dataset.widgetId;
+            const wId = widget.dataset.widgetId;
 
-          // Se apenas clicou sem arrastar: alterna ciclicamente (0.5x -> 1x -> 2x -> 4x -> 0.5x)
-          if (!moved) {
-            let nextSpan = 1;
-            if (currentSpan === 0.5) nextSpan = 1;
-            else if (currentSpan === 1) nextSpan = 2;
-            else if (currentSpan === 2) nextSpan = 4;
-            else if (currentSpan === 4) nextSpan = 0.5;
-            else nextSpan = 1;
+            // Se apenas clicou sem arrastar: alterna ciclicamente a largura (0.5x -> 1x -> 2x -> 4x -> 0.5x)
+            if (!moved) {
+              let nextSpan = 1;
+              if (currentSpan === 0.5) nextSpan = 1;
+              else if (currentSpan === 1) nextSpan = 2;
+              else if (currentSpan === 2) nextSpan = 4;
+              else if (currentSpan === 4) nextSpan = 0.5;
+              else nextSpan = 1;
 
-            applyWidgetSpan(widget, nextSpan);
-            currentSpan = nextSpan;
+              applyWidgetSpan(widget, nextSpan);
+              currentSpan = nextSpan;
 
+              if (wId) {
+                dashboardWidgetSettings[wId] = dashboardWidgetSettings[wId] || {};
+                dashboardWidgetSettings[wId].colSpan = nextSpan;
+                localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
+                saveCurrentDashboardLayout();
+              }
+              
+              resizeInternalWidgetCharts(widget);
+              return;
+            }
+
+            // Se arrastou: salva as novas dimensões de largura e altura
             if (wId) {
-              dashboardWidgetSettings[wId] = dashboardWidgetSettings[wId] || {};
-              dashboardWidgetSettings[wId].colSpan = nextSpan;
+              dashboardWidgetSettings[wId] = {
+                colSpan: currentSpan,
+                height: currentH
+              };
               localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
               saveCurrentDashboardLayout();
             }
-            
+
             resizeInternalWidgetCharts(widget);
-            return;
+          } finally {
+            sanitizeDashboardWidgetStates();
           }
-
-          // Se arrastou: salva as novas dimensões
-          if (wId) {
-            dashboardWidgetSettings[wId] = {
-              colSpan: currentSpan,
-              height: currentH
-            };
-            localStorage.setItem('trackpro_widget_settings', JSON.stringify(dashboardWidgetSettings));
-            saveCurrentDashboardLayout();
-          }
-
-          resizeInternalWidgetCharts(widget);
         }
 
-        handleEl.addEventListener('pointermove', onPointerMove);
-        handleEl.addEventListener('pointerup', onPointerUp);
-        handleEl.addEventListener('pointercancel', onPointerUp);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
       });
     }
 
     function resizeInternalWidgetCharts(widget) {
-      if (!widget) return;
-      const canvas = widget.querySelector('canvas');
-      if (canvas) {
-        if (canvas.id === 'revenueChart' && window.revenueChartInstance) revenueChartInstance.resize();
-        if (canvas.id === 'sourcesChart' && window.sourcesChartInstance) sourcesChartInstance.resize();
-        if (canvas.id === 'paymentMethodsChart' && window.paymentMethodsChartInstance) paymentMethodsChartInstance.resize();
-      }
+      try {
+        if (typeof revenueChartInstance !== 'undefined' && revenueChartInstance) revenueChartInstance.resize();
+        if (typeof sourcesChartInstance !== 'undefined' && sourcesChartInstance) sourcesChartInstance.resize();
+        if (typeof paymentMethodsChartInstance !== 'undefined' && paymentMethodsChartInstance) paymentMethodsChartInstance.resize();
+      } catch (e) {}
     }
 
     // Detector de toque longo (Long-press) para Celular
@@ -5553,11 +5651,17 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           card.className = 'dashboard-widget widget-span-1 bg-dark-900 border border-slate-800 rounded-2xl p-4 md:p-5 relative overflow-hidden bg-gradient-to-br ' + def.bg + ' hover:border-slate-700 transition-all select-none group';
           card.innerHTML = `
             <div class="flex items-center justify-between mb-1">
-              <div class="flex items-center gap-1.5 text-slate-400 min-w-0">
+              <div class="flex items-center gap-1 text-slate-400 min-w-0">
                 <span class="widget-drag-handle ${handleClass} p-1 -ml-1 text-slate-500 hover:text-white cursor-grab active:cursor-grabbing transition-colors" title="Arraste para reposicionar">
                   <i data-lucide="grip-vertical" class="w-4 h-4"></i>
                 </span>
-                <span class="kpi-label-text text-[11px] font-semibold uppercase tracking-wider text-slate-300 truncate">${def.label}</span>
+                <button type="button" onclick="moveDashboardWidget(this, -1)" class="widget-move-btn ${handleClass} p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para trás">
+                  <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="moveDashboardWidget(this, 1)" class="widget-move-btn ${handleClass} p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white transition-colors" title="Mover para frente">
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </button>
+                <span class="kpi-label-text text-[11px] font-semibold uppercase tracking-wider text-slate-300 truncate ml-0.5">${def.label}</span>
               </div>
             </div>
             <div id="kpi-val-${key}" class="kpi-val-text text-xl md:text-2xl lg:text-3xl font-extrabold text-white tracking-tight truncate">${valFormatted}</div>

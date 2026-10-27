@@ -1961,7 +1961,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         # Health
-        if path == '/api/health':
+        if path in ['/api/health', '/ping', '/health']:
             self._send_json({"status": "ok", "app": "TrackPro Engine v2.5", "version": "2.5.0", "capi": True})
             return
 

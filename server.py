@@ -1894,10 +1894,18 @@ VAPID_PUBLIC_KEY = "BC7RPyz95nfeMtJ_aV6hYvlr_iPRa4PeonAx6RHJV2jEEcGpbXEEWqWP1WeD
 VAPID_CLAIMS = {"sub": "mailto:suporte@meutrackpro.com"}
 
 try:
+    from py_vapid import Vapid
     from pywebpush import webpush, WebPushException
     PYWEBPUSH_AVAILABLE = True
+    try:
+        VAPID_INSTANCE = Vapid.from_pem(VAPID_PRIVATE_PEM.strip().encode('utf-8'))
+        print("[PUSH] VAPID_INSTANCE carregada com sucesso!")
+    except Exception as _e_inst:
+        print(f"[PUSH] Erro ao carregar VAPID_INSTANCE: {_e_inst}")
+        VAPID_INSTANCE = None
 except Exception as _e_wp:
     PYWEBPUSH_AVAILABLE = False
+    VAPID_INSTANCE = None
     print(f"[PUSH] pywebpush import notice: {_e_wp}")
 
 def dispatch_web_push(user_id, title, body, tag="trackpro-sale-alert", url="/", data=None):
@@ -1938,15 +1946,24 @@ def dispatch_web_push(user_id, title, body, tag="trackpro-sale-alert", url="/", 
                         "auth": r["auth"]
                     }
                 }
+                vapid_key = VAPID_INSTANCE
+                if vapid_key is None:
+                    try:
+                        from py_vapid import Vapid
+                        vapid_key = Vapid.from_pem(VAPID_PRIVATE_PEM.strip().encode('utf-8'))
+                    except Exception as _e_lazy:
+                        vapid_key = VAPID_PRIVATE_PEM
+
                 try:
                     webpush(
                         subscription_info=sub_info,
                         data=payload,
-                        vapid_private_key=VAPID_PRIVATE_PEM,
+                        vapid_private_key=vapid_key,
                         vapid_claims=VAPID_CLAIMS,
                         timeout=10
                     )
                     sent_count += 1
+                    print(f"[PUSH] Push entregue para sub {sub_id} ({r['endpoint'][:45]}...)")
                 except WebPushException as ex:
                     print(f"[PUSH] WebPushException (sub {sub_id}): {ex}")
                     if hasattr(ex, 'response') and ex.response is not None and ex.response.status_code in [404, 410]:
@@ -3950,10 +3967,22 @@ self.addEventListener('notificationclick', (e) => {
                 title = "💸 VENDA APROVADA - R$ 197,00"
                 body_msg = "Venda de R$ 197,00 aprovada via Cartão! (Kiwify - Lucas Silva)"
 
+            conn = get_db()
+            cursor = conn.cursor()
+            device_count = cursor.execute("SELECT COUNT(*) FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchone()[0]
+            conn.close()
+
+            if device_count == 0:
+                self._send_json({
+                    "success": False,
+                    "error": "Nenhum celular conectado ainda! Abra o TrackPro no celular e toque em 'Ativar Alertas no Celular' primeiro."
+                }, 400)
+                return
+
             dispatch_web_push(user_id=user_id, title=title, body=body_msg, tag=f"test-{test_type}")
             dispatch_telegram_alert(user_id=user_id, text=f"🔔 <b>TESTE DE ALERTA TRACKPRO</b>\n\n{title}\n{body_msg}")
 
-            self._send_json({"success": True, "message": "Notificação push disparada para o seu celular!"})
+            self._send_json({"success": True, "message": f"Notificação push disparada para {device_count} celular(es) conectado(s)!"})
             return
 
         if path == '/api/telegram/settings':

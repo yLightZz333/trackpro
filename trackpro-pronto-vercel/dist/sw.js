@@ -48,7 +48,15 @@ self.addEventListener('push', (event) => {
     renotify: true,
     requireInteraction: true
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).then(() => {
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'PUSH_RECEIVED', data: data });
+        });
+      });
+    })
+  );
 });
 
 // Clique na notificação abre o app no celular

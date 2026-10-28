@@ -325,9 +325,7 @@
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
       </button>
-      <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-item hidden w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="smartphone" class="w-4 h-4 text-amber-400"></i> Alertas no Celular
-      </button>
+
     </nav>
 
     <!-- Rodapé Sidebar -->
@@ -3100,6 +3098,13 @@
           return;
         }
 
+        try {
+          const oldSub = await reg.pushManager.getSubscription();
+          if (oldSub) {
+            await oldSub.unsubscribe();
+          }
+        } catch (e_old) {}
+
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
@@ -4967,6 +4972,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
       const activeDrawer = document.getElementById('drawer-nav-' + tabId);
       if (activeDrawer) activeDrawer.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-brand-500/10 text-brand-400 border border-brand-500/25';
+
+      if (tabId === 'notifications') {
+        checkMobilePushStatus();
+      }
 
       closeMobileSidebar();
       refreshData();
@@ -7425,9 +7434,14 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       }
     }
 
-    // Registrar Service Worker
+    // Registrar Service Worker & Ouvir Notificações
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'PUSH_RECEIVED') {
+          playTrackProSound('kaching', 1.0);
+        }
+      });
     }
 
     let isAppInitialized = false;
@@ -7438,6 +7452,7 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       }
       isAppInitialized = true;
       checkMetaGlobalStatus();
+      checkMobilePushStatus();
       loadNotificationSettingsFromBackend();
       loadNotifications();
       renderSummaryHoursChips();

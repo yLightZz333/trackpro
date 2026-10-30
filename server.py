@@ -2069,6 +2069,18 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 return {}
         return {}
 
+    def do_HEAD(self):
+        # Suporte completo a pingers e checagens de status uptime sem cair em 501 Not Implemented
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path in ['/api/health', '/ping', '/health', '/']:
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self._send_cors_headers()
+            self.end_headers()
+            return
+        self.do_GET()
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -2815,6 +2827,14 @@ self.addEventListener('notificationclick', (e) => {
             tot_revenue = (row_paid['total'] or 0) / 100.0
             paid_ord = row_paid['count'] or 0
 
+            # Faturamento Total Histórico (All-Time) para Metas e Conquistas (1K a 1M)
+            row_alltime = cursor.execute(
+                "SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'paid'",
+                (user_id,)
+            ).fetchone()
+            all_time_revenue = (row_alltime['total'] or 0) / 100.0
+            all_time_orders = row_alltime['count'] or 0
+
             # 2. Vendas Pendentes (Pix/Boleto aguardando)
             query_pending = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {pending_where}"
             row_pending = cursor.execute(query_pending, order_params).fetchone()
@@ -3055,6 +3075,8 @@ self.addEventListener('notificationclick', (e) => {
                     "ltv": ltv,
                     "churnRate": churn_rate
                 },
+                "allTimeRevenue": all_time_revenue,
+                "allTimeOrders": all_time_orders,
                 "funnel": funnel_data,
                 "revenueChart": [],
                 "sourcesChart": sources_chart,

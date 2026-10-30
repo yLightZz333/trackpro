@@ -158,7 +158,7 @@
     }
   </style>
 </head>
-<body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased pb-20 md:pb-0">
+<body class="bg-dark-950 text-slate-100 min-h-screen md:h-screen md:overflow-hidden flex flex-col md:flex-row antialiased pb-20 md:pb-0">
 
   <!-- BACKDROP MOBILE SIDEBAR -->
   <div id="mobile-sidebar-backdrop" onclick="closeMobileSidebar()" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
@@ -250,6 +250,14 @@
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
       </button>
 
+      <button onclick="switchTab('milestones'); closeMobileSidebar();" id="drawer-nav-milestones" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="award" class="w-5 h-5 text-rose-400"></i>
+          <span>Metas & Conquistas</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">0 a 1M</span>
+      </button>
+
       <button onclick="switchTab('webhooks')" id="drawer-nav-webhooks" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
         <div class="flex items-center gap-3">
           <i data-lucide="webhook" class="w-5 h-5 text-purple-400"></i>
@@ -290,7 +298,7 @@
   </aside>
 
   <!-- DESKTOP SIDEBAR -->
-  <aside class="hidden md:flex w-64 bg-dark-900 border-r border-slate-800/80 flex-col flex-shrink-0 z-30">
+  <aside class="hidden md:flex w-64 h-screen sticky top-0 bg-dark-900 border-r border-slate-800/80 flex-col flex-shrink-0 z-30">
     <div class="h-16 px-6 border-b border-slate-800/80 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
@@ -325,17 +333,49 @@
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
       </button>
+      <button onclick="switchTab('milestones')" id="nav-milestones" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <div class="flex items-center gap-3">
+          <i data-lucide="award" class="w-4 h-4 text-rose-400"></i> Metas & Conquistas
+        </div>
+        <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-rose-500/10 text-rose-300 border border-rose-500/20">1M</span>
+      </button>
 
     </nav>
 
-    <!-- Rodapé Sidebar -->
-    <div class="p-4 border-t border-slate-800/80 bg-dark-950/50 space-y-2">
-      <div class="flex items-center justify-between text-xs text-slate-400">
-        <span class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Automações Ativas</span>
-        </span>
-        <button onclick="resetSystemData()" title="Zerar Dados de Teste" class="text-[11px] text-rose-400 hover:text-rose-300 transition-colors">Zerar Dados</button>
+    <!-- Rodapé Sidebar - Card de Faturamento & Metas (Estilo Foto 3) -->
+    <div class="p-3 border-t border-slate-800/80 bg-dark-950/70">
+      <div onclick="switchTab('milestones')" class="p-3.5 bg-gradient-to-b from-dark-800/80 to-dark-900/90 border border-slate-800/90 hover:border-emerald-500/40 rounded-2xl cursor-pointer group transition-all shadow-lg hover:shadow-emerald-500/5">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="text-[11px] font-semibold text-slate-400 block">Faturamento</span>
+            <div id="sidebar-milestone-current" class="text-white font-extrabold text-base tracking-tight mt-0.5">R$ 0,00</div>
+            <div id="sidebar-milestone-target" class="text-[11px] font-medium text-slate-400 mt-0.5">de R$ 1.000,00</div>
+          </div>
+          <div class="text-right flex flex-col items-end">
+            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-1 shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+              <i data-lucide="award" class="w-4 h-4"></i>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span id="sidebar-milestone-pct" class="text-xs font-black text-emerald-400">0%</span>
+              <span class="text-[10px] text-slate-400">da meta</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Progresso com Glow -->
+        <div class="w-full h-2 bg-slate-800/90 rounded-full overflow-hidden mt-3 p-0.5 border border-slate-700/40">
+          <div id="sidebar-milestone-bar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300 rounded-full transition-all duration-500 shadow-sm" style="width: 0%"></div>
+        </div>
+
+        <!-- Rodapé do Card com chevron -->
+        <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-800/60">
+          <span class="text-[10px] text-slate-400 flex items-center gap-1 truncate">
+            <span>Faltam</span>
+            <strong id="sidebar-milestone-missing" class="text-emerald-400 font-bold">R$ 1.000,00</strong>
+            <span class="truncate">para o próximo nível</span>
+          </span>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+        </div>
       </div>
     </div>
   </aside>
@@ -385,7 +425,7 @@
   </div>
 
   <!-- MAIN VIEWPORT -->
-  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+  <main class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
     <!-- Desktop Header -->
     <header class="hidden md:flex h-16 px-6 border-b border-slate-800/80 bg-dark-900/60 backdrop-blur-md items-center justify-between sticky top-0 z-20">
       <div class="flex items-center gap-4">
@@ -411,28 +451,34 @@
         </span>
       </div>
 
-      <div class="flex items-center gap-3">
-        <!-- Personalizar Métricas -->
-        <button onclick="openModal('modal-customize-dashboard')" class="px-2.5 py-1.5 bg-dark-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Personalizar Métricas e Colunas">
-          <i data-lucide="sliders" class="w-3.5 h-3.5 text-brand-400"></i>
-          <span class="hidden xl:inline">Personalizar</span>
-        </button>
-
-        <button onclick="refreshData()" class="p-2 bg-dark-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs flex items-center gap-1.5 transition-colors" title="Atualizar">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-        </button>
-
-        <!-- Menu de Perfil do Usuário Lucas / Multi-Tenant -->
-        <div class="relative ml-2">
-          <button onclick="toggleProfileDropdown()" id="user-profile-btn" class="flex items-center gap-2.5 pl-2 pr-3 py-1 bg-dark-800/80 hover:bg-dark-800 border border-slate-800 hover:border-slate-700 rounded-xl transition-all">
-            <div id="user-profile-avatar" class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-xs font-bold text-white shadow-sm">
-              L
+      <div class="flex items-center gap-3 sm:gap-4">
+        <!-- Widget de Metas & Conquistas Topbar (Estilo Foto 1) -->
+        <button onclick="switchTab('milestones')" class="group flex flex-col items-start px-3 py-1.5 rounded-xl bg-dark-800/70 hover:bg-dark-800 border border-slate-800/90 hover:border-slate-700 transition-all text-left cursor-pointer" title="Ver Linha de Progressão de Metas">
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 text-rose-400 font-extrabold text-xs">
+              <i data-lucide="award" class="w-4 h-4 text-rose-500"></i>
+              <span>Metas</span>
+              <i data-lucide="info" class="w-3 h-3 text-slate-400 opacity-70 group-hover:opacity-100 transition-opacity"></i>
             </div>
-            <div class="text-left hidden lg:block">
+            <span id="header-milestone-values" class="text-xs font-bold text-slate-200">
+              R$ 0,00 <span class="text-slate-400 font-medium">/ R$ 1.000,00</span>
+            </span>
+          </div>
+          <div class="w-36 sm:w-44 h-1.5 bg-slate-800/90 rounded-full overflow-hidden mt-1.5 border border-slate-700/30">
+            <div id="header-milestone-bar" class="h-full bg-gradient-to-r from-rose-500 to-amber-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </button>
+
+        <!-- Menu de Perfil do Usuário (Estilo Foto 1: Nome, Usuário, Avatar Redondo com Iniciais) -->
+        <div class="relative">
+          <button onclick="toggleProfileDropdown()" id="user-profile-btn" class="flex items-center gap-2.5 pl-2 pr-2 py-1 bg-transparent hover:bg-dark-800/60 rounded-xl transition-all cursor-pointer">
+            <div class="text-right hidden sm:block">
               <span id="header-user-name" class="block text-xs font-bold text-white leading-tight">Lucas</span>
-              <span id="header-user-email" class="block text-[10px] text-slate-400 leading-tight">Não conectado</span>
+              <span class="block text-[10px] text-slate-400 leading-tight">Usuário</span>
             </div>
-            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+            <div id="user-profile-avatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-black text-white shadow-md border border-blue-400/30">
+              LU
+            </div>
           </button>
         </div>
       </div>
@@ -2047,6 +2093,379 @@
           </div>
           <div id="full-notifications-table" class="space-y-2">
             <!-- Linhas de notificações injetadas via JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 9: METAS & CONQUISTAS (PROGRESSÃO DE 0 A 1M) ==================== -->
+      <section id="tab-milestones" class="tab-pane hidden space-y-6 max-w-7xl mx-auto">
+        <!-- Top Header & Resumo de Metas -->
+        <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+          <div class="absolute -right-16 -top-16 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold mb-3">
+                <i data-lucide="award" class="w-3.5 h-3.5"></i>
+                <span>ESCALA DE FATURAMENTO TRACKPRO</span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Metas & Conquistas</h1>
+              <p class="text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                Acompanhe a sua evolução oficial de faturamento do marco zero até o Clube do Milhão (R$ 1.000.000,00).
+              </p>
+            </div>
+
+            <div class="flex items-center gap-3 self-start md:self-auto">
+              <button onclick="switchTab('dashboard')" class="px-4 py-2.5 bg-dark-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 rounded-xl text-xs font-bold flex items-center gap-2 transition-all">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 text-brand-400"></i>
+                <span>Voltar ao Dashboard</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Cards Rápidos de Status de Metas -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-800/80 relative z-10">
+            <!-- 1. Faturamento Total Acumulado -->
+            <div class="p-4 bg-dark-950/70 border border-slate-800/80 rounded-2xl">
+              <span class="text-xs font-medium text-slate-400 block">Faturamento Acumulado</span>
+              <div id="ms-summary-total" class="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">R$ 0,00</div>
+              <span class="text-[11px] text-emerald-400 font-semibold mt-1 flex items-center gap-1">
+                <i data-lucide="shield-check" class="w-3 h-3"></i> Vendas Aprovadas
+              </span>
+            </div>
+
+            <!-- 2. Nível Atual -->
+            <div class="p-4 bg-dark-950/70 border border-slate-800/80 rounded-2xl">
+              <span class="text-xs font-medium text-slate-400 block">Nível Atual</span>
+              <div id="ms-summary-current-tier" class="text-xl sm:text-2xl font-black text-amber-400 tracking-tight mt-1">Marco Zero</div>
+              <span id="ms-summary-unlocked-count" class="text-[11px] text-slate-400 font-medium mt-1 block">0 de 6 conquistas</span>
+            </div>
+
+            <!-- 3. Próximo Alvo -->
+            <div class="p-4 bg-dark-950/70 border border-slate-800/80 rounded-2xl">
+              <span class="text-xs font-medium text-slate-400 block">Próximo Alvo</span>
+              <div id="ms-summary-next-target" class="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">R$ 1.000,00</div>
+              <span id="ms-summary-next-name" class="text-[11px] text-brand-400 font-semibold mt-1 block">Clube 1K</span>
+            </div>
+
+            <!-- 4. Distância p/ Próximo Nível -->
+            <div class="p-4 bg-dark-950/70 border border-slate-800/80 rounded-2xl">
+              <span class="text-xs font-medium text-slate-400 block">Faltam p/ Próximo Nível</span>
+              <div id="ms-summary-missing" class="text-xl sm:text-2xl font-black text-emerald-400 tracking-tight mt-1">R$ 1.000,00</div>
+              <div class="flex items-center gap-2 mt-1.5">
+                <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="ms-summary-bar" class="h-full bg-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <span id="ms-summary-pct" class="text-[11px] font-bold text-slate-300">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== LINHA RETA DE PROGRESSÃO (0 ATÉ 1M) ==================== -->
+        <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-8">
+            <div>
+              <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="git-commit" class="w-5 h-5 text-emerald-400"></i>
+                <span>Linha de Progressão de Metas (R$ 0 ➔ R$ 1.000.000)</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Sua posição exata e cada um dos marcos a serem atingidos na jornada.</p>
+            </div>
+            <div class="px-3 py-1 bg-dark-950 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-1.5 self-start sm:self-auto">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="ms-overall-progress-text">Progresso Geral: 0% de 1M</span>
+            </div>
+          </div>
+
+          <!-- Trilha Visual Linear com Overflow Horizontal Responsivo -->
+          <div class="overflow-x-auto pb-6 pt-10 px-4 -mx-4 sm:mx-0">
+            <div class="min-w-[860px] relative px-8">
+              <!-- Barra de Fundo da Linha -->
+              <div class="absolute top-6 left-12 right-12 h-2.5 bg-slate-800/90 rounded-full z-0"></div>
+
+              <!-- Barra de Progresso Preenchida da Linha -->
+              <div id="track-line-fill" class="absolute top-6 left-12 h-2.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 rounded-full z-0 transition-all duration-700 shadow-md shadow-emerald-500/20" style="width: 0%"></div>
+
+              <!-- Pin / Marcador Flutuante "VOCÊ ESTÁ AQUI" -->
+              <div id="track-user-pin" class="absolute top-[-36px] -translate-x-1/2 flex flex-col items-center transition-all duration-700 z-30 pointer-events-none" style="left: 0%">
+                <div class="px-2.5 py-1 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-[10px] rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap flex items-center gap-1 animate-bounce">
+                  <span>📍 VOCÊ ESTÁ AQUI</span>
+                  <span id="track-pin-amount" class="text-slate-950 font-extrabold">(R$ 0,00)</span>
+                </div>
+                <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-teal-400 -mt-0.5"></div>
+              </div>
+
+              <!-- Os 7 Nós da Linha (0, 1k, 5k, 10k, 50k, 100k, 1m) -->
+              <div class="flex justify-between items-start relative z-10">
+                <!-- Nó 0: Marco Zero -->
+                <div class="flex flex-col items-center text-center w-28 -ml-6">
+                  <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-emerald-500/20 border-2 border-emerald-300">
+                    <i data-lucide="check" class="w-6 h-6"></i>
+                  </div>
+                  <span class="text-xs font-extrabold text-white mt-3">Marco Zero</span>
+                  <span class="text-[11px] font-mono text-slate-400">R$ 0</span>
+                  <span class="mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Início</span>
+                </div>
+
+                <!-- Nó 1: 1K -->
+                <div id="node-wrap-1k" class="flex flex-col items-center text-center w-28">
+                  <div id="node-icon-1k" class="w-12 h-12 rounded-2xl bg-dark-950 border-2 border-slate-700 text-slate-500 flex items-center justify-center font-bold text-sm shadow-md transition-all">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                  </div>
+                  <span class="text-xs font-extrabold text-white mt-3">1K</span>
+                  <span class="text-[11px] font-mono text-slate-400">R$ 1.000</span>
+                  <span id="node-badge-1k" class="mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+                </div>
+
+                <!-- Nó 2: 5K -->
+                <div id="node-wrap-5k" class="flex flex-col items-center text-center w-28">
+                  <div id="node-icon-5k" class="w-12 h-12 rounded-2xl bg-dark-950 border-2 border-slate-700 text-slate-500 flex items-center justify-center font-bold text-sm shadow-md transition-all">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                  </div>
+                  <span class="text-xs font-extrabold text-white mt-3">5K</span>
+                  <span class="text-[11px] font-mono text-slate-400">R$ 5.000</span>
+                  <span id="node-badge-5k" class="mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+                </div>
+
+                <!-- Nó 3: 10K -->
+                <div id="node-wrap-10k" class="flex flex-col items-center text-center w-28">
+                  <div id="node-icon-10k" class="w-12 h-12 rounded-2xl bg-dark-950 border-2 border-slate-700 text-slate-500 flex items-center justify-center font-bold text-sm shadow-md transition-all">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                  </div>
+                  <span class="text-xs font-extrabold text-white mt-3">10K</span>
+                  <span class="text-[11px] font-mono text-slate-400">R$ 10.000</span>
+                  <span id="node-badge-10k" class="mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+                </div>
+
+                <!-- Nó 4: 50K -->
+                <div id="node-wrap-50k" class="flex flex-col items-center text-center w-28">
+                  <div id="node-icon-50k" class="w-12 h-12 rounded-2xl bg-dark-950 border-2 border-slate-700 text-slate-500 flex items-center justify-center font-bold text-sm shadow-md transition-all">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                  </div>
+                  <span class="text-xs font-extrabold text-white mt-3">50K</span>
+                  <span class="text-[11px] font-mono text-slate-400">R$ 50.000</span>
+                  <span id="node-badge-50k" class="mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+                </div>
+
+                <!-- Nó 5: 100K -->
+                <div id="node-wrap-100k" class="flex flex-col items-center text-center w-28">
+                  <div id="node-icon-100k" class="w-12 h-12 rounded-2xl bg-dark-950 border-2 border-slate-700 text-slate-500 flex items-center justify-center font-bold text-sm shadow-md transition-all">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                  </div>
+                  <span class="text-xs font-extrabold text-white mt-3">100K</span>
+                  <span class="text-[11px] font-mono text-slate-400">R$ 100.000</span>
+                  <span id="node-badge-100k" class="mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+                </div>
+
+                <!-- Nó 6: 1M -->
+                <div id="node-wrap-1m" class="flex flex-col items-center text-center w-28 -mr-6">
+                  <div id="node-icon-1m" class="w-12 h-12 rounded-2xl bg-dark-950 border-2 border-slate-700 text-slate-500 flex items-center justify-center font-bold text-sm shadow-md transition-all">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                  </div>
+                  <span class="text-xs font-extrabold text-white mt-3">1M</span>
+                  <span class="text-[11px] font-mono text-slate-400">R$ 1.000.000</span>
+                  <span id="node-badge-1m" class="mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== OS 6 CARDS DETALHADOS DE CADA META ==================== -->
+        <div>
+          <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+            <span>Marcos Históricos de Faturamento</span>
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Card 1: 1K -->
+            <div id="card-tier-1k" class="bg-dark-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition-all relative overflow-hidden">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-white text-base">Clube 1K</h4>
+                    <span class="text-xs text-slate-400">Validação da Oferta</span>
+                  </div>
+                </div>
+                <span id="tier-pill-1k" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">Meta: <strong class="text-white">R$ 1.000,00</strong></span>
+                  <span id="tier-pct-1k" class="font-bold text-emerald-400">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="tier-bar-1k" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span id="tier-missing-1k" class="text-slate-400">Faltam R$ 1.000,00</span>
+                <span class="text-amber-400 font-semibold text-[11px] flex items-center gap-1">
+                  <i data-lucide="sparkles" class="w-3 h-3"></i> Primeiro Marco
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 2: 5K -->
+            <div id="card-tier-5k" class="bg-dark-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition-all relative overflow-hidden">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-white text-base">Clube 5K</h4>
+                    <span class="text-xs text-slate-400">Tração Consistente</span>
+                  </div>
+                </div>
+                <span id="tier-pill-5k" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">Meta: <strong class="text-white">R$ 5.000,00</strong></span>
+                  <span id="tier-pct-5k" class="font-bold text-blue-400">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="tier-bar-5k" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span id="tier-missing-5k" class="text-slate-400">Faltam R$ 5.000,00</span>
+                <span class="text-blue-400 font-semibold text-[11px] flex items-center gap-1">
+                  <i data-lucide="shield-check" class="w-3 h-3"></i> Negócio Escalável
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 3: 10K -->
+            <div id="card-tier-10k" class="bg-dark-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition-all relative overflow-hidden">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-white text-base">Clube 10K</h4>
+                    <span class="text-xs text-slate-400">Faixa Preta 5 Dígitos</span>
+                  </div>
+                </div>
+                <span id="tier-pill-10k" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">Meta: <strong class="text-white">R$ 10.000,00</strong></span>
+                  <span id="tier-pct-10k" class="font-bold text-indigo-400">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="tier-bar-10k" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span id="tier-missing-10k" class="text-slate-400">Faltam R$ 10.000,00</span>
+                <span class="text-indigo-400 font-semibold text-[11px] flex items-center gap-1">
+                  <i data-lucide="award" class="w-3 h-3"></i> Faixa Preta Oficial
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 4: 50K -->
+            <div id="card-tier-50k" class="bg-dark-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition-all relative overflow-hidden">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                    <i data-lucide="flame" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-white text-base">Clube 50K</h4>
+                    <span class="text-xs text-slate-400">Meio Caminho dos 6D</span>
+                  </div>
+                </div>
+                <span id="tier-pill-50k" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">Meta: <strong class="text-white">R$ 50.000,00</strong></span>
+                  <span id="tier-pct-50k" class="font-bold text-purple-400">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="tier-bar-50k" class="h-full bg-purple-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span id="tier-missing-50k" class="text-slate-400">Faltam R$ 50.000,00</span>
+                <span class="text-purple-400 font-semibold text-[11px] flex items-center gap-1">
+                  <i data-lucide="trending-up" class="w-3 h-3"></i> Top Performance
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 5: 100K -->
+            <div id="card-tier-100k" class="bg-dark-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition-all relative overflow-hidden">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <i data-lucide="award" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-white text-base">Clube 100K</h4>
+                    <span class="text-xs text-slate-400">Clube dos 6 Dígitos</span>
+                  </div>
+                </div>
+                <span id="tier-pill-100k" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">Meta: <strong class="text-white">R$ 100.000,00</strong></span>
+                  <span id="tier-pct-100k" class="font-bold text-emerald-400">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="tier-bar-100k" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span id="tier-missing-100k" class="text-slate-400">Faltam R$ 100.000,00</span>
+                <span class="text-emerald-400 font-semibold text-[11px] flex items-center gap-1">
+                  <i data-lucide="award" class="w-3 h-3"></i> Placa Oficial 6D
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 6: 1M -->
+            <div id="card-tier-1m" class="bg-dark-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition-all relative overflow-hidden">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                    <i data-lucide="crown" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-white text-base">Clube 1M</h4>
+                    <span class="text-xs text-slate-400">Milionário (7 Dígitos)</span>
+                  </div>
+                </div>
+                <span id="tier-pill-1m" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Bloqueado</span>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">Meta: <strong class="text-white">R$ 1.000.000,00</strong></span>
+                  <span id="tier-pct-1m" class="font-bold text-rose-400">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="tier-bar-1m" class="h-full bg-rose-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span id="tier-missing-1m" class="text-slate-400">Faltam R$ 1.000.000,00</span>
+                <span class="text-rose-400 font-semibold text-[11px] flex items-center gap-1">
+                  <i data-lucide="crown" class="w-3 h-3"></i> Troféu Ouro Black
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -4976,6 +5395,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       if (tabId === 'notifications') {
         checkMobilePushStatus();
       }
+      if (tabId === 'milestones') {
+        updateMilestonesUI();
+      }
 
       closeMobileSidebar();
       refreshData();
@@ -6021,6 +6443,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
           lastOrderCount = totalOrders;
         }
 
+        updateMilestonesUI(data.kpis, data.allTimeRevenue);
         renderRevenueChart(data.revenueChart || []);
         renderSourcesChart(data.sourcesChart || []);
         renderPaymentMethodsChart(data.paymentMethodsChart || []);
@@ -7453,6 +7876,7 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       isAppInitialized = true;
       checkMetaGlobalStatus();
       checkMobilePushStatus();
+      updateMilestonesUI();
       loadNotificationSettingsFromBackend();
       loadNotifications();
       renderSummaryHoursChips();
@@ -7484,6 +7908,206 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       lucide.createIcons();
       checkAuthSession();
     });
-  </script>
+  
+    // ==================== METAS & CONQUISTAS (1K, 5K, 10K, 50K, 100K, 1M) ====================
+    let userAllTimeRevenue = 0;
+
+    function formatShortMoney(val) {
+      if (val >= 1000000) return 'R$ ' + (val / 1000000).toFixed(val % 1000000 === 0 ? 0 : 1) + 'M';
+      if (val >= 1000) return 'R$ ' + (val / 1000).toFixed(val % 1000 === 0 ? 0 : 1) + 'K';
+      return 'R$ ' + Math.round(val);
+    }
+
+    function updateMilestonesUI(kpis, allTimeRev) {
+      if (typeof allTimeRev === 'number') {
+        userAllTimeRevenue = allTimeRev;
+      } else if (kpis && typeof kpis.faturamento === 'number') {
+        userAllTimeRevenue = Math.max(userAllTimeRevenue, kpis.faturamento);
+      }
+
+      const rev = Number(userAllTimeRevenue || 0);
+
+      const tiers = [
+        { id: '1k', name: 'Clube 1K', target: 1000.0 },
+        { id: '5k', name: 'Clube 5K', target: 5000.0 },
+        { id: '10k', name: 'Clube 10K', target: 10000.0 },
+        { id: '50k', name: 'Clube 50K', target: 50000.0 },
+        { id: '100k', name: 'Clube 100K', target: 100000.0 },
+        { id: '1m', name: 'Clube 1M', target: 1000000.0 }
+      ];
+
+      let currentTierIdx = -1;
+      for (let i = 0; i < tiers.length; i++) {
+        if (rev >= tiers[i].target) {
+          currentTierIdx = i;
+        }
+      }
+
+      let nextTarget = 1000.0;
+      let nextTierName = 'Clube 1K';
+      let missing = 1000.0;
+      let tierPct = 0;
+
+      if (currentTierIdx < tiers.length - 1) {
+        const nextTier = tiers[currentTierIdx + 1];
+        nextTarget = nextTier.target;
+        nextTierName = nextTier.name;
+        missing = Math.max(0, nextTarget - rev);
+        tierPct = Math.min(100, Math.max(0, (rev / nextTarget) * 100));
+      } else {
+        nextTarget = tiers[tiers.length - 1].target;
+        nextTierName = tiers[tiers.length - 1].name;
+        missing = 0;
+        tierPct = 100;
+      }
+
+      // Cálculo linear proporcional de 0 a 100% sobre os 6 segmentos da linha reta
+      const numSegments = tiers.length;
+      let linePct = 0;
+      if (currentTierIdx === -1) {
+        const segFrac = Math.max(0, Math.min(1, rev / tiers[0].target));
+        linePct = segFrac * (100 / numSegments);
+      } else if (currentTierIdx >= numSegments - 1) {
+        linePct = 100;
+      } else {
+        const basePct = (currentTierIdx + 1) * (100 / numSegments);
+        const prevTarget = tiers[currentTierIdx].target;
+        const nxtTarget = tiers[currentTierIdx + 1].target;
+        const segFrac = Math.max(0, Math.min(1, (rev - prevTarget) / (nxtTarget - prevTarget)));
+        linePct = basePct + segFrac * (100 / numSegments);
+      }
+
+      const revFormatted = 'R$ ' + rev.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const nextTargetFormatted = 'R$ ' + nextTarget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const missingFormatted = 'R$ ' + missing.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const tierPctFormatted = tierPct.toFixed(0) + '%';
+
+      // 1. ATUALIZA WIDGET DO CABEÇALHO (Estilo Foto 1)
+      const headVals = document.getElementById('header-milestone-values');
+      if (headVals) {
+        headVals.innerHTML = `${formatShortMoney(rev)} <span class="text-slate-400 font-medium">/ ${formatShortMoney(nextTarget)}</span>`;
+      }
+      const headBar = document.getElementById('header-milestone-bar');
+      if (headBar) headBar.style.width = tierPct + '%';
+
+      // 2. ATUALIZA CARD DO RODAPÉ DA SIDEBAR (Estilo Foto 3)
+      const sideCurr = document.getElementById('sidebar-milestone-current');
+      if (sideCurr) sideCurr.textContent = revFormatted;
+
+      const sideTgt = document.getElementById('sidebar-milestone-target');
+      if (sideTgt) sideTgt.textContent = 'de ' + nextTargetFormatted;
+
+      const sidePct = document.getElementById('sidebar-milestone-pct');
+      if (sidePct) sidePct.textContent = tierPctFormatted;
+
+      const sideBar = document.getElementById('sidebar-milestone-bar');
+      if (sideBar) sideBar.style.width = tierPct + '%';
+
+      const sideMiss = document.getElementById('sidebar-milestone-missing');
+      if (sideMiss) sideMiss.textContent = missingFormatted;
+
+      // 3. ATUALIZA ABA DEDICADA DE METAS (#tab-milestones)
+      const sumTot = document.getElementById('ms-summary-total');
+      if (sumTot) sumTot.textContent = revFormatted;
+
+      const sumCurTier = document.getElementById('ms-summary-current-tier');
+      if (sumCurTier) sumCurTier.textContent = currentTierIdx === -1 ? 'Marco Zero' : tiers[currentTierIdx].name;
+
+      const sumUnlCount = document.getElementById('ms-summary-unlocked-count');
+      if (sumUnlCount) sumUnlCount.textContent = `${currentTierIdx + 1} de 6 conquistas`;
+
+      const sumNxtTgt = document.getElementById('ms-summary-next-target');
+      if (sumNxtTgt) sumNxtTgt.textContent = nextTargetFormatted;
+
+      const sumNxtName = document.getElementById('ms-summary-next-name');
+      if (sumNxtName) sumNxtName.textContent = nextTierName;
+
+      const sumMiss = document.getElementById('ms-summary-missing');
+      if (sumMiss) sumMiss.textContent = missingFormatted;
+
+      const sumBar = document.getElementById('ms-summary-bar');
+      if (sumBar) sumBar.style.width = tierPct + '%';
+
+      const sumPct = document.getElementById('ms-summary-pct');
+      if (sumPct) sumPct.textContent = tierPctFormatted;
+
+      // Trilha visual
+      const lineFill = document.getElementById('track-line-fill');
+      if (lineFill) lineFill.style.width = linePct + '%';
+
+      const userPin = document.getElementById('track-user-pin');
+      if (userPin) userPin.style.left = linePct + '%';
+
+      const pinAmt = document.getElementById('track-pin-amount');
+      if (pinAmt) pinAmt.textContent = `(${formatShortMoney(rev)})`;
+
+      const overText = document.getElementById('ms-overall-progress-text');
+      if (overText) overText.textContent = `Progresso Geral: ${(rev >= 1000000 ? 100 : (rev / 1000000 * 100)).toFixed(1)}% de 1M`;
+
+      // Atualiza os nós da trilha visual e os 6 cards detalhados
+      tiers.forEach((t, idx) => {
+        const isReached = rev >= t.target;
+        const isCurrent = (idx === currentTierIdx + 1);
+
+        // Nó da Trilha
+        const nodeIcon = document.getElementById('node-icon-' + t.id);
+        const nodeBadge = document.getElementById('node-badge-' + t.id);
+        if (nodeIcon && nodeBadge) {
+          if (isReached) {
+            nodeIcon.className = 'w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-emerald-500/30 border-2 border-emerald-300';
+            nodeIcon.innerHTML = '<i data-lucide="check" class="w-6 h-6"></i>';
+            nodeBadge.className = 'mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            nodeBadge.textContent = 'Concluído';
+          } else if (isCurrent) {
+            nodeIcon.className = 'w-12 h-12 rounded-2xl bg-brand-500 text-white flex items-center justify-center font-bold text-sm shadow-xl shadow-brand-500/40 border-2 border-brand-300 ring-4 ring-brand-500/30 animate-pulse';
+            nodeIcon.innerHTML = '<i data-lucide="target" class="w-6 h-6"></i>';
+            nodeBadge.className = 'mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30';
+            nodeBadge.textContent = 'Em Andamento';
+          } else {
+            nodeIcon.className = 'w-12 h-12 rounded-2xl bg-dark-950 border-2 border-slate-700 text-slate-500 flex items-center justify-center font-bold text-sm shadow-md';
+            nodeIcon.innerHTML = '<i data-lucide="lock" class="w-5 h-5"></i>';
+            nodeBadge.className = 'mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700';
+            nodeBadge.textContent = 'Bloqueado';
+          }
+        }
+
+        // Card individual detalhado
+        const cardEl = document.getElementById('card-tier-' + t.id);
+        const cardPill = document.getElementById('tier-pill-' + t.id);
+        const cardPct = document.getElementById('tier-pct-' + t.id);
+        const cardBar = document.getElementById('tier-bar-' + t.id);
+        const cardMiss = document.getElementById('tier-missing-' + t.id);
+
+        if (cardEl && cardPill && cardPct && cardBar && cardMiss) {
+          const cardProgressPct = Math.min(100, Math.max(0, (rev / t.target) * 100));
+          cardPct.textContent = cardProgressPct.toFixed(0) + '%';
+          cardBar.style.width = cardProgressPct + '%';
+
+          if (isReached) {
+            cardEl.className = 'bg-dark-900 border border-emerald-500/40 shadow-lg shadow-emerald-500/5 rounded-2xl p-5 space-y-4 relative overflow-hidden';
+            cardPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            cardPill.textContent = '✔ Desbloqueado';
+            cardMiss.innerHTML = '<strong class="text-emerald-400">Meta Conquistada!</strong>';
+          } else if (isCurrent) {
+            cardEl.className = 'bg-dark-900 border border-brand-500/50 shadow-lg shadow-brand-500/10 rounded-2xl p-5 space-y-4 relative overflow-hidden';
+            cardPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30';
+            cardPill.textContent = '⚡ Em Progresso';
+            const m = Math.max(0, t.target - rev);
+            cardMiss.textContent = 'Faltam R$ ' + m.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          } else {
+            cardEl.className = 'bg-dark-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition-all relative overflow-hidden opacity-80';
+            cardPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700';
+            cardPill.textContent = '🔒 Bloqueado';
+            const m = Math.max(0, t.target - rev);
+            cardMiss.textContent = 'Faltam R$ ' + m.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
+        }
+      });
+
+      if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+      }
+    }
+</script>
 </body>
 </html>

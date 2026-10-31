@@ -1317,6 +1317,52 @@ def parse_webhook_payload(headers, body):
             'sck': dt.get('sck')
         }
 
+    # Pagar.me v5 Webhook & Postback Nativo
+    elif 'pagar.me' in str(headers).lower() or 'pagarme' in str(headers).lower() or ('data' in body and ('charges' in body.get('data', {}) or 'order.paid' in str(body.get('type') or body.get('event', '')) or 'charge.paid' in str(body.get('type') or body.get('event', '')))):
+        platform = 'Pagar.me'
+        dt = body.get('data', {})
+        order_id = dt.get('code') or dt.get('id') or body.get('id')
+        ev = str(body.get('type') or body.get('event') or dt.get('status', '')).lower()
+        if 'paid' in ev or 'approved' in ev or 'captured' in ev:
+            status = 'paid'
+        elif 'refund' in ev or 'chargeback' in ev:
+            status = 'refunded'
+        else:
+            status = 'waiting_payment'
+
+        cust = dt.get('customer', {})
+        customer_name = cust.get('name') or cust.get('full_name', 'Comprador Pagar.me')
+        customer_email = cust.get('email', '')
+        
+        phones = cust.get('phones', {})
+        mob = phones.get('mobile_phone', {})
+        if isinstance(mob, dict):
+            customer_phone = f"{mob.get('country_code', '55')}{mob.get('area_code', '')}{mob.get('number', '')}"
+        else:
+            customer_phone = cust.get('phone', '')
+
+        charges = dt.get('charges', [])
+        if charges and isinstance(charges, list):
+            first_charge = charges[0]
+            payment_method = str(first_charge.get('payment_method') or 'pix').lower()
+            price_cents = int(first_charge.get('amount') or dt.get('amount') or 0)
+        else:
+            payment_method = str(dt.get('payment_method') or 'pix').lower()
+            price_cents = int(dt.get('amount') or 0)
+
+        meta = dt.get('metadata') or body.get('metadata') or dt.get('tracking') or {}
+        tracking = {
+            'utm_source': meta.get('utm_source'),
+            'utm_medium': meta.get('utm_medium'),
+            'utm_campaign': meta.get('utm_campaign'),
+            'utm_content': meta.get('utm_content'),
+            'utm_term': meta.get('utm_term'),
+            'src': meta.get('src'),
+            'sck': meta.get('sck')
+        }
+        fbc = meta.get('fbc')
+        fbp = meta.get('fbp')
+
     # Wiapy
     elif 'payment' in body and ('customer' in body or 'tracking' in body):
         platform = 'Wiapy'
@@ -1347,26 +1393,54 @@ def parse_webhook_payload(headers, body):
         fbc = tk.get('fbc')
         fbp = tk.get('fbp')
 
-    # Universal / UTMify Webhook Format
+    # Universal / Custom Postback Webhook Format
     else:
-        order_id = body.get('orderId') or body.get('order_id') or body.get('id') or f"ORD-{uuid.uuid4().hex[:8].upper()}"
-        cust = body.get('customer', {})
-        customer_name = cust.get('name', 'Comprador')
-        customer_email = cust.get('email', '')
-        customer_phone = cust.get('phone', '')
-        price_cents = int(body.get('priceInCents') or round(float(body.get('value', 0)) * 100))
-        tp = body.get('trackingParameters', {})
+        order_id = body.get('orderId') or body.get('order_id') or body.get('code') or body.get('id') or f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        raw_st = str(body.get('status') or body.get('order_status') or body.get('event') or 'paid').lower()
+        if any(x in raw_st for x in ['paid', 'approved', 'captured', 'pago', 'aprovado', 'completed']):
+            status = 'paid'
+        elif any(x in raw_st for x in ['refund', 'chargeback', 'estorno', 'cancel']):
+            status = 'refunded'
+        else:
+            status = 'waiting_payment'
+
+        cust = body.get('customer') if isinstance(body.get('customer'), dict) else {}
+        customer_name = cust.get('name') or cust.get('full_name') or body.get('customer_name') or body.get('name') or 'Comprador'
+        customer_email = cust.get('email') or body.get('customer_email') or body.get('email') or ''
+        customer_phone = cust.get('phone') or cust.get('mobile') or body.get('customer_phone') or body.get('phone') or ''
+
+        raw_price = body.get('priceInCents') or body.get('price_cents') or body.get('amount_in_cents')
+        if raw_price is not None:
+            price_cents = int(float(raw_price))
+        else:
+            val = body.get('amount') or body.get('payout') or body.get('value') or body.get('price') or 0
+            try:
+                v_flt = float(str(val).replace(',', '.'))
+                if 'payout' in body or 'value' in body:
+                    price_cents = int(round(v_flt * 100))
+                elif v_flt >= 500 and v_flt == int(v_flt):
+                    price_cents = int(v_flt)
+                else:
+                    price_cents = int(round(v_flt * 100))
+            except Exception:
+                price_cents = 0
+
+        tp = body.get('trackingParameters') or body.get('tracking') or body.get('metadata') or {}
+        if not isinstance(tp, dict):
+            tp = {}
         tracking = {
-            'utm_source': tp.get('utm_source'),
-            'utm_medium': tp.get('utm_medium'),
-            'utm_campaign': tp.get('utm_campaign'),
-            'utm_content': tp.get('utm_content'),
-            'utm_term': tp.get('utm_term'),
-            'src': tp.get('src'),
-            'sck': tp.get('sck')
+            'utm_source': tp.get('utm_source') or body.get('utm_source'),
+            'utm_medium': tp.get('utm_medium') or body.get('utm_medium'),
+            'utm_campaign': tp.get('utm_campaign') or body.get('utm_campaign'),
+            'utm_content': tp.get('utm_content') or body.get('utm_content'),
+            'utm_term': tp.get('utm_term') or body.get('utm_term'),
+            'src': tp.get('src') or body.get('src'),
+            'sck': tp.get('sck') or body.get('sck')
         }
-        fbc = tp.get('fbc')
-        fbp = tp.get('fbp')
+        fbc = tp.get('fbc') or body.get('fbc')
+        fbp = tp.get('fbp') or body.get('fbp')
+        if body.get('platform'):
+            platform = body.get('platform')
 
     if not order_id:
         order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
@@ -4378,6 +4452,11 @@ class TrackProHandler(BaseHTTPRequestHandler):
             '/api/webhook/greenn',
             '/api/webhook/cakto',
             '/api/webhook/wiapy',
+            '/api/webhook/pagarme',
+            '/api/webhook/pagar.me',
+            '/api/webhook/universal',
+            '/api/webhook/custom',
+            '/api/postback',
             '/api/orders/webhook/orders'
         ]
         if path in webhook_routes:
@@ -4388,6 +4467,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
             elif 'greenn' in p_lower: parsed_order['platform'] = 'Greenn'
             elif 'cakto' in p_lower: parsed_order['platform'] = 'Cakto'
             elif 'wiapy' in p_lower: parsed_order['platform'] = 'Wiapy'
+            elif 'pagarme' in p_lower or 'pagar.me' in p_lower: parsed_order['platform'] = 'Pagar.me'
+            elif 'universal' in p_lower or 'custom' in p_lower or 'postback' in p_lower:
+                if not parsed_order.get('platform') or parsed_order.get('platform') == 'Universal':
+                    parsed_order['platform'] = body.get('platform') or 'Pagar.me'
 
             conn = get_db()
             cursor = conn.cursor()

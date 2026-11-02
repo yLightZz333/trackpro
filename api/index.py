@@ -88,6 +88,18 @@ def init_db():
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS lockstudio_integrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE,
+        token TEXT UNIQUE NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        last_accessed_at TEXT,
+        last_ip TEXT,
+        request_count INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_lockstudio_token ON lockstudio_integrations(token);
+
     CREATE TABLE IF NOT EXISTS api_credentials (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -658,6 +670,135 @@ def compute_date_range(period, start_date='', end_date=''):
         return d_str, d_str, 'today'
 
 
+
+def get_order_date_clause(period, start_date='', end_date=''):
+    p = str(period or 'today').lower().strip()
+    if p == 'today':
+        return "date(created_at, 'localtime') = date('now', 'localtime')", []
+    elif p == 'yesterday':
+        return "date(created_at, 'localtime') = date('now', 'localtime', '-1 day')", []
+    elif p in ['last_7_days', '7_days', '7d']:
+        return "created_at >= datetime('now', 'localtime', '-7 days')", []
+    elif p in ['last_30_days', '30_days', '30d']:
+        return "created_at >= datetime('now', 'localtime', '-30 days')", []
+    elif p == 'last_week':
+        return "created_at >= datetime('now', 'localtime', '-14 days') AND created_at < datetime('now', 'localtime', '-7 days')", []
+    elif p in ['this_month', 'month']:
+        return "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')", []
+    elif p == 'last_month':
+        return "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')", []
+    elif p == 'custom':
+        if start_date and end_date:
+            return "date(created_at, 'localtime') >= ? AND date(created_at, 'localtime') <= ?", [start_date, end_date]
+        elif start_date:
+            return "date(created_at, 'localtime') >= ?", [start_date]
+        elif end_date:
+            return "date(created_at, 'localtime') <= ?", [end_date]
+        return "", []
+    elif p == 'all':
+        return "", []
+    else:
+        return "date(created_at, 'localtime') = date('now', 'localtime')", []
+
+def calculate_financial_metrics(user_id, period='today', start_date='', end_date='', platform_filter='all', source_filter='all', ad_account_filter='all', product_filter='all'):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    date_clause, date_params = get_order_date_clause(period, start_date, end_date)
+
+    order_conds = ['user_id = ?']
+    order_params = [user_id]
+    if date_clause:
+        order_conds.append(date_clause)
+        order_params.extend(date_params)
+    if platform_filter and platform_filter != 'all':
+        order_conds.append("platform = ?")
+        order_params.append(platform_filter)
+    if source_filter and source_filter != 'all':
+        order_conds.append("utm_source = ?")
+        order_params.append(source_filter)
+    if product_filter and product_filter != 'all':
+        order_conds.append("product_id = ?")
+        order_params.append(product_filter)
+
+    base_where = ("WHERE " + " AND ".join(order_conds)) if order_conds else ""
+    paid_where = (base_where + " AND status = 'paid'") if base_where else "WHERE status = 'paid'"
+    pending_where = (base_where + " AND status = 'waiting_payment'") if base_where else "WHERE status = 'waiting_payment'"
+
+    # 1. Vendas Aprovadas
+    query_paid = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {paid_where}"
+    row_paid = cursor.execute(query_paid, order_params).fetchone()
+    tot_revenue = (row_paid['total'] or 0) / 100.0
+    paid_ord = row_paid['count'] or 0
+
+    # 2. Vendas Pendentes
+    query_pending = f"SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count FROM orders {pending_where}"
+    row_pending = cursor.execute(query_pending, order_params).fetchone()
+    pending_revenue = (row_pending['total'] or 0) / 100.0
+    pending_ord = row_pending['count'] or 0
+
+    # 3. Gasto em Anúncios
+    camp_conds = ["user_id = ?"]
+    camp_params = [user_id]
+    if ad_account_filter and ad_account_filter != "all":
+        camp_conds.append("ad_account_id = ?")
+        camp_params.append(ad_account_filter)
+
+    s_dash_range, e_dash_range, _ = compute_date_range(period, start_date, end_date)
+    if period == "all" or not s_dash_range:
+        row_spent = cursor.execute(f"SELECT COALESCE(SUM(total_spent_in_cents), 0) as total FROM campaigns WHERE {' AND '.join(camp_conds)}", camp_params).fetchone()
+        tot_spent = (row_spent['total'] or 0) / 100.0
+    else:
+        ins_w = ["user_id = ?", "date_start >= ?", "date_stop <= ?"]
+        ins_p = [user_id, s_dash_range, e_dash_range]
+        if ad_account_filter and ad_account_filter != "all":
+            ins_w.append("ad_account_id = ?")
+            ins_p.append(ad_account_filter)
+        row_spent = cursor.execute(f"SELECT COALESCE(SUM(spend_cents), 0) as total FROM meta_campaign_insights WHERE {' AND '.join(ins_w)}", ins_p).fetchone()
+        tot_spent = (row_spent['total'] or 0) / 100.0
+
+    # 4. Taxas e Impostos Parametrizados (Configurações Financeiras)
+    fin = cursor.execute('SELECT * FROM financial_settings WHERE user_id = ?', (user_id,)).fetchone()
+    gw_pct = (fin['gateway_tax_percent'] if fin else 8.9) / 100.0
+    gw_fix = fin['gateway_fixed_fee'] if fin else 2.49
+    inv_pct = (fin['invoice_tax_percent'] if fin else 6.0) / 100.0
+    cost_pct = (fin['product_cost_percent'] if fin else 0.0) / 100.0
+
+    # 5. Lucratividade e Retorno
+    taxes = round(tot_revenue * inv_pct, 2)
+    gateway_fees = round(tot_revenue * gw_pct + (paid_ord * gw_fix), 2)
+    net_revenue = max(0.0, round(tot_revenue - gateway_fees - taxes, 2))
+    prod_costs = round(tot_revenue * cost_pct, 2)
+    real_profit = round(net_revenue - tot_spent - prod_costs, 2)
+    
+    roi = round((real_profit / tot_spent * 100.0), 1) if tot_spent > 0 else 0.0
+    roas = round(tot_revenue / tot_spent, 2) if tot_spent > 0 else 0.0
+    cpa = round(tot_spent / paid_ord, 2) if paid_ord > 0 else 0.0
+    ticket_medio = round(tot_revenue / paid_ord, 2) if paid_ord > 0 else 0.0
+
+    conn.close()
+
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    return {
+        'gross_revenue': round(tot_revenue, 2),
+        'net_revenue': round(net_revenue, 2),
+        'investment': round(tot_spent, 2),
+        'profit': round(real_profit, 2),
+        'roi': roi,
+        'roas': roas,
+        'sales_count': paid_ord,
+        'average_ticket': ticket_medio,
+        'cpa': cpa,
+        'taxes': taxes,
+        'gateway_fees': gateway_fees,
+        'product_costs': prod_costs,
+        'pending_sales_count': pending_ord,
+        'pending_revenue': round(pending_revenue, 2),
+        'date_range': {
+            'start': s_dash_range or start_date or today_str,
+            'end': e_dash_range or end_date or today_str
+        }
+    }
 
 def parse_meta_actions(actions):
     purchases = 0
@@ -2035,6 +2176,110 @@ class TrackProHandler(BaseHTTPRequestHandler):
             return
 
         # Dashboard Overview API (com suporte a filtros por período, contas, plataformas e produtos)
+# ==================== LOCKSTUDIO LOCKSCREEN API ====================
+        if path == '/api/v1/lockscreen/summary':
+            # 1. Extração do Token de Autenticação (Bearer, X-API-Key, x-api-token ou query)
+            auth_header = self.headers.get('Authorization', '')
+            token = None
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(' ', 1)[1].strip()
+            if not token:
+                token = self.headers.get('X-API-Key', '').strip()
+            if not token:
+                token = self.headers.get('x-api-token', '').strip()
+            if not token:
+                token = self.headers.get('X-User-Token', '').strip()
+            if not token:
+                token = params.get('token', [''])[0].strip() or params.get('api_key', [''])[0].strip()
+
+            if not token:
+                self._send_json({
+                    "success": False,
+                    "error": "Autenticação obrigatória. Envie seu token no cabeçalho 'Authorization: Bearer <TOKEN>' ou 'X-API-Key: <TOKEN>'.",
+                    "code": "UNAUTHORIZED"
+                }, 401)
+                return
+
+            # 2. Validação da Credencial e Isolamento de Conta
+            conn = get_db()
+            cursor = conn.cursor()
+            lock_row = cursor.execute("SELECT id, user_id, active, token FROM lockstudio_integrations WHERE token = ?", (token,)).fetchone()
+            user_id = None
+
+            if lock_row:
+                if not lock_row['active']:
+                    conn.close()
+                    self._send_json({
+                        "success": False,
+                        "error": "A integração com o LockStudio está desativada ou este token foi revogado.",
+                        "code": "TOKEN_REVOKED"
+                    }, 403)
+                    return
+                user_id = lock_row['user_id']
+                now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                client_ip = self.client_address[0]
+                cursor.execute("""
+                    UPDATE lockstudio_integrations 
+                    SET last_accessed_at = ?, last_ip = ?, request_count = request_count + 1 
+                    WHERE id = ?
+                """, (now_str, client_ip, lock_row['id']))
+                conn.commit()
+            else:
+                user_id = verify_user_token(token)
+                if not user_id:
+                    conn.close()
+                    self._send_json({
+                        "success": False,
+                        "error": "Token de autenticação inválido.",
+                        "code": "INVALID_TOKEN"
+                    }, 401)
+                    return
+
+            conn.close()
+
+            # 3. Parâmetros de Consulta
+            period = params.get('period', ['today'])[0].lower().strip()
+            start_date = params.get('start_date', [''])[0].strip()
+            end_date = params.get('end_date', [''])[0].strip()
+
+            # 4. Obtenção das Métricas Reais do Sistema
+            metrics = calculate_financial_metrics(user_id, period=period, start_date=start_date, end_date=end_date)
+            now_iso = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-03:00')
+
+            response_payload = {
+                "success": True,
+                "data": {
+                    "roi": metrics['roi'],
+                    "net_revenue": metrics['net_revenue'],
+                    "gross_revenue": metrics['gross_revenue'],
+                    "investment": metrics['investment'],
+                    "profit": metrics['profit'],
+                    "sales_count": metrics['sales_count'],
+                    "roas": metrics['roas'],
+                    "average_ticket": metrics['average_ticket'],
+                    "pending_sales_count": metrics['pending_sales_count'],
+                    "pending_revenue": metrics['pending_revenue']
+                },
+                "meta": {
+                    "currency": "BRL",
+                    "timezone": "America/Sao_Paulo",
+                    "generated_at": now_iso,
+                    "period": period,
+                    "date_range": metrics['date_range'],
+                    "account_id": f"account_{user_id}"
+                }
+            }
+
+            self._send_json(response_payload, 200)
+            return
+
+        # Status e Gerenciamento da Integração LockStudio (GET)
+        if path == '/api/integrations/lockstudio':
+            user_id = self._get_current_user_id()
+            if not user_id:
+                self._send_json({"success": False, "error": "Não autenticado"}, 401)
+                return
+
         if path in ['/api/dashboard', '/api/dashboard/overview']:
             conn = get_db()
             cursor = conn.cursor()

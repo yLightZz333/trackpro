@@ -24,197 +24,7 @@
   <meta name="mobile-web-app-capable" content="yes">
 
   <!-- Tailwind CSS & Lucide Icons & Chart.js -->
-  <script src="https://cdn.tailwindcss.com">
-    // ==================== LOCKSTUDIO INTEGRATION JAVASCRIPT ====================
-    let currentLockStudioPeriod = 'today';
-    let currentLockStudioToken = null;
-
-    async function loadLockStudioIntegration() {
-      try {
-        const token = localStorage.getItem('trackpro_token') || 'lst_live_trackpro_default_token_2026';
-        const res = await fetch('/api/integrations/lockstudio', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const data = await res.json();
-        if (data.success && data.integration) {
-          const integ = data.integration;
-          const maskedInput = document.getElementById('lst-masked-token-input');
-          if (maskedInput) {
-            maskedInput.value = integ.token_masked || 'Nenhum token ativo';
-          }
-          currentLockStudioToken = integ.token_masked;
-
-          // Status Badge
-          const badge = document.getElementById('lst-status-badge');
-          const statusTxt = document.getElementById('lst-status-text');
-          const toggleBtn = document.getElementById('lst-toggle-btn');
-          if (badge && statusTxt && toggleBtn) {
-            if (integ.active) {
-              badge.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
-              statusTxt.textContent = 'Conectado & Ativo';
-              toggleBtn.innerHTML = '<i data-lucide="pause-circle" class="w-4 h-4"></i> Pausar Integração';
-              toggleBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-2 transition-all';
-            } else {
-              badge.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 bg-rose-500/10 text-rose-400 border border-rose-500/30';
-              statusTxt.textContent = 'Integração Pausada / Revogada';
-              toggleBtn.innerHTML = '<i data-lucide="play-circle" class="w-4 h-4"></i> Ativar Integração';
-              toggleBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center gap-2 transition-all';
-            }
-          }
-
-          // Telemetria
-          const lastAcc = document.getElementById('lst-last-accessed');
-          if (lastAcc) lastAcc.textContent = integ.last_accessed_at || 'Nunca consultado';
-
-          const lastIp = document.getElementById('lst-last-ip');
-          if (lastIp) lastIp.textContent = integ.last_ip || '-';
-
-          const reqCount = document.getElementById('lst-request-count');
-          if (reqCount) reqCount.textContent = (integ.request_count || 0) + ' consultas';
-
-          const endUrl = document.getElementById('lst-endpoint-url');
-          if (endUrl && integ.endpoint_url) {
-            endUrl.textContent = integ.endpoint_url;
-          }
-
-          // Executa teste inicial para preencher a prévia do widget
-          testLockStudioRequest(currentLockStudioPeriod);
-        }
-      } catch (err) {
-        console.error('Erro ao carregar LockStudio:', err);
-      }
-      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
-    }
-
-    async function generateLockStudioToken() {
-      if (!confirm('Deseja gerar um novo token de acesso para o LockStudio? O token anterior será invalidado.')) return;
-      try {
-        const token = localStorage.getItem('trackpro_token') || 'lst_live_trackpro_default_token_2026';
-        const res = await fetch('/api/integrations/lockstudio/token', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-        });
-        const data = await res.json();
-        if (data.success && data.token) {
-          const banner = document.getElementById('lst-new-token-banner');
-          const fullTxt = document.getElementById('lst-full-token-text');
-          if (banner && fullTxt) {
-            fullTxt.textContent = data.token;
-            banner.classList.remove('hidden');
-          }
-          const maskedInput = document.getElementById('lst-masked-token-input');
-          if (maskedInput) maskedInput.value = data.token_masked;
-          currentLockStudioToken = data.token;
-          showToast(data.message || 'Novo token gerado com sucesso!', 'success');
-          loadLockStudioIntegration();
-        } else {
-          showToast(data.error || 'Erro ao gerar token', 'error');
-        }
-      } catch (err) {
-        showToast('Erro ao comunicar com o servidor: ' + err.message, 'error');
-      }
-    }
-
-    async function toggleLockStudioIntegration() {
-      try {
-        const token = localStorage.getItem('trackpro_token') || 'lst_live_trackpro_default_token_2026';
-        const statusTxt = document.getElementById('lst-status-text');
-        const isCurrentlyActive = statusTxt && statusTxt.textContent.includes('Ativo');
-        const nextActive = !isCurrentlyActive;
-
-        const res = await fetch('/api/integrations/lockstudio/toggle', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ active: nextActive })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast(data.message, 'success');
-          loadLockStudioIntegration();
-        } else {
-          showToast(data.error || 'Erro ao alterar estado', 'error');
-        }
-      } catch (err) {
-        showToast('Erro de conexão: ' + err.message, 'error');
-      }
-    }
-
-    async function revokeLockStudioToken() {
-      if (!confirm('Atenção: Revogar o token desativará imediatamente as atualizações do widget no seu LockStudio. Deseja continuar?')) return;
-      try {
-        const token = localStorage.getItem('trackpro_token') || 'lst_live_trackpro_default_token_2026';
-        const res = await fetch('/api/integrations/lockstudio/revoke', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast(data.message, 'warning');
-          loadLockStudioIntegration();
-        } else {
-          showToast(data.error || 'Erro ao revogar token', 'error');
-        }
-      } catch (err) {
-        showToast('Erro ao revogar: ' + err.message, 'error');
-      }
-    }
-
-    async function testLockStudioRequest(period = 'today') {
-      currentLockStudioPeriod = period;
-      const periodLabel = document.getElementById('widget-period-label');
-      if (periodLabel) periodLabel.textContent = period.toUpperCase().replace('_', ' ');
-
-      try {
-        const token = localStorage.getItem('trackpro_token') || 'lst_live_trackpro_default_token_2026';
-        const res = await fetch('/api/v1/lockscreen/summary?period=' + period, {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const json = await res.json();
-        if (json.success && json.data) {
-          const d = json.data;
-          const roiEl = document.getElementById('widget-kpi-roi');
-          if (roiEl) {
-            roiEl.textContent = (d.roi >= 0 ? '+' : '') + d.roi.toFixed(1) + '%';
-            roiEl.className = 'text-xl font-black tracking-tight mt-0.5 ' + (d.roi >= 0 ? 'text-emerald-400' : 'text-rose-400');
-          }
-
-          const profitEl = document.getElementById('widget-kpi-profit');
-          if (profitEl) {
-            profitEl.textContent = 'R$ ' + d.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            profitEl.className = 'text-lg font-black tracking-tight mt-0.5 ' + (d.profit >= 0 ? 'text-white' : 'text-rose-400');
-          }
-
-          const netEl = document.getElementById('widget-kpi-net');
-          if (netEl) netEl.textContent = 'R$ ' + d.net_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-          const spentEl = document.getElementById('widget-kpi-spent');
-          if (spentEl) spentEl.textContent = 'R$ ' + d.investment.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-          const grossEl = document.getElementById('widget-kpi-gross');
-          if (grossEl) grossEl.textContent = 'R$ ' + d.gross_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-          const salesEl = document.getElementById('widget-kpi-sales');
-          if (salesEl) salesEl.textContent = d.sales_count + (d.sales_count === 1 ? ' pedido' : ' pedidos');
-        }
-      } catch (err) {
-        console.error('Erro no teste LockStudio:', err);
-      }
-    }
-
-    function copyLockStudioText(text, successMsg = 'Copiado para a área de transferência!') {
-      if (!text || text.includes('Carregando')) return;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => {
-          showToast(successMsg, 'success');
-        }).catch(() => {
-          prompt('Copie manualmente o texto abaixo:', text);
-        });
-      } else {
-        prompt('Copie manualmente o texto abaixo:', text);
-      }
-    }
-
-</script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -8604,6 +8414,204 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
         window.lucide.createIcons();
       }
     }
+
+    // ==================== LOCKSTUDIO INTEGRATION JAVASCRIPT ====================
+    let currentLockStudioPeriod = 'today';
+    let currentLockStudioToken = null;
+
+    function getAuthHeadersObj() {
+      const t = localStorage.getItem('trackpro_token');
+      const h = { 'Content-Type': 'application/json' };
+      if (t) {
+        h['Authorization'] = 'Bearer ' + t;
+      }
+      return h;
+    }
+
+    async function loadLockStudioIntegration() {
+      try {
+        const res = await fetch('/api/integrations/lockstudio', {
+          headers: getAuthHeadersObj()
+        });
+        const data = await res.json();
+        if (data.success && data.integration) {
+          const integ = data.integration;
+          const maskedInput = document.getElementById('lst-masked-token-input');
+          if (maskedInput) {
+            maskedInput.value = integ.token_masked || 'Nenhum token ativo';
+          }
+          currentLockStudioToken = integ.token_masked;
+
+          // Status Badge & Botão Toggle
+          const badge = document.getElementById('lst-status-badge');
+          const statusTxt = document.getElementById('lst-status-text');
+          const toggleBtn = document.getElementById('lst-toggle-btn');
+          if (badge && statusTxt && toggleBtn) {
+            if (integ.active) {
+              badge.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+              statusTxt.textContent = 'Conectado & Ativo';
+              toggleBtn.innerHTML = '<i data-lucide="pause-circle" class="w-4 h-4"></i> Pausar Integração';
+              toggleBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-2 transition-all cursor-pointer';
+            } else {
+              badge.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 bg-rose-500/10 text-rose-400 border border-rose-500/30';
+              statusTxt.textContent = 'Integração Pausada / Revogada';
+              toggleBtn.innerHTML = '<i data-lucide="play-circle" class="w-4 h-4"></i> Ativar Integração';
+              toggleBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center gap-2 transition-all cursor-pointer';
+            }
+          }
+
+          // Telemetria
+          const lastAcc = document.getElementById('lst-last-accessed');
+          if (lastAcc) lastAcc.textContent = integ.last_accessed_at || 'Nunca consultado';
+
+          const lastIp = document.getElementById('lst-last-ip');
+          if (lastIp) lastIp.textContent = integ.last_ip || '-';
+
+          const reqCount = document.getElementById('lst-request-count');
+          if (reqCount) reqCount.textContent = (integ.request_count || 0) + ' consultas';
+
+          const endUrl = document.getElementById('lst-endpoint-url');
+          if (endUrl && integ.endpoint_url) {
+            endUrl.textContent = integ.endpoint_url;
+          }
+
+          // Executa teste inicial para preencher a prévia do widget
+          testLockStudioRequest(currentLockStudioPeriod);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar LockStudio:', err);
+      }
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    }
+
+    async function generateLockStudioToken() {
+      if (!confirm('Deseja gerar um novo token de acesso para o LockStudio? O token anterior será substituído.')) return;
+      try {
+        const res = await fetch('/api/integrations/lockstudio/token', {
+          method: 'POST',
+          headers: getAuthHeadersObj()
+        });
+        const data = await res.json();
+        if (data.success && data.token) {
+          const banner = document.getElementById('lst-new-token-banner');
+          const fullTxt = document.getElementById('lst-full-token-text');
+          if (banner && fullTxt) {
+            fullTxt.textContent = data.token;
+            banner.classList.remove('hidden');
+            banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          const maskedInput = document.getElementById('lst-masked-token-input');
+          if (maskedInput) maskedInput.value = data.token_masked || (data.token.slice(0, 10) + '...' + data.token.slice(-4));
+          currentLockStudioToken = data.token;
+          showToast(data.message || 'Novo token gerado com sucesso!', 'success');
+          loadLockStudioIntegration();
+        } else {
+          showToast(data.error || 'Erro ao gerar token', 'error');
+        }
+      } catch (err) {
+        showToast('Erro ao comunicar com o servidor: ' + err.message, 'error');
+      }
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    }
+
+    async function toggleLockStudioIntegration() {
+      try {
+        const statusTxt = document.getElementById('lst-status-text');
+        const isCurrentlyActive = statusTxt && statusTxt.textContent.includes('Ativo');
+        const nextActive = !isCurrentlyActive;
+
+        const res = await fetch('/api/integrations/lockstudio/toggle', {
+          method: 'POST',
+          headers: getAuthHeadersObj(),
+          body: JSON.stringify({ active: nextActive })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, 'success');
+          loadLockStudioIntegration();
+        } else {
+          showToast(data.error || 'Erro ao alterar estado', 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão: ' + err.message, 'error');
+      }
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    }
+
+    async function revokeLockStudioToken() {
+      if (!confirm('Atenção: Revogar o token desativará imediatamente as atualizações do widget no seu LockStudio. Deseja continuar?')) return;
+      try {
+        const res = await fetch('/api/integrations/lockstudio/revoke', {
+          method: 'POST',
+          headers: getAuthHeadersObj()
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, 'warning');
+          loadLockStudioIntegration();
+        } else {
+          showToast(data.error || 'Erro ao revogar token', 'error');
+        }
+      } catch (err) {
+        showToast('Erro ao revogar: ' + err.message, 'error');
+      }
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    }
+
+    async function testLockStudioRequest(period = 'today') {
+      currentLockStudioPeriod = period;
+      const periodLabel = document.getElementById('widget-period-label');
+      if (periodLabel) periodLabel.textContent = period.toUpperCase().replace('_', ' ');
+
+      try {
+        const res = await fetch('/api/v1/lockscreen/summary?period=' + period, {
+          headers: getAuthHeadersObj()
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          const d = json.data;
+          const roiEl = document.getElementById('widget-kpi-roi');
+          if (roiEl) {
+            roiEl.textContent = (d.roi >= 0 ? '+' : '') + d.roi.toFixed(1) + '%';
+            roiEl.className = 'text-xl font-black tracking-tight mt-0.5 ' + (d.roi >= 0 ? 'text-emerald-400' : 'text-rose-400');
+          }
+
+          const profitEl = document.getElementById('widget-kpi-profit');
+          if (profitEl) {
+            profitEl.textContent = 'R$ ' + d.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            profitEl.className = 'text-lg font-black tracking-tight mt-0.5 ' + (d.profit >= 0 ? 'text-white' : 'text-rose-400');
+          }
+
+          const netEl = document.getElementById('widget-kpi-net');
+          if (netEl) netEl.textContent = 'R$ ' + d.net_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+          const spentEl = document.getElementById('widget-kpi-spent');
+          if (spentEl) spentEl.textContent = 'R$ ' + d.investment.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+          const grossEl = document.getElementById('widget-kpi-gross');
+          if (grossEl) grossEl.textContent = 'R$ ' + d.gross_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+          const salesEl = document.getElementById('widget-kpi-sales');
+          if (salesEl) salesEl.textContent = d.sales_count + (d.sales_count === 1 ? ' pedido' : ' pedidos');
+        }
+      } catch (err) {
+        console.error('Erro no teste LockStudio:', err);
+      }
+    }
+
+    function copyLockStudioText(text, successMsg = 'Copiado para a área de transferência!') {
+      if (!text || text.includes('Carregando')) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMsg, 'success');
+        }).catch(() => {
+          prompt('Copie manualmente o texto abaixo:', text);
+        });
+      } else {
+        prompt('Copie manualmente o texto abaixo:', text);
+      }
+    }
+
 </script>
 </body>
 </html>

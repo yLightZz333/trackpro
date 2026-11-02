@@ -1006,6 +1006,17 @@ def calculate_financial_metrics(user_id, period='today', start_date='', end_date
     cpa = round(tot_spent / paid_ord, 2) if paid_ord > 0 else 0.0
     ticket_medio = round(tot_revenue / paid_ord, 2) if paid_ord > 0 else 0.0
 
+    # 6. Tráfego e Taxa de Conversão
+    pv_where = ["user_id = ?", "event_type = 'pageview'"]
+    pv_params = [user_id]
+    if date_clause:
+        pv_where.append(date_clause)
+        pv_params.extend(date_params)
+    row_pv = cursor.execute(f"SELECT COUNT(*) as count FROM tracking_events WHERE {' AND '.join(pv_where)}", pv_params).fetchone()
+    pageviews = (row_pv['count'] or 0) if row_pv else 0
+
+    conversion_rate = round((paid_ord / pageviews * 100.0), 1) if pageviews > 0 else 0.0
+
     conn.close()
 
     today_str = datetime.now().strftime('%Y-%m-%d')
@@ -1024,6 +1035,7 @@ def calculate_financial_metrics(user_id, period='today', start_date='', end_date
         'product_costs': prod_costs,
         'pending_sales_count': pending_ord,
         'pending_revenue': round(pending_revenue, 2),
+        'conversion_rate': conversion_rate,
         'date_range': {
             'start': s_dash_range or start_date or today_str,
             'end': e_dash_range or end_date or today_str
@@ -2462,13 +2474,15 @@ class TrackProHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # ==================== LOCKSTUDIO LOCKSCREEN API ====================
-        if path == '/api/v1/lockscreen/summary':
-            # 1. Extração do Token de Autenticação (Bearer, X-API-Key, x-api-token ou query)
+        # ==================== LIGHTLOCK / LOCKSTUDIO METRICS API ====================
+        if path in ['/api/v1/metrics/summary', '/api/v1/lockscreen/summary']:
+            # 1. Extração do Token de Autenticação
             auth_header = self.headers.get('Authorization', '')
             token = None
             if auth_header.startswith('Bearer '):
                 token = auth_header.split(' ', 1)[1].strip()
+            elif auth_header:
+                token = auth_header.strip()
             if not token:
                 token = self.headers.get('X-API-Key', '').strip()
             if not token:
@@ -2479,14 +2493,10 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 token = params.get('token', [''])[0].strip() or params.get('api_key', [''])[0].strip()
 
             if not token:
-                self._send_json({
-                    "success": False,
-                    "error": "Autenticação obrigatória. Envie seu token no cabeçalho 'Authorization: Bearer <TOKEN>' ou 'X-API-Key: <TOKEN>'.",
-                    "code": "UNAUTHORIZED"
-                }, 401)
+                self._send_json({"error": "Token inválido", "success": False, "code": "UNAUTHORIZED"}, 401)
                 return
 
-            # 2. Validação da Credencial e Isolamento de Conta
+            # 2. Validação da Credencial
             conn = get_db()
             cursor = conn.cursor()
             lock_row = cursor.execute("SELECT id, user_id, active, token FROM lockstudio_integrations WHERE token = ?", (token,)).fetchone()
@@ -2495,11 +2505,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             if lock_row:
                 if not lock_row['active']:
                     conn.close()
-                    self._send_json({
-                        "success": False,
-                        "error": "A integração com o LockStudio está desativada ou este token foi revogado.",
-                        "code": "TOKEN_REVOKED"
-                    }, 403)
+                    self._send_json({"error": "Token inválido", "success": False, "code": "TOKEN_REVOKED"}, 401)
                     return
                 user_id = lock_row['user_id']
                 now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -2514,23 +2520,24 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 user_id = verify_user_token(token)
                 if not user_id:
                     conn.close()
-                    self._send_json({
-                        "success": False,
-                        "error": "Token de autenticação inválido.",
-                        "code": "INVALID_TOKEN"
-                    }, 401)
+                    self._send_json({"error": "Token inválido", "success": False, "code": "INVALID_TOKEN"}, 401)
                     return
 
             conn.close()
 
-            # 3. Parâmetros de Consulta
+            # Suporte a account_id opcional
+            account_id_q = params.get('account_id', [''])[0].strip()
+            if account_id_q.isdigit():
+                user_id = int(account_id_q)
+
+            # Período (padrão today)
             period = params.get('period', ['today'])[0].lower().strip()
             start_date = params.get('start_date', [''])[0].strip()
             end_date = params.get('end_date', [''])[0].strip()
 
-            # 4. Obtenção das Métricas Reais do Sistema
             metrics = calculate_financial_metrics(user_id, period=period, start_date=start_date, end_date=end_date)
             now_iso = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-03:00')
+            utc_now_iso = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
             response_payload = {
                 "success": True,
@@ -2538,9 +2545,14 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "roi": metrics['roi'],
                     "net_revenue": metrics['net_revenue'],
                     "gross_revenue": metrics['gross_revenue'],
-                    "investment": metrics['investment'],
+                    "ad_spend": metrics['investment'],
                     "profit": metrics['profit'],
                     "sales_count": metrics['sales_count'],
+                    "conversion_rate": metrics.get('conversion_rate', 0.0),
+                    "currency": "BRL",
+                    "updated_at": utc_now_iso,
+                    # Campos adicionais para compatibilidade retroativa
+                    "investment": metrics['investment'],
                     "roas": metrics['roas'],
                     "average_ticket": metrics['average_ticket'],
                     "pending_sales_count": metrics['pending_sales_count'],
@@ -2571,7 +2583,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             host_hdr = self.headers.get('Host', 'meutrackpro.onrender.com')
             scheme = 'https' if ('onrender.com' in host_hdr or 'vercel.app' in host_hdr) else 'http'
             base_url = f"{scheme}://{host_hdr}"
-            endpoint_url = f"{base_url}/api/v1/lockscreen/summary"
+            endpoint_url = f"{base_url}/api/v1/metrics/summary"
 
             if row:
                 t = row['token']

@@ -2222,7 +2222,7 @@
               <div class="space-y-2">
                 <label class="text-xs text-slate-400 font-medium block">URL Completa de Consulta:</label>
                 <div class="flex items-center gap-2 bg-dark-950 p-2 rounded-xl border border-slate-800">
-                  <code id="lst-endpoint-url" class="text-emerald-400 font-mono text-xs flex-1 px-2 select-all overflow-x-auto">https://meutrackpro.onrender.com/api/v1/lockscreen/summary</code>
+                  <code id="lst-endpoint-url" class="text-emerald-400 font-mono text-xs flex-1 px-2 select-all overflow-x-auto">https://meutrackpro.onrender.com/api/v1/metrics/summary</code>
                   <button onclick="copyLockStudioText(document.getElementById('lst-endpoint-url').textContent, 'URL do endpoint copiada!')" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center gap-1 transition-all border border-emerald-500/30">
                     <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar URL
                   </button>
@@ -2346,7 +2346,7 @@
                 </div>
 
                 <div class="text-[10px] text-slate-500 text-center pt-1 font-mono">
-                  Atualizado em tempo real via GET /api/v1/lockscreen/summary
+                  Atualizado em tempo real via GET /api/v1/metrics/summary
                 </div>
               </div>
             </div>
@@ -2384,7 +2384,7 @@
               <div class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 font-extrabold text-xs flex items-center justify-center">3</div>
               <h4 class="text-xs font-bold text-white">Cole a URL e Header</h4>
               <p class="text-[11px] text-slate-400 leading-relaxed">
-                Preencha a URL <code class="text-purple-300">/api/v1/lockscreen/summary</code> e defina o header <code class="text-purple-300">Authorization: Bearer &lt;TOKEN&gt;</code>.
+                Preencha a URL <code class="text-purple-300">/api/v1/metrics/summary</code> e defina o header <code class="text-purple-300">Authorization: Bearer &lt;TOKEN&gt;</code>.
               </p>
             </div>
 
@@ -8564,7 +8564,7 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       if (periodLabel) periodLabel.textContent = period.toUpperCase().replace('_', ' ');
 
       try {
-        const res = await fetch('/api/v1/lockscreen/summary?period=' + period, {
+        const res = await fetch('/api/v1/metrics/summary?period=' + period, {
           headers: getAuthHeadersObj()
         });
         const json = await res.json();

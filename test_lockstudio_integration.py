@@ -74,13 +74,16 @@ def run_tests():
     # -------------------------------------------------------------
     # TESTE 1: Autenticação Válida com Bearer Token
     # -------------------------------------------------------------
-    print("\n[TESTE 1] Autenticação Válida via Header 'Authorization: Bearer <TOKEN>'...")
-    status, body = make_request("/api/v1/lockscreen/summary?period=today", {
+    print("\n[TESTE 1] Autenticação Válida via Header 'Authorization: Bearer <TOKEN>' em /api/v1/metrics/summary...")
+    status, body = make_request("/api/v1/metrics/summary?period=today", {
         "Authorization": f"Bearer {token_user_1}"
     })
     assert status == 200, f"Esperado 200, recebido {status}: {body}"
     assert body["success"] is True
     assert "data" in body and "meta" in body
+    assert body["data"]["currency"] == "BRL"
+    assert "ad_spend" in body["data"]
+    assert "updated_at" in body["data"]
     assert body["meta"]["account_id"] == "account_1"
     print("✔ Passou: Status 200 e payload estruturado retornado com sucesso.")
 
@@ -88,7 +91,7 @@ def run_tests():
     # TESTE 2: Autenticação com X-API-Key
     # -------------------------------------------------------------
     print("\n[TESTE 2] Autenticação via Header alternativo 'X-API-Key'...")
-    status, body = make_request("/api/v1/lockscreen/summary?period=today", {
+    status, body = make_request("/api/v1/metrics/summary?period=today", {
         "X-API-Key": token_user_1
     })
     assert status == 200, f"Esperado 200, recebido {status}: {body}"
@@ -99,44 +102,44 @@ def run_tests():
     # TESTE 3: Autenticação Ausente (Sem Token)
     # -------------------------------------------------------------
     print("\n[TESTE 3] Requisição sem token (Autenticação Ausente)...")
-    status, body = make_request("/api/v1/lockscreen/summary?period=today")
+    status, body = make_request("/api/v1/metrics/summary?period=today")
     assert status == 401, f"Esperado 401, recebido {status}: {body}"
     assert body["success"] is False
-    assert body["code"] == "UNAUTHORIZED"
-    print("✔ Passou: Rejeitado com HTTP 401 e código UNAUTHORIZED.")
+    assert body["error"] == "Token inválido"
+    print("✔ Passou: Rejeitado com HTTP 401 e error 'Token inválido'.")
 
     # -------------------------------------------------------------
     # TESTE 4: Token Inválido
     # -------------------------------------------------------------
     print("\n[TESTE 4] Requisição com token inexistente / inválido...")
-    status, body = make_request("/api/v1/lockscreen/summary?period=today", {
+    status, body = make_request("/api/v1/metrics/summary?period=today", {
         "Authorization": "Bearer lst_live_token_que_nao_existe_123"
     })
     assert status == 401, f"Esperado 401, recebido {status}: {body}"
     assert body["success"] is False
-    assert body["code"] == "INVALID_TOKEN"
-    print("✔ Passou: Rejeitado com HTTP 401 e código INVALID_TOKEN.")
+    assert body["error"] == "Token inválido"
+    print("✔ Passou: Rejeitado com HTTP 401 e error 'Token inválido'.")
 
     # -------------------------------------------------------------
     # TESTE 5: Token Revogado / Integração Desativada
     # -------------------------------------------------------------
     print("\n[TESTE 5] Requisição com token revogado (active = 0)...")
-    status, body = make_request("/api/v1/lockscreen/summary?period=today", {
+    status, body = make_request("/api/v1/metrics/summary?period=today", {
         "Authorization": f"Bearer {token_revoked}"
     })
-    assert status == 403, f"Esperado 403, recebido {status}: {body}"
+    assert status == 401, f"Esperado 401, recebido {status}: {body}"
     assert body["success"] is False
-    assert body["code"] == "TOKEN_REVOKED"
-    print("✔ Passou: Rejeitado com HTTP 403 Forbidden e código TOKEN_REVOKED.")
+    assert body["error"] == "Token inválido"
+    print("✔ Passou: Rejeitado com HTTP 401 e error 'Token inválido'.")
 
     # -------------------------------------------------------------
     # TESTE 6: Isolamento entre Contas (User 1 vs User 2)
     # -------------------------------------------------------------
     print("\n[TESTE 6] Verificação de Isolamento entre Contas...")
-    _, body_u1 = make_request("/api/v1/lockscreen/summary?period=all", {
+    _, body_u1 = make_request("/api/v1/metrics/summary?period=all", {
         "Authorization": f"Bearer {token_user_1}"
     })
-    _, body_u2 = make_request("/api/v1/lockscreen/summary?period=all", {
+    _, body_u2 = make_request("/api/v1/metrics/summary?period=all", {
         "Authorization": f"Bearer {token_user_2}"
     })
     assert body_u1["meta"]["account_id"] == "account_1"
@@ -151,7 +154,7 @@ def run_tests():
     # -------------------------------------------------------------
     print("\n[TESTE 7] Comparação exata de valores: API LockStudio vs Dashboard...")
     # Chamada LockStudio
-    _, ls_all = make_request("/api/v1/lockscreen/summary?period=all", {
+    _, ls_all = make_request("/api/v1/metrics/summary?period=all", {
         "Authorization": f"Bearer {token_user_1}"
     })
     # Chamada Dashboard
@@ -181,7 +184,7 @@ def run_tests():
     print("\n[TESTE 8] Validação de múltiplos períodos...")
     periods = ["today", "yesterday", "last_7_days", "last_30_days", "month", "all"]
     for p in periods:
-        s, b = make_request(f"/api/v1/lockscreen/summary?period={p}", {
+        s, b = make_request(f"/api/v1/metrics/summary?period={p}", {
             "Authorization": f"Bearer {token_user_1}"
         })
         assert s == 200, f"Falha no período {p}: {b}"
@@ -206,7 +209,6 @@ def run_tests():
     # TESTE 10: Endpoints de Gestão da Integração (Toggle, Token, Revoke)
     # -------------------------------------------------------------
     print("\n[TESTE 10] Testando endpoints de gestão (/api/integrations/lockstudio)...")
-    # Usa a sessão do usuário no painel para gerenciar a integração
     session_token = "trackpro_lucas_permanent_token_2025"
 
     # GET status
@@ -228,10 +230,10 @@ def run_tests():
         assert res_t["active"] is False
 
     # Verifica que agora a API rejeita chamadas feitas pelo LockStudio com o token
-    s_rej, b_rej = make_request("/api/v1/lockscreen/summary?period=today", {
+    s_rej, b_rej = make_request("/api/v1/metrics/summary?period=today", {
         "Authorization": f"Bearer {token_user_1}"
     })
-    assert s_rej == 403, f"Esperado 403 após toggle off, recebido {s_rej}"
+    assert s_rej == 401, f"Esperado 401 após toggle off, recebido {s_rej}"
 
     # POST toggle (reativar pelo painel)
     req_toggle_on = urllib.request.Request(f"{base_url}/api/integrations/lockstudio/toggle",
@@ -244,7 +246,7 @@ def run_tests():
         assert res_ton["active"] is True
 
     # Verifica que agora a API aceita chamadas do LockStudio novamente
-    s_ok, _ = make_request("/api/v1/lockscreen/summary?period=today", {
+    s_ok, _ = make_request("/api/v1/metrics/summary?period=today", {
         "Authorization": f"Bearer {token_user_1}"
     })
     assert s_ok == 200, f"Esperado 200 após toggle on, recebido {s_ok}"

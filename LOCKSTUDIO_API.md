@@ -70,15 +70,17 @@ Todas as chamadas à API exigem o token individual de integração gerado na int
 
 ## 4. Endpoint de Indicadores Financeiros
 
-### `GET /api/v1/lockscreen/summary`
+### `GET /api/v1/metrics/summary`
+*(Alias suportado: `GET /api/v1/lockscreen/summary`)*
 
-Retorna o resumo consolidado de indicadores para alimentar os widgets da tela de bloqueio.
+Retorna o resumo consolidado de indicadores para alimentar os widgets da tela de bloqueio (LightLock / LockStudio).
 
 ### Parâmetros de Consulta (Query String)
 
 | Parâmetro | Tipo | Padrão | Descrição | Valores Aceitos |
 | :--- | :--- | :--- | :--- | :--- |
 | `period` | string | `today` | Período de apuração dos dados | `today`, `yesterday`, `last_7_days`, `last_30_days`, `month`, `all`, `custom` |
+| `account_id` | integer | `null` | (Opcional) Filtrar por ID de conta específica | Ex: `1` |
 | `start_date` | string | `null` | Data inicial (apenas se `period=custom`) | Formato `YYYY-MM-DD` (ex: `2026-11-01`) |
 | `end_date` | string | `null` | Data final (apenas se `period=custom`) | Formato `YYYY-MM-DD` (ex: `2026-11-01`) |
 
@@ -94,27 +96,15 @@ Retorna o resumo consolidado de indicadores para alimentar os widgets da tela de
 {
   "success": true,
   "data": {
-    "roi": 145.2,
-    "net_revenue": 1820.50,
-    "gross_revenue": 2150.00,
-    "investment": 740.00,
-    "profit": 1080.50,
-    "sales_count": 22,
-    "roas": 2.91,
-    "average_ticket": 97.73,
-    "pending_sales_count": 8,
-    "pending_revenue": 776.00
-  },
-  "meta": {
+    "roi": 312.4,
+    "net_revenue": 14280.00,
+    "gross_revenue": 18450.00,
+    "ad_spend": 4170.00,
+    "profit": 10110.00,
+    "sales_count": 142,
+    "conversion_rate": 4.8,
     "currency": "BRL",
-    "timezone": "America/Sao_Paulo",
-    "generated_at": "2026-11-01T23:15:00-03:00",
-    "period": "today",
-    "date_range": {
-      "start": "2026-11-01",
-      "end": "2026-11-01"
-    },
-    "account_id": "account_1"
+    "updated_at": "2026-11-02T00:00:00Z"
   }
 }
 ```
@@ -123,16 +113,15 @@ Retorna o resumo consolidado de indicadores para alimentar os widgets da tela de
 
 | Campo | Tipo | Unidade | Descrição | Regra de Cálculo Oficial |
 | :--- | :--- | :--- | :--- | :--- |
-| `roi` | `float` | `%` | Retorno sobre o Investimento | `((profit / investment) * 100.0)` *(0.0 se sem investimento)* |
+| `roi` | `float` | `%` | Retorno sobre o Investimento | `((profit / ad_spend) * 100.0)` *(0.0 se sem investimento)* |
 | `net_revenue` | `float` | `R$` | Faturamento Líquido Real | `Faturamento Bruto - Taxas Gateway - Impostos` |
 | `gross_revenue`| `float` | `R$` | Faturamento Bruto Aprovado | Soma do valor de todos os pedidos com status `paid` no período |
-| `investment` | `float` | `R$` | Gasto com Anúncios (Ads) | Total investido em campanhas de tráfego pago no período |
+| `ad_spend` | `float` | `R$` | Gasto com Anúncios (Ads) | Total investido em campanhas de tráfego pago no período |
 | `profit` | `float` | `R$` | Lucro Real da Operação | `Faturamento Líquido - Investimento - Custos de Produto` |
 | `sales_count` | `integer`| un | Quantidade de Vendas | Total de pedidos únicos aprovados (`status = 'paid'`) |
-| `roas` | `float` | ratio | Retorno sobre Gasto de Anúncios| `gross_revenue / investment` |
-| `average_ticket`| `float`| `R$` | Ticket Médio por Venda | `gross_revenue / sales_count` |
-| `pending_sales_count` | `integer` | un | Vendas Pendentes | Quantidade de PIX/Boletos aguardando pagamento |
-| `pending_revenue` | `float` | `R$` | Valor Total Pendente | Soma em R$ dos pedidos com status `waiting_payment` |
+| `conversion_rate` | `float` | `%` | Taxa de Conversão | `(sales_count / pageviews) * 100.0` |
+| `currency` | `string` | texto | Moeda de apuração | `"BRL"` |
+| `updated_at` | `string` | ISO UTC| Timestamp da geração | Formato ISO 8601 UTC `YYYY-MM-DDTHH:MM:SSZ` |
 
 ---
 

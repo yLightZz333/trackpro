@@ -2177,7 +2177,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
         # Dashboard Overview API (com suporte a filtros por período, contas, plataformas e produtos)
 # ==================== LOCKSTUDIO LOCKSCREEN API ====================
-        if path == '/api/v1/lockscreen/summary':
+        if path == ['/api/v1/metrics/summary', '/api/v1/lockscreen/summary']:
             # 1. Extração do Token de Autenticação (Bearer, X-API-Key, x-api-token ou query)
             auth_header = self.headers.get('Authorization', '')
             token = None

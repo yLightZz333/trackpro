@@ -104,7 +104,7 @@ import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Garante saída UTF-8 no Windows
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -865,7 +865,8 @@ def fetch_all_meta_pages(endpoint, params=None, access_token=None, max_pages=15)
     return all_data
 
 def compute_date_range(period, start_date='', end_date=''):
-    today_dt = datetime.now()
+    tz_brasilia = timezone(timedelta(hours=-3))
+    today_dt = datetime.now(tz_brasilia)
     if period == 'today':
         d_str = today_dt.strftime('%Y-%m-%d')
         return d_str, d_str, 'today'
@@ -899,36 +900,47 @@ def compute_date_range(period, start_date='', end_date=''):
         return d_str, d_str, 'today'
 
 
-
-
 def get_order_date_clause(period, start_date='', end_date=''):
     p = str(period or 'today').lower().strip()
+    tz_brasilia = timezone(timedelta(hours=-3))
+    today_dt = datetime.now(tz_brasilia)
+    today_br = today_dt.strftime('%Y-%m-%d')
+    yest_br = (today_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+    this_month_br = today_dt.strftime('%Y-%m')
+    first_this = today_dt.replace(day=1)
+    last_month_br = (first_this - timedelta(days=1)).strftime('%Y-%m')
+
     if p == 'today':
-        return "date(created_at, 'localtime') = date('now', 'localtime')", []
+        return "(date(created_at, '-3 hours') = ? OR date(created_at) = ? OR date(created_at, 'localtime') = ?)", [today_br, today_br, today_br]
     elif p == 'yesterday':
-        return "date(created_at, 'localtime') = date('now', 'localtime', '-1 day')", []
+        return "(date(created_at, '-3 hours') = ? OR date(created_at) = ? OR date(created_at, 'localtime') = ?)", [yest_br, yest_br, yest_br]
     elif p in ['last_7_days', '7_days', '7d']:
-        return "created_at >= datetime('now', 'localtime', '-7 days')", []
+        s7_br = (today_dt - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+        return "(datetime(created_at, '-3 hours') >= ? OR created_at >= ? OR created_at >= datetime('now', 'localtime', '-7 days'))", [s7_br, s7_br]
     elif p in ['last_30_days', '30_days', '30d']:
-        return "created_at >= datetime('now', 'localtime', '-30 days')", []
+        s30_br = (today_dt - timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
+        return "(datetime(created_at, '-3 hours') >= ? OR created_at >= ? OR created_at >= datetime('now', 'localtime', '-30 days'))", [s30_br, s30_br]
     elif p == 'last_week':
-        return "created_at >= datetime('now', 'localtime', '-14 days') AND created_at < datetime('now', 'localtime', '-7 days')", []
+        s14_br = (today_dt - timedelta(days=14)).strftime('%Y-%m-%d %H:%M:%S')
+        s7_br = (today_dt - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+        return "((datetime(created_at, '-3 hours') >= ? AND datetime(created_at, '-3 hours') < ?) OR (created_at >= ? AND created_at < ?))", [s14_br, s7_br, s14_br, s7_br]
     elif p in ['this_month', 'month']:
-        return "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')", []
+        return "(strftime('%Y-%m', created_at, '-3 hours') = ? OR strftime('%Y-%m', created_at) = ? OR strftime('%Y-%m', created_at, 'localtime') = ?)", [this_month_br, this_month_br, this_month_br]
     elif p == 'last_month':
-        return "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')", []
+        return "(strftime('%Y-%m', created_at, '-3 hours') = ? OR strftime('%Y-%m', created_at) = ? OR strftime('%Y-%m', created_at, 'localtime') = ?)", [last_month_br, last_month_br, last_month_br]
     elif p == 'custom':
         if start_date and end_date:
-            return "date(created_at, 'localtime') >= ? AND date(created_at, 'localtime') <= ?", [start_date, end_date]
+            return "((date(created_at, '-3 hours') >= ? AND date(created_at, '-3 hours') <= ?) OR (date(created_at) >= ? AND date(created_at) <= ?))", [start_date, end_date, start_date, end_date]
         elif start_date:
-            return "date(created_at, 'localtime') >= ?", [start_date]
+            return "(date(created_at, '-3 hours') >= ? OR date(created_at) >= ?)", [start_date, start_date]
         elif end_date:
-            return "date(created_at, 'localtime') <= ?", [end_date]
+            return "(date(created_at, '-3 hours') <= ? OR date(created_at) <= ?)", [end_date, end_date]
         return "", []
     elif p == 'all':
         return "", []
     else:
-        return "date(created_at, 'localtime') = date('now', 'localtime')", []
+        return "(date(created_at, '-3 hours') = ? OR date(created_at) = ? OR date(created_at, 'localtime') = ?)", [today_br, today_br, today_br]
+
 
 def calculate_financial_metrics(user_id, period='today', start_date='', end_date='', platform_filter='all', source_filter='all', ad_account_filter='all', product_filter='all'):
     conn = get_db()
@@ -2118,6 +2130,65 @@ def invalidate_index_html_cache():
     _CACHED_INDEX_HTML = None
     _CACHED_INDEX_HTML_GZIP = None
 
+# ==================== LIGHTLOCK METRICS IN-MEMORY CACHE ====================
+_LIGHTLOCK_METRICS_CACHE = {}
+_LIGHTLOCK_METRICS_CACHE_LOCK = threading.Lock()
+LIGHTLOCK_CACHE_TTL = 60.0  # 60 segundos (1 minuto)
+
+def invalidate_lightlock_cache(user_id=None):
+    """Invalida o cache do LightLock para um usuario ou todos."""
+    global _LIGHTLOCK_METRICS_CACHE
+    with _LIGHTLOCK_METRICS_CACHE_LOCK:
+        if user_id is None:
+            _LIGHTLOCK_METRICS_CACHE.clear()
+        else:
+            keys_to_del = [k for k in _LIGHTLOCK_METRICS_CACHE.keys() if k[0] == user_id]
+            for k in keys_to_del:
+                _LIGHTLOCK_METRICS_CACHE.pop(k, None)
+
+def get_cached_lightlock_metrics(user_id, period='today', start_date='', end_date='', force_refresh=False):
+    """
+    Cache em memoria com TTL de 60 segundos (1 minuto) para o endpoint do LightLock.
+    A cada novo minuto, os numeros sao recalculados automaticamente com os dados mais recentes do banco.
+    """
+    now_time = time.time()
+    cache_key = (user_id, period, start_date, end_date)
+    
+    if not force_refresh:
+        with _LIGHTLOCK_METRICS_CACHE_LOCK:
+            cached = _LIGHTLOCK_METRICS_CACHE.get(cache_key)
+            if cached and now_time < cached['expires_at']:
+                return cached['data'], cached['raw_metrics']
+
+    # Recalcula do banco de dados
+    metrics = calculate_financial_metrics(user_id, period=period, start_date=start_date, end_date=end_date)
+    
+    # Horario de Brasilia (UTC-3)
+    tz_brasilia = timezone(timedelta(hours=-3))
+    now_brasilia = datetime.now(tz_brasilia)
+    updated_at_str = now_brasilia.strftime('%Y-%m-%dT%H:%M:%S-03:00')
+    
+    # Formato exato do JSON de resposta para o LightLock:
+    data_payload = {
+        "roi": round(float(metrics.get('roi', 0.0)), 2),
+        "faturamento_bruto": round(float(metrics.get('gross_revenue', 0.0)), 2),
+        "faturamento_liquido": round(float(metrics.get('net_revenue', 0.0)), 2),
+        "investimento": round(float(metrics.get('investment', 0.0)), 2),
+        "lucro": round(float(metrics.get('profit', 0.0)), 2),
+        "quantidade_vendas": int(metrics.get('sales_count', 0)),
+        "updated_at": updated_at_str
+    }
+    
+    with _LIGHTLOCK_METRICS_CACHE_LOCK:
+        _LIGHTLOCK_METRICS_CACHE[cache_key] = {
+            'data': data_payload,
+            'raw_metrics': metrics,
+            'expires_at': now_time + LIGHTLOCK_CACHE_TTL
+        }
+        
+    return data_payload, metrics
+
+
 # ==================== WEB PUSH (VAPID) & MOBILE NOTIFICATIONS ====================
 VAPID_PRIVATE_PEM = """-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgFqdh8DJVGl1i8MMa
@@ -2476,7 +2547,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
 
         # ==================== LIGHTLOCK / LOCKSTUDIO METRICS API ====================
         if path in ['/api/v1/metrics/summary', '/api/v1/lockscreen/summary']:
-            # 1. Extração do Token de Autenticação
+            # 1. Extracao do Token de Autenticacao
             auth_header = self.headers.get('Authorization', '')
             token = None
             if auth_header.startswith('Bearer '):
@@ -2496,7 +2567,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 self._send_json({"error": "Token inválido", "success": False, "code": "UNAUTHORIZED"}, 401)
                 return
 
-            # 2. Validação da Credencial
+            # 2. Validacao da Credencial
             conn = get_db()
             cursor = conn.cursor()
             lock_row = cursor.execute("SELECT id, user_id, active, token FROM lockstudio_integrations WHERE token = ?", (token,)).fetchone()
@@ -2530,46 +2601,58 @@ class TrackProHandler(BaseHTTPRequestHandler):
             if account_id_q.isdigit():
                 user_id = int(account_id_q)
 
-            # Período (padrão today)
+            # Periodo (padrao today)
             period = params.get('period', ['today'])[0].lower().strip()
             start_date = params.get('start_date', [''])[0].strip()
             end_date = params.get('end_date', [''])[0].strip()
+            fmt = params.get('format', [''])[0].lower().strip()
 
-            metrics = calculate_financial_metrics(user_id, period=period, start_date=start_date, end_date=end_date)
-            now_iso = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-03:00')
-            utc_now_iso = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            # Cache em memoria com TTL de 60 segundos (1 minuto) recalculado a cada minuto
+            flat_data, raw_metrics = get_cached_lightlock_metrics(user_id, period=period, start_date=start_date, end_date=end_date)
 
-            response_payload = {
-                "success": True,
-                "data": {
-                    "roi": metrics['roi'],
-                    "net_revenue": metrics['net_revenue'],
-                    "gross_revenue": metrics['gross_revenue'],
-                    "ad_spend": metrics['investment'],
-                    "profit": metrics['profit'],
-                    "sales_count": metrics['sales_count'],
-                    "conversion_rate": metrics.get('conversion_rate', 0.0),
-                    "currency": "BRL",
-                    "updated_at": utc_now_iso,
-                    # Campos adicionais para compatibilidade retroativa
-                    "investment": metrics['investment'],
-                    "roas": metrics['roas'],
-                    "average_ticket": metrics['average_ticket'],
-                    "pending_sales_count": metrics['pending_sales_count'],
-                    "pending_revenue": metrics['pending_revenue']
-                },
-                "meta": {
-                    "currency": "BRL",
-                    "timezone": "America/Sao_Paulo",
-                    "generated_at": now_iso,
-                    "period": period,
-                    "date_range": metrics['date_range'],
-                    "account_id": f"account_{user_id}"
+            # Resposta JSON:
+            # /api/v1/metrics/summary retorna exatamente o formato JSON solicitado pelo LightLock
+            if path == '/api/v1/metrics/summary' and fmt != 'envelope':
+                response_payload = flat_data
+            else:
+                # Envelope com metadados para /api/v1/lockscreen/summary ou format=envelope
+                response_payload = {
+                    "success": True,
+                    "data": {
+                        "roi": flat_data['roi'],
+                        "faturamento_bruto": flat_data['faturamento_bruto'],
+                        "faturamento_liquido": flat_data['faturamento_liquido'],
+                        "investimento": flat_data['investimento'],
+                        "lucro": flat_data['lucro'],
+                        "quantidade_vendas": flat_data['quantidade_vendas'],
+                        "updated_at": flat_data['updated_at'],
+                        "net_revenue": flat_data['faturamento_liquido'],
+                        "gross_revenue": flat_data['faturamento_bruto'],
+                        "ad_spend": flat_data['investimento'],
+                        "investment": flat_data['investimento'],
+                        "profit": flat_data['lucro'],
+                        "sales_count": flat_data['quantidade_vendas'],
+                        "conversion_rate": raw_metrics.get('conversion_rate', 0.0),
+                        "currency": "BRL",
+                        "roas": raw_metrics.get('roas', 0.0),
+                        "average_ticket": raw_metrics.get('average_ticket', 0.0),
+                        "pending_sales_count": raw_metrics.get('pending_sales_count', 0),
+                        "pending_revenue": raw_metrics.get('pending_revenue', 0.0)
+                    },
+                    "meta": {
+                        "currency": "BRL",
+                        "timezone": "America/Sao_Paulo",
+                        "generated_at": flat_data['updated_at'],
+                        "period": period,
+                        "date_range": raw_metrics['date_range'],
+                        "account_id": f"account_{user_id}",
+                        "cache_ttl": 60
+                    }
                 }
-            }
 
             self._send_json(response_payload, 200)
             return
+
 
         # Status e Gerenciamento da Integração LockStudio (GET)
         if path == '/api/integrations/lockstudio':

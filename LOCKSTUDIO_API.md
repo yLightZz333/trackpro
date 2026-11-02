@@ -90,38 +90,62 @@ Retorna o resumo consolidado de indicadores para alimentar os widgets da tela de
 
 ## 5. Contrato de Resposta (JSON)
 
-### Exemplo de Resposta de Sucesso (HTTP 200 OK)
+### Formato Padrão do LightLock (`GET /api/v1/metrics/summary`)
+*Atualização minuto a minuto via cache em memória (TTL: 60s) com fuso de Brasília (UTC-3) e resposta em milissegundos (< 2.0s):*
+
+```json
+{
+  "roi": 3.45,
+  "faturamento_bruto": 12500.00,
+  "faturamento_liquido": 9800.00,
+  "investimento": 2800.00,
+  "lucro": 7000.00,
+  "quantidade_vendas": 87,
+  "updated_at": "2026-11-02T16:45:00-03:00"
+}
+```
+
+### Dicionário de Campos
+
+| Campo | Tipo | Unidade | Descrição | Regra de Cálculo Oficial |
+| :--- | :--- | :--- | :--- | :--- |
+| `roi` | `float` | `%` ou razão | Retorno sobre o Investimento | `((lucro / investimento) * 100.0)` *(0.0 se sem investimento)* |
+| `faturamento_bruto`| `float` | `R$` | Faturamento Bruto Aprovado | Soma do valor de todos os pedidos com status `paid` no dia (Brasília) |
+| `faturamento_liquido` | `float` | `R$` | Faturamento Líquido Real | `Faturamento Bruto - Taxas Gateway - Impostos` |
+| `investimento` | `float` | `R$` | Gasto com Anúncios (Ads) | Total investido em tráfego pago no dia |
+| `lucro` | `float` | `R$` | Lucro Real da Operação | `Faturamento Líquido - Investimento - Custos de Produto` |
+| `quantidade_vendas` | `integer`| un | Quantidade de Pedidos Aprovados | Total de pedidos únicos com status `paid` |
+| `updated_at` | `string` | ISO UTC-3| Timestamp de Atualização | Formato ISO 8601 Horário de Brasília `YYYY-MM-DDTHH:MM:SS-03:00` |
+
+### Formato Envelope Estendido (`?format=envelope` ou `/api/v1/lockscreen/summary`)
+Para retrocompatibilidade com integrações que esperam envelope com `success` e `data`:
 
 ```json
 {
   "success": true,
   "data": {
-    "roi": 312.4,
-    "net_revenue": 14280.00,
-    "gross_revenue": 18450.00,
-    "ad_spend": 4170.00,
-    "profit": 10110.00,
-    "sales_count": 142,
-    "conversion_rate": 4.8,
+    "roi": 3.45,
+    "faturamento_bruto": 12500.00,
+    "faturamento_liquido": 9800.00,
+    "investimento": 2800.00,
+    "lucro": 7000.00,
+    "quantidade_vendas": 87,
+    "updated_at": "2026-11-02T16:45:00-03:00",
+    "gross_revenue": 12500.00,
+    "net_revenue": 9800.00,
+    "ad_spend": 2800.00,
+    "profit": 7000.00,
+    "sales_count": 87,
+    "currency": "BRL"
+  },
+  "meta": {
     "currency": "BRL",
-    "updated_at": "2026-11-02T00:00:00Z"
+    "timezone": "America/Sao_Paulo",
+    "period": "today",
+    "cache_ttl": 60
   }
 }
 ```
-
-### Dicionário de Campos de `data`
-
-| Campo | Tipo | Unidade | Descrição | Regra de Cálculo Oficial |
-| :--- | :--- | :--- | :--- | :--- |
-| `roi` | `float` | `%` | Retorno sobre o Investimento | `((profit / ad_spend) * 100.0)` *(0.0 se sem investimento)* |
-| `net_revenue` | `float` | `R$` | Faturamento Líquido Real | `Faturamento Bruto - Taxas Gateway - Impostos` |
-| `gross_revenue`| `float` | `R$` | Faturamento Bruto Aprovado | Soma do valor de todos os pedidos com status `paid` no período |
-| `ad_spend` | `float` | `R$` | Gasto com Anúncios (Ads) | Total investido em campanhas de tráfego pago no período |
-| `profit` | `float` | `R$` | Lucro Real da Operação | `Faturamento Líquido - Investimento - Custos de Produto` |
-| `sales_count` | `integer`| un | Quantidade de Vendas | Total de pedidos únicos aprovados (`status = 'paid'`) |
-| `conversion_rate` | `float` | `%` | Taxa de Conversão | `(sales_count / pageviews) * 100.0` |
-| `currency` | `string` | texto | Moeda de apuração | `"BRL"` |
-| `updated_at` | `string` | ISO UTC| Timestamp da geração | Formato ISO 8601 UTC `YYYY-MM-DDTHH:MM:SSZ` |
 
 ---
 

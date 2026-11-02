@@ -8568,8 +8568,15 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
           headers: getAuthHeadersObj()
         });
         const json = await res.json();
-        if (json.success && json.data) {
-          const d = json.data;
+        const d = (json.success && json.data) ? json.data : {
+          roi: json.roi ?? 0,
+          profit: json.lucro ?? json.profit ?? 0,
+          net_revenue: json.faturamento_liquido ?? json.net_revenue ?? 0,
+          investment: json.investimento ?? json.investment ?? json.ad_spend ?? 0,
+          gross_revenue: json.faturamento_bruto ?? json.gross_revenue ?? 0,
+          sales_count: json.quantidade_vendas ?? json.sales_count ?? 0
+        };
+        if (d) {
           const roiEl = document.getElementById('widget-kpi-roi');
           if (roiEl) {
             roiEl.textContent = (d.roi >= 0 ? '+' : '') + d.roi.toFixed(1) + '%';

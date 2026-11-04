@@ -2175,10 +2175,77 @@ class TrackProHandler(BaseHTTPRequestHandler):
     }}
   }}, true);
 
-  window.TrackPro = {{
+  function sendInitiateCheckoutCustom(data) {{
+    try {{
+      var val = data && (data.value !== undefined ? data.value : (data.priceInCents ? data.priceInCents / 100 : 0));
+      var name = data && (data.content_name || data.name || data.plan_name || 'Plano');
+      var icPayload = {{
+        event_type: 'initiate_checkout',
+        utm_source: stored.utm_source,
+        utm_medium: stored.utm_medium,
+        utm_campaign: stored.utm_campaign,
+        utm_content: stored.utm_content,
+        utm_term: stored.utm_term,
+        src: stored.src,
+        sck: stored.sck,
+        fbc: stored.fbc || fbc,
+        fbp: stored.fbp || fbp,
+        page_url: window.location.href,
+        content_name: name,
+        value: val,
+        currency: (data && data.currency) || 'BRL'
+      }};
+
+      if (navigator.sendBeacon) {{
+        var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
+        navigator.sendBeacon(API + '/api/tracking/event', blob);
+      }} else {{
+        fetch(API + '/api/tracking/event', {{
+          method: 'POST',
+          mode: 'cors',
+          headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
+          body: JSON.stringify(icPayload),
+          keepalive: true
+        }}).catch(function(){{}});
+      }}
+
+      if (window.fbq) {{
+        try {{
+          fbq('track', 'InitiateCheckout', {{
+            content_name: name,
+            value: val,
+            currency: (data && data.currency) || 'BRL'
+          }});
+        }} catch(e) {{}}
+      }}
+    }} catch(err) {{}}
+  }}
+
+  window.TrackPro = window.trackpro = {{
     getUtms: function() {{ return stored; }},
     getFbp: function() {{ return fbp; }},
-    getFbc: function() {{ return fbc; }}
+    getFbc: function() {{ return fbc; }},
+    getTrafficData: function() {{
+      return {{
+        utm_source: stored.utm_source || '',
+        utm_medium: stored.utm_medium || '',
+        utm_campaign: stored.utm_campaign || '',
+        utm_content: stored.utm_content || '',
+        utm_term: stored.utm_term || '',
+        src: stored.src || '',
+        sck: stored.sck || '',
+        fbc: fbc || '',
+        fbp: fbp || ''
+      }};
+    }},
+    initiateCheckout: function(data) {{
+      sendInitiateCheckoutCustom(data);
+    }},
+    track: function(eventName, data) {{
+      if (eventName === 'InitiateCheckout' || eventName === 'initiate_checkout') {{
+        sendInitiateCheckoutCustom(data);
+      }}
+    }}
   }};
 }})();"""
             self.send_response(200)

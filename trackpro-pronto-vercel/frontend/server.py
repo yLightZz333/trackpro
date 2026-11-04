@@ -666,6 +666,15 @@ def init_db():
         ('ads', 'ctr', 'REAL DEFAULT 0.0'),
         ('meta_campaign_insights', 'initiate_checkouts', 'INTEGER DEFAULT 0'),
         ('meta_campaign_insights', 'cost_per_ic_cents', 'INTEGER DEFAULT 0'),
+        ('notification_settings', 'sound_sale_approved', "TEXT DEFAULT 'kaching'"),
+        ('notification_settings', 'sound_sale_initiated', "TEXT DEFAULT 'pix'"),
+        ('notification_settings', 'sound_scheduled_summary', "TEXT DEFAULT 'bell'"),
+        ('notification_settings', 'custom_audio_sale_approved', 'TEXT'),
+        ('notification_settings', 'custom_audio_sale_initiated', 'TEXT'),
+        ('notification_settings', 'custom_audio_scheduled_summary', 'TEXT'),
+        ('notification_settings', 'custom_audio_name_sale_approved', 'TEXT'),
+        ('notification_settings', 'custom_audio_name_sale_initiated', 'TEXT'),
+        ('notification_settings', 'custom_audio_name_scheduled_summary', 'TEXT'),
     ]
     for table, col, col_type in extra_migrations:
         try:
@@ -2885,6 +2894,12 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     res['summary_hours'] = json.loads(res.get('summary_hours') or '["08:00", "12:00", "16:00", "18:00", "22:00"]')
                 except Exception:
                     res['summary_hours'] = ["08:00", "12:00", "16:00", "18:00", "22:00"]
+                if not res.get('sound_sale_approved'):
+                    res['sound_sale_approved'] = res.get('sound_type') or 'kaching'
+                if not res.get('sound_sale_initiated'):
+                    res['sound_sale_initiated'] = 'pix'
+                if not res.get('sound_scheduled_summary'):
+                    res['sound_scheduled_summary'] = 'bell'
                 self._send_json(res)
             else:
                 self._send_json({
@@ -2892,6 +2907,15 @@ class TrackProHandler(BaseHTTPRequestHandler):
                     "sound_enabled": 1,
                     "sound_type": "kaching",
                     "sound_volume": 1.0,
+                    "sound_sale_approved": "kaching",
+                    "sound_sale_initiated": "pix",
+                    "sound_scheduled_summary": "bell",
+                    "custom_audio_sale_approved": None,
+                    "custom_audio_sale_initiated": None,
+                    "custom_audio_scheduled_summary": None,
+                    "custom_audio_name_sale_approved": None,
+                    "custom_audio_name_sale_initiated": None,
+                    "custom_audio_name_scheduled_summary": None,
                     "notify_sale_approved": 1,
                     "notify_pix_generated": 1,
                     "notify_boleto_printed": 1,
@@ -3301,17 +3325,64 @@ self.addEventListener('notificationclick', (e) => {
     obs.observe(document.body || document.documentElement, {{ childList: true, subtree: true }});
   }}
 
+  var lastIcTime = 0;
   document.addEventListener('click', function(e) {{
     var target = e.target;
-    while (target && target.tagName !== 'A' && target !== document.body) {{
-      target = target.parentElement;
+    // 1. Verificacao de links com URLs de checkout
+    var aTarget = target;
+    while (aTarget && aTarget.tagName !== 'A' && aTarget !== document.body) {{
+      aTarget = aTarget.parentElement;
     }}
-    if (target && target.tagName === 'A') {{
-      var href = target.getAttribute('href');
+    if (aTarget && aTarget.tagName === 'A') {{
+      var href = aTarget.getAttribute('href');
       if (href && isCheckoutUrl(href)) {{
         var decorated = decorateCheckoutUrl(href);
-        target.setAttribute('href', decorated);
+        aTarget.setAttribute('href', decorated);
         sendInitiateCheckoutEvent(decorated);
+        return;
+      }}
+    }}
+
+    // 2. Auto-Captura de Botoes de Compra / Checkout / Planos / CTAs (React, Lovable, WordPress, etc)
+    var btn = target;
+    while (btn && btn !== document.body) {{
+      if (btn.tagName === 'BUTTON' || btn.tagName === 'A' || btn.getAttribute('role') === 'button' || (btn.className && typeof btn.className === 'string' && /btn|button|cta|plan|pricing|checkout/i.test(btn.className))) {{
+        break;
+      }}
+      btn = btn.parentElement;
+    }}
+
+    if (btn && btn !== document.body) {{
+      var txt = (btn.innerText || btn.textContent || '').trim().toLowerCase();
+      var isCta = /comprar|adquirir|assinar|garantir|quero\\s+este|quero\\s+esse|quero\\s+o|eu\\s+quero|obter|checkout|finalizar|pagar|gerar\\s+pix|acessar|começar|escolher\\s+plano/i.test(txt);
+      var hasCtaAttr = btn.hasAttribute('data-checkout') || btn.hasAttribute('data-plan') || (btn.id && /checkout|buy|plan|comprar/i.test(btn.id));
+      var card = btn.closest ? btn.closest('.plan, .pricing, [data-plan], [class*="plan"], [class*="card"], [class*="pricing"], [class*="tier"]') : null;
+
+      if (isCta || hasCtaAttr || (card && txt.length < 40)) {{
+        var nowTime = (+new Date());
+        if (nowTime - lastIcTime > 1200) {{
+          lastIcTime = nowTime;
+          var planName = 'Plano';
+          var planVal = 0;
+          if (card) {{
+            var h = card.querySelector('h1, h2, h3, h4, .plan-title, [class*="title"], [class*="name"]');
+            if (h) planName = (h.innerText || h.textContent || '').trim();
+            var p = card.querySelector('[class*="price"], .price, [class*="valor"]');
+            if (p) {{
+              var priceTxt = (p.innerText || p.textContent || '').replace(/[^\\d,\\.]/g, '').replace(',', '.');
+              var parsedVal = parseFloat(priceTxt);
+              if (!isNaN(parsedVal)) planVal = parsedVal;
+            }}
+          }}
+          if (planName === 'Plano' && txt.length > 0 && txt.length < 50) {{
+            planName = (btn.innerText || btn.textContent || '').trim();
+          }}
+          sendInitiateCheckoutCustom({{
+            content_name: planName,
+            value: planVal,
+            currency: 'BRL'
+          }});
+        }}
       }}
     }}
   }}, true);
@@ -4863,6 +4934,16 @@ self.addEventListener('notificationclick', (e) => {
             sound_enabled = 1 if body.get('sound_enabled', True) else 0
             sound_type = body.get('sound_type', 'kaching')
             sound_volume = float(body.get('sound_volume', 1.0))
+            sound_sale_approved = body.get('sound_sale_approved', 'kaching')
+            sound_sale_initiated = body.get('sound_sale_initiated', 'pix')
+            sound_scheduled_summary = body.get('sound_scheduled_summary', 'bell')
+            custom_audio_sale_approved = body.get('custom_audio_sale_approved')
+            custom_audio_sale_initiated = body.get('custom_audio_sale_initiated')
+            custom_audio_scheduled_summary = body.get('custom_audio_scheduled_summary')
+            custom_audio_name_sale_approved = body.get('custom_audio_name_sale_approved')
+            custom_audio_name_sale_initiated = body.get('custom_audio_name_sale_initiated')
+            custom_audio_name_scheduled_summary = body.get('custom_audio_name_scheduled_summary')
+
             notify_sale = 1 if body.get('notify_sale_approved', True) else 0
             notify_pix = 1 if body.get('notify_pix_generated', True) else 0
             notify_boleto = 1 if body.get('notify_boleto_printed', True) else 0
@@ -4877,13 +4958,25 @@ self.addEventListener('notificationclick', (e) => {
             cursor.execute("""
                 INSERT INTO notification_settings (
                     user_id, sound_enabled, sound_type, sound_volume,
+                    sound_sale_approved, sound_sale_initiated, sound_scheduled_summary,
+                    custom_audio_sale_approved, custom_audio_sale_initiated, custom_audio_scheduled_summary,
+                    custom_audio_name_sale_approved, custom_audio_name_sale_initiated, custom_audio_name_scheduled_summary,
                     notify_sale_approved, notify_pix_generated, notify_boleto_printed,
                     notify_refund, notify_scheduled_summary, summary_hours, summary_tone, push_enabled, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(user_id) DO UPDATE SET
                     sound_enabled = excluded.sound_enabled,
                     sound_type = excluded.sound_type,
                     sound_volume = excluded.sound_volume,
+                    sound_sale_approved = excluded.sound_sale_approved,
+                    sound_sale_initiated = excluded.sound_sale_initiated,
+                    sound_scheduled_summary = excluded.sound_scheduled_summary,
+                    custom_audio_sale_approved = COALESCE(excluded.custom_audio_sale_approved, notification_settings.custom_audio_sale_approved),
+                    custom_audio_sale_initiated = COALESCE(excluded.custom_audio_sale_initiated, notification_settings.custom_audio_sale_initiated),
+                    custom_audio_scheduled_summary = COALESCE(excluded.custom_audio_scheduled_summary, notification_settings.custom_audio_scheduled_summary),
+                    custom_audio_name_sale_approved = COALESCE(excluded.custom_audio_name_sale_approved, notification_settings.custom_audio_name_sale_approved),
+                    custom_audio_name_sale_initiated = COALESCE(excluded.custom_audio_name_sale_initiated, notification_settings.custom_audio_name_sale_initiated),
+                    custom_audio_name_scheduled_summary = COALESCE(excluded.custom_audio_name_scheduled_summary, notification_settings.custom_audio_name_scheduled_summary),
                     notify_sale_approved = excluded.notify_sale_approved,
                     notify_pix_generated = excluded.notify_pix_generated,
                     notify_boleto_printed = excluded.notify_boleto_printed,
@@ -4893,10 +4986,51 @@ self.addEventListener('notificationclick', (e) => {
                     summary_tone = excluded.summary_tone,
                     push_enabled = excluded.push_enabled,
                     updated_at = CURRENT_TIMESTAMP
-            """, (user_id, sound_enabled, sound_type, sound_volume, notify_sale, notify_pix, notify_boleto, notify_refund, notify_scheduled, summary_hours, summary_tone, push_enabled))
+            """, (
+                user_id, sound_enabled, sound_type, sound_volume,
+                sound_sale_approved, sound_sale_initiated, sound_scheduled_summary,
+                custom_audio_sale_approved, custom_audio_sale_initiated, custom_audio_scheduled_summary,
+                custom_audio_name_sale_approved, custom_audio_name_sale_initiated, custom_audio_name_scheduled_summary,
+                notify_sale, notify_pix, notify_boleto, notify_refund, notify_scheduled,
+                summary_hours, summary_tone, push_enabled
+            ))
             conn.commit()
             conn.close()
             self._send_json({"success": True, "message": "Configurações de notificação salvas com sucesso!"})
+            return
+
+        if path in ['/api/notifications/upload-sound', '/api/notifications/upload-audio']:
+            user_id = self._get_current_user_id()
+            category = body.get('category', 'sale_approved')
+            audio_data = body.get('audio_data')
+            filename = body.get('filename')
+
+            conn = get_db()
+            cursor = conn.cursor()
+            if category == 'sale_approved':
+                cursor.execute("""
+                    UPDATE notification_settings 
+                    SET custom_audio_sale_approved = ?, custom_audio_name_sale_approved = ?,
+                        sound_sale_approved = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                """, (audio_data, filename, 'custom' if audio_data else 'kaching', user_id))
+            elif category == 'sale_initiated':
+                cursor.execute("""
+                    UPDATE notification_settings 
+                    SET custom_audio_sale_initiated = ?, custom_audio_name_sale_initiated = ?,
+                        sound_sale_initiated = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                """, (audio_data, filename, 'custom' if audio_data else 'pix', user_id))
+            elif category == 'scheduled_summary':
+                cursor.execute("""
+                    UPDATE notification_settings 
+                    SET custom_audio_scheduled_summary = ?, custom_audio_name_scheduled_summary = ?,
+                        sound_scheduled_summary = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                """, (audio_data, filename, 'custom' if audio_data else 'bell', user_id))
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "category": category, "filename": filename})
             return
 
         if path == '/api/notifications/read-all':

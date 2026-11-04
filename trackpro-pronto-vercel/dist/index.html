@@ -249,14 +249,6 @@
         </div>
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
       </button>
-
-      <button onclick="switchTab('lockstudio'); closeMobileSidebar();" id="drawer-nav-lockstudio" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
-        <div class="flex items-center gap-3">
-          <i data-lucide="smartphone" class="w-5 h-5 text-emerald-400"></i>
-          <span>LockStudio (Tela Bloqueada)</span>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">API</span>
-      </button>
       <button onclick="switchTab('milestones'); closeMobileSidebar();" id="drawer-nav-milestones" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
         <div class="flex items-center gap-3">
           <i data-lucide="award" class="w-5 h-5 text-rose-400"></i>
@@ -272,13 +264,12 @@
         </div>
         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
       </button>
-
-      <button onclick="switchTab('notifications'); closeMobileSidebar();" id="drawer-nav-notifications" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+      <button onclick="switchTab('settings'); closeMobileSidebar();" id="drawer-nav-settings" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
         <div class="flex items-center gap-3">
-          <i data-lucide="smartphone" class="w-5 h-5 text-amber-400"></i>
-          <span>Alertas no Celular (Push)</span>
+          <i data-lucide="settings" class="w-5 h-5 text-purple-400"></i>
+          <span>Configurações</span>
         </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Push</span>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Novo</span>
       </button>
 
       <div class="pt-2 border-t border-slate-800/80">
@@ -340,18 +331,18 @@
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
       </button>
-      <button onclick="switchTab('lockstudio')" id="nav-lockstudio" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <div class="flex items-center gap-3">
-          <i data-lucide="smartphone" class="w-4 h-4 text-emerald-400"></i>
-          <span>LockStudio (Celular)</span>
-        </div>
-        <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Widget</span>
-      </button>
       <button onclick="switchTab('milestones')" id="nav-milestones" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <div class="flex items-center gap-3">
           <i data-lucide="award" class="w-4 h-4 text-rose-400"></i> Metas & Conquistas
         </div>
         <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-rose-500/10 text-rose-300 border border-rose-500/20">1M</span>
+      </button>
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <div class="flex items-center gap-3">
+          <i data-lucide="settings" class="w-4 h-4 text-purple-400"></i>
+          <span>Configurações</span>
+        </div>
+        <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">Central</span>
       </button>
 
     </nav>
@@ -482,6 +473,11 @@
             <div id="header-milestone-bar" class="h-full bg-gradient-to-r from-rose-500 to-amber-500 rounded-full transition-all duration-500" style="width: 0%"></div>
           </div>
         </button>
+        <!-- Botão Configurações Topbar -->
+        <button onclick="switchTab('settings')" id="header-settings-btn" class="px-3 py-1.5 rounded-xl bg-dark-800/80 hover:bg-dark-800 border border-slate-800/90 hover:border-slate-700 transition-all text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer shadow-sm" title="Configurações & Prompt de IA">
+          <i data-lucide="settings" class="w-4 h-4 text-purple-400"></i>
+          <span class="text-xs font-bold hidden md:inline">Configurações</span>
+        </button>
 
         <!-- Menu de Perfil do Usuário (Estilo Foto 1: Nome, Usuário, Avatar Redondo com Iniciais) -->
         <div class="relative">
@@ -511,6 +507,9 @@
         </button>
       </div>
       <div class="p-1.5 space-y-0.5">
+        <button onclick="switchTab('settings'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-600/20 rounded-lg flex items-center gap-2">
+          <i data-lucide="settings" class="w-3.5 h-3.5 text-purple-400"></i> Central de Configurações
+        </button>
         <button onclick="switchTab('notifications'); closeProfileDropdown();" class="hidden md:hidden w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
           <i data-lucide="smartphone" class="w-3.5 h-3.5 text-amber-400"></i> Alertas no Celular
         </button>
@@ -1762,24 +1761,127 @@
           </div>
         </div>
 
-        <div class="bg-gradient-to-r from-purple-900/20 via-indigo-900/15 to-brand-900/20 border border-purple-500/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold shrink-0">
-              <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <!-- Card: Prompt Mestre para IA (Páginas de Vendas & Checkout Integrado) -->
+        <div class="bg-gradient-to-r from-purple-900/25 via-dark-900 to-dark-900 border border-purple-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/25 shrink-0">
+                <i data-lucide="bot" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-bold text-base text-white">Prompt Mestre para Criação de Páginas com IA</h4>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Pagar.me v5 + TrackPro</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1">Cole este prompt no Cursor, Lovable, v0, Replit, ChatGPT ou Claude para a IA criar o checkout transparente completo com modal e sincronização automática.</p>
+              </div>
             </div>
-            <div>
-              <p class="text-xs font-bold text-white">Pixel da Meta & Prompt Completo para IA (Cursor, v0, ChatGPT, Bolt)</p>
-              <p class="text-[11px] text-slate-400">Ao cadastrar seu Pixel na aba <strong class="text-slate-300">Pixels Meta</strong>, o prompt já é gerado automaticamente com os dois scripts prontos.</p>
+
+            <div class="shrink-0">
+              <button onclick="copyMasterAiPrompt()" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-brand-600 hover:from-purple-500 hover:to-brand-500 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                <span>Copiar Prompt Mestre para IA</span>
+              </button>
             </div>
           </div>
-          <button onclick="switchTab('pixels')" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0">
-            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i> Ir para Pixels Meta
-          </button>
+
+          <!-- Cards Informativos com Atalhos Rapidos -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <div class="p-3 bg-dark-950/70 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="webhook" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>Webhook Oficial (Venda Aprovada)</span>
+                </span>
+                <button onclick="copyLockStudioText('https://meutrackpro.onrender.com/api/webhook/pagarme', 'Webhook copiado!')" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Copiar
+                </button>
+              </div>
+              <code class="block text-[11px] font-mono text-purple-300 bg-dark-900/90 p-2 rounded-lg border border-slate-800 select-all overflow-x-auto">
+                https://meutrackpro.onrender.com/api/webhook/pagarme
+              </code>
+            </div>
+
+            <div class="p-3 bg-dark-950/70 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="code" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Tag Global do Script (&lt;head&gt;)</span>
+                </span>
+                <button onclick="copyLockStudioText('&lt;script src=&quot;https://meutrackpro.onrender.com/trackpro.js&quot; async&gt;&lt;/script&gt;', 'Tag do script copiada!')" class="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Copiar
+                </button>
+              </div>
+              <code class="block text-[11px] font-mono text-emerald-300 bg-dark-900/90 p-2 rounded-lg border border-slate-800 select-all overflow-x-auto">
+                &lt;script src="https://meutrackpro.onrender.com/trackpro.js" async&gt;&lt;/script&gt;
+              </code>
+            </div>
+          </div>
+
+          <!-- Accordion opcional para visualizar o prompt (oculto por padrao) -->
+          <details ontoggle="if(this.open){ const p = document.getElementById('display-master-ai-prompt'); if(p && !p.textContent) p.textContent = MASTER_AI_PROMPT; }" class="group border border-slate-800/80 rounded-xl p-3 bg-dark-950/60 transition-all">
+            <summary class="cursor-pointer font-semibold text-xs text-slate-400 hover:text-purple-400 flex items-center justify-between select-none">
+              <span class="flex items-center gap-2">
+                <i data-lucide="eye" class="w-3.5 h-3.5 text-purple-400"></i>
+                <span>Visualizar conteúdo completo do prompt (Opcional)</span>
+              </span>
+              <span class="text-xs text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div class="mt-3 pt-3 border-t border-slate-800/80 relative">
+              <pre id="display-master-ai-prompt" class="p-3.5 bg-dark-900 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap select-all leading-relaxed max-h-72 overflow-y-auto"></pre>
+              <button onclick="copyMasterAiPrompt()" class="absolute top-5 right-3 px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+              </button>
+            </div>
+          </details>
         </div>
       </section>
 
       <!-- ==================== TAB: NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ==================== -->
-      <section id="tab-notifications" class="tab-pane hidden space-y-4 md:space-y-6">
+            <!-- Compatibility anchor placeholders -->
+      <section id="tab-notifications" class="tab-pane hidden"></section>
+      <section id="tab-lockstudio" class="tab-pane hidden"></section>
+
+      <!-- ==================== TAB: CONFIGURAÇÕES & INTEGRAÇÕES ==================== -->
+            <!-- ==================== TAB: CONFIGURAÇÕES & INTEGRAÇÕES ==================== -->
+      <section id="tab-settings" class="tab-pane hidden space-y-6 max-w-7xl mx-auto">
+        <!-- Settings Header Banner -->
+        <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+          <div class="absolute -right-16 -top-16 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold mb-3">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                <span>CENTRAL DE CONFIGURAÇÕES</span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                Configurações <span class="text-slate-500 font-light">&amp;</span> <span class="text-purple-400">Preferências</span>
+              </h1>
+              <p class="text-sm text-slate-400 mt-1.5 max-w-2xl leading-relaxed">
+                Configure notificações e sons de vendas, integração com o celular (LockStudio) e taxas financeiras da sua operação.
+              </p>
+            </div>
+          </div>
+
+          <!-- Navegacao de Sub-Abas -->
+          <div class="flex items-center gap-2 mt-6 pt-6 border-t border-slate-800 overflow-x-auto pb-1">
+            <button onclick="switchSettingsSubTab('notifications')" id="subtab-btn-notifications" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-purple-600 text-white shadow-md border border-purple-500 cursor-pointer">
+              <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i> Notificações &amp; Alertas
+            </button>
+            <button onclick="switchSettingsSubTab('lockstudio')" id="subtab-btn-lockstudio" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer">
+              <i data-lucide="smartphone" class="w-4 h-4 text-emerald-400"></i> LockStudio (Celular)
+            </button>
+            <button onclick="switchSettingsSubTab('financial')" id="subtab-btn-financial" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer">
+              <i data-lucide="calculator" class="w-4 h-4 text-brand-400"></i> Taxas &amp; Financeiro
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================== SUB-ABA 2: NOTIFICACOES & ALERTAS ==================== -->
+        <div id="settings-pane-notifications" class="settings-subpane space-y-4 md:space-y-6">
+
         <!-- Banner Principal de Notificações Push Mobile -->
         <div class="bg-gradient-to-r from-amber-500/15 via-dark-900 to-dark-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1843,85 +1945,151 @@
         <!-- Grade de Configurações -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           
-          <!-- COLUNA 1: SELEÇÃO DE SOM & VOLUME -->
+          <!-- COLUNA 1: SELEÇÃO DE SOM & VOLUME (VENDA APROVADA, INICIADA & AGENDADA) -->
           <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
               <div class="flex items-center gap-2">
-                <i data-lucide="music" class="w-4 h-4 text-emerald-400"></i>
-                <h3 class="font-bold text-sm text-white">Efeito Sonoro de Venda</h3>
+                <i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
+                <h3 class="font-bold text-sm text-white">Central de Sons & Alertas</h3>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
+              <label class="relative inline-flex items-center cursor-pointer" title="Ligar / Desligar todos os sons">
                 <input type="checkbox" id="notif-sound-toggle" onchange="handleSoundToggleChange(this.checked)" checked class="sr-only peer">
                 <div class="w-9 h-5 bg-dark-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 border border-slate-700"></div>
               </label>
             </div>
 
-            <!-- Volume Slider -->
-            <div class="space-y-1.5">
+            <!-- Volume Slider Geral -->
+            <div class="space-y-1.5 bg-dark-950/60 border border-slate-800/80 rounded-xl p-3">
               <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-400 font-medium">Volume do Som</span>
+                <span class="text-slate-400 font-medium flex items-center gap-1.5">
+                  <i data-lucide="sliders" class="w-3.5 h-3.5 text-slate-500"></i>
+                  Volume dos Efeitos
+                </span>
                 <span id="volume-val-display" class="font-bold text-white font-mono">100%</span>
               </div>
-              <input type="range" id="notif-volume-slider" min="0" max="1" step="0.05" value="1.0" oninput="handleVolumeChange(this.value)" class="w-full h-1.5 bg-dark-950 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+              <input type="range" id="notif-volume-slider" min="0" max="1" step="0.05" value="1.0" oninput="handleVolumeChange(this.value)" class="w-full h-1.5 bg-dark-900 rounded-lg appearance-none cursor-pointer accent-emerald-500">
             </div>
 
-            <!-- Opções de Sons com Botão Ouvir -->
-            <div class="space-y-2 pt-1">
-              <label class="text-xs font-semibold text-slate-300">Escolha o Toque de Sucesso:</label>
-              
-              <!-- 1. Ka-Ching Clássico -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('kaching')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-kaching" value="kaching" checked class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Ka-Ching Clássico</span>
-                    <span class="text-[10px] text-slate-400 block">Caixa Registradora (Oficial UTMify)</span>
-                  </div>
+            <!-- 1. BLOCO: VENDA APROVADA (PAGO) -->
+            <div class="p-3.5 rounded-xl bg-dark-950/80 border border-emerald-500/20 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>💸 Venda Aprovada</span>
+                  </span>
+                  <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">Pago</span>
                 </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('kaching', 1.0);" class="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                </button>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="playEventSound('sale_approved', 1.0)" class="px-2 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all" title="Ouvir som configurado">
+                    <i data-lucide="play" class="w-3 h-3"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="triggerAudioUpload('sale_approved')" class="px-2 py-1 bg-dark-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all" title="Subir arquivo de áudio (.mp3, .wav)">
+                    <i data-lucide="upload" class="w-3 h-3 text-emerald-400"></i> Subir Áudio
+                  </button>
+                  <input type="file" id="audio-upload-sale_approved" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="handleCustomAudioUpload(event, 'sale_approved')">
+                </div>
               </div>
 
-              <!-- 2. Moedas Caindo -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('coins')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-coins" value="coins" class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Moedas Caindo</span>
-                    <span class="text-[10px] text-slate-400 block">Tilintar Metálico (Estilo LowTrack)</span>
-                  </div>
-                </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('coins', 1.0);" class="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <!-- Seletor de Som Venda Aprovada -->
+              <select id="sound-select-sale_approved" onchange="handleSoundSelectChange('sale_approved', this.value)" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium">
+                <option value="kaching">🔔 Ka-Ching Clássico (Caixa Registradora)</option>
+                <option value="coins">🪙 Moedas Caindo (Tilintar LowTrack)</option>
+                <option value="bell">🏆 Sino de Conquista (Moderno)</option>
+                <option value="pop">⚡ Pop Digital (Fintech)</option>
+                <option value="custom" id="opt-custom-sale_approved" disabled>📁 Áudio Personalizado (Nenhum enviado)</option>
+              </select>
+
+              <!-- Badge de Áudio Personalizado se houver -->
+              <div id="custom-badge-sale_approved" class="hidden flex items-center justify-between text-[11px] bg-emerald-950/40 border border-emerald-500/30 rounded-lg px-2.5 py-1 text-emerald-300">
+                <span class="truncate flex items-center gap-1.5">
+                  <i data-lucide="music" class="w-3 h-3"></i>
+                  <span id="custom-name-sale_approved" class="font-mono">audio.mp3</span>
+                </span>
+                <button type="button" onclick="removeCustomAudio('sale_approved')" class="text-rose-400 hover:text-rose-300 p-0.5" title="Remover áudio">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
                 </button>
               </div>
+            </div>
 
-              <!-- 3. Sino de Sucesso -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('bell')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-bell" value="bell" class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Sino de Conquista</span>
-                    <span class="text-[10px] text-slate-400 block">Chime Moderno & Elegante</span>
-                  </div>
+            <!-- 2. BLOCO: VENDA INICIADA (PIX GERADO / CHECKOUT) -->
+            <div class="p-3.5 rounded-xl bg-dark-950/80 border border-sky-500/20 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>⚡ Venda Iniciada</span>
+                  </span>
+                  <span class="text-[9px] bg-sky-500/20 text-sky-400 font-bold px-1.5 py-0.5 rounded border border-sky-500/30">PIX Gerado</span>
                 </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('bell', 1.0);" class="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                </button>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="playEventSound('sale_initiated', 1.0)" class="px-2 py-1 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all" title="Ouvir som configurado">
+                    <i data-lucide="play" class="w-3 h-3"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="triggerAudioUpload('sale_initiated')" class="px-2 py-1 bg-dark-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all" title="Subir arquivo de áudio (.mp3, .wav)">
+                    <i data-lucide="upload" class="w-3 h-3 text-sky-400"></i> Subir Áudio
+                  </button>
+                  <input type="file" id="audio-upload-sale_initiated" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="handleCustomAudioUpload(event, 'sale_initiated')">
+                </div>
               </div>
 
-              <!-- 4. Pop Digital -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('pop')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-pop" value="pop" class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Pop Digital</span>
-                    <span class="text-[10px] text-slate-400 block">Alerta Fintech Energético</span>
-                  </div>
+              <!-- Seletor de Som Venda Iniciada -->
+              <select id="sound-select-sale_initiated" onchange="handleSoundSelectChange('sale_initiated', this.value)" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 font-medium">
+                <option value="pix">⚡ PIX Suave (Confirmação)</option>
+                <option value="pop">⚡ Pop Digital (Fintech)</option>
+                <option value="kaching">🔔 Ka-Ching Clássico</option>
+                <option value="coins">🪙 Moedas Caindo</option>
+                <option value="bell">🏆 Sino de Conquista</option>
+                <option value="custom" id="opt-custom-sale_initiated" disabled>📁 Áudio Personalizado (Nenhum enviado)</option>
+              </select>
+
+              <!-- Badge de Áudio Personalizado se houver -->
+              <div id="custom-badge-sale_initiated" class="hidden flex items-center justify-between text-[11px] bg-sky-950/40 border border-sky-500/30 rounded-lg px-2.5 py-1 text-sky-300">
+                <span class="truncate flex items-center gap-1.5">
+                  <i data-lucide="music" class="w-3 h-3"></i>
+                  <span id="custom-name-sale_initiated" class="font-mono">audio.mp3</span>
+                </span>
+                <button type="button" onclick="removeCustomAudio('sale_initiated')" class="text-rose-400 hover:text-rose-300 p-0.5" title="Remover áudio">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. BLOCO: NOTIFICAÇÃO AGENDADA (RESUMO DIÁRIO) -->
+            <div class="p-3.5 rounded-xl bg-dark-950/80 border border-indigo-500/20 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>⏰ Resumo Agendado</span>
+                  </span>
+                  <span class="text-[9px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded border border-indigo-500/30">12h, 16h...</span>
                 </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('pop', 1.0);" class="p-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="playEventSound('scheduled_summary', 1.0)" class="px-2 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all" title="Ouvir som configurado">
+                    <i data-lucide="play" class="w-3 h-3"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="triggerAudioUpload('scheduled_summary')" class="px-2 py-1 bg-dark-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all" title="Subir arquivo de áudio (.mp3, .wav)">
+                    <i data-lucide="upload" class="w-3 h-3 text-indigo-400"></i> Subir Áudio
+                  </button>
+                  <input type="file" id="audio-upload-scheduled_summary" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="handleCustomAudioUpload(event, 'scheduled_summary')">
+                </div>
+              </div>
+
+              <!-- Seletor de Som Resumo Agendado -->
+              <select id="sound-select-scheduled_summary" onchange="handleSoundSelectChange('scheduled_summary', this.value)" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium">
+                <option value="bell">🏆 Sino de Conquista (Moderno)</option>
+                <option value="pop">⚡ Pop Digital (Fintech)</option>
+                <option value="kaching">🔔 Ka-Ching Clássico</option>
+                <option value="coins">🪙 Moedas Caindo</option>
+                <option value="custom" id="opt-custom-scheduled_summary" disabled>📁 Áudio Personalizado (Nenhum enviado)</option>
+              </select>
+
+              <!-- Badge de Áudio Personalizado se houver -->
+              <div id="custom-badge-scheduled_summary" class="hidden flex items-center justify-between text-[11px] bg-indigo-950/40 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-indigo-300">
+                <span class="truncate flex items-center gap-1.5">
+                  <i data-lucide="music" class="w-3 h-3"></i>
+                  <span id="custom-name-scheduled_summary" class="font-mono">audio.mp3</span>
+                </span>
+                <button type="button" onclick="removeCustomAudio('scheduled_summary')" class="text-rose-400 hover:text-rose-300 p-0.5" title="Remover áudio">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
                 </button>
               </div>
             </div>
@@ -2102,10 +2270,12 @@
             <!-- Linhas de notificações injetadas via JavaScript -->
           </div>
         </div>
-      </section>
+      
+        </div>
 
-      <!-- ==================== TAB 10: INTEGRAÇÕES - LOCKSTUDIO (TELA DE BLOQUEIO ANDROID) ==================== -->
-      <section id="tab-lockstudio" class="tab-pane hidden space-y-6 max-w-7xl mx-auto">
+        <!-- ==================== SUB-ABA 3: LOCKSTUDIO (CELULAR) ==================== -->
+        <div id="settings-pane-lockstudio" class="settings-subpane hidden space-y-6">
+
         <!-- Header Banner -->
         <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
           <div class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -2397,7 +2567,65 @@
             </div>
           </div>
         </div>
+      
+        </div>
+
+        <!-- ==================== SUB-ABA 4: TAXAS & FINANCEIRO ==================== -->
+        <div id="settings-pane-financial" class="settings-subpane hidden space-y-6">
+          <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+            <div class="flex items-center gap-3 border-b border-slate-800/80 pb-4">
+              <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-white">Parâmetros de Custos &amp; Taxas</h3>
+                <p class="text-xs text-slate-400">Usados nos cálculos oficiais de Faturamento Líquido, Lucro Real e ROI.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Taxa do Gateway (%)</label>
+                <div class="relative">
+                  <input type="number" step="0.1" id="cfg-gateway-pct-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="8.9">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Taxa Fixa Gateway (R$)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-xs text-slate-400">R$</span>
+                  <input type="number" step="0.01" id="cfg-gateway-fix-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="2.49">
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Imposto s/ Nota Fiscal (%)</label>
+                <div class="relative">
+                  <input type="number" step="0.1" id="cfg-invoice-pct-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="6.0">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Custo do Produto (%)</label>
+                <div class="relative">
+                  <input type="number" step="0.1" id="cfg-product-pct-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="0.0">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 flex justify-end">
+              <button onclick="saveFinancialSettingsFromTab()" class="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-brand-500/20 transition-all cursor-pointer">
+                <i data-lucide="check" class="w-4 h-4"></i> Salvar Taxas Financeiras
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
+
 
 
       <!-- ==================== TAB 9: METAS & CONQUISTAS (PROGRESSÃO DE 0 A 1M) ==================== -->
@@ -3748,17 +3976,164 @@
       }
     }
 
-    function selectSoundType(type) {
-      localStorage.setItem('trackpro_sound_type', type);
-      const radio = document.getElementById('sound-' + type);
-      if (radio) radio.checked = true;
-      playTrackProSound(type, 1.0);
+    // ==================== DISPATCHER DE SONS & ÁUDIOS PERSONALIZADOS ====================
+    let activeCustomAudios = {};
+
+    function playEventSound(category, customVol) {
+      const isEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      if (!isEnabled && customVol === undefined) return;
+      const vol = customVol !== undefined ? customVol : (parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0'));
+
+      let soundType = 'kaching';
+      if (category === 'sale_approved') {
+        soundType = localStorage.getItem('trackpro_sound_sale_approved') || 'kaching';
+      } else if (category === 'sale_initiated') {
+        soundType = localStorage.getItem('trackpro_sound_sale_initiated') || 'pix';
+      } else if (category === 'scheduled_summary') {
+        soundType = localStorage.getItem('trackpro_sound_scheduled_summary') || 'bell';
+      } else {
+        soundType = category || 'kaching';
+      }
+
+      if (soundType === 'custom') {
+        const customData = localStorage.getItem('trackpro_custom_audio_' + category);
+        if (customData && customData.startsWith('data:audio/')) {
+          try {
+            if (activeCustomAudios[category]) {
+              try { activeCustomAudios[category].pause(); } catch(e){}
+            }
+            const audio = new Audio(customData);
+            audio.volume = Math.min(1.0, Math.max(0.0, vol));
+            activeCustomAudios[category] = audio;
+            const p = audio.play();
+            if (p !== undefined) {
+              p.catch(err => {
+                console.warn('Playback audio customizado bloqueado ou com falha:', err);
+                const fallback = category === 'sale_initiated' ? 'pix' : (category === 'scheduled_summary' ? 'bell' : 'kaching');
+                playTrackProSound(fallback, vol);
+              });
+            }
+            return;
+          } catch(e) {
+            console.warn('Erro ao instanciar Audio customizado:', e);
+          }
+        }
+        soundType = category === 'sale_initiated' ? 'pix' : (category === 'scheduled_summary' ? 'bell' : 'kaching');
+      }
+
+      playTrackProSound(soundType, vol);
+    }
+
+    function triggerAudioUpload(category) {
+      const input = document.getElementById('audio-upload-' + category);
+      if (input) input.click();
+    }
+
+    async function handleCustomAudioUpload(event, category) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|aac|webm)$/i.test(file.name)) {
+        showToast('Por favor selecione um arquivo de áudio válido (.mp3, .wav, .ogg, .m4a)', 'error');
+        return;
+      }
+
+      if (file.size > 3.5 * 1024 * 1024) {
+        showToast('O áudio deve ter no máximo 3.5MB para resposta instantânea.', 'warning');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const base64Data = e.target.result;
+        try {
+          localStorage.setItem('trackpro_custom_audio_' + category, base64Data);
+          localStorage.setItem('trackpro_custom_audio_name_' + category, file.name);
+          localStorage.setItem('trackpro_sound_' + category, 'custom');
+
+          updateAudioSettingsUI();
+
+          try {
+            await fetch('/api/notifications/upload-sound', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ category, audio_data: base64Data, filename: file.name })
+            });
+          } catch(e) {}
+
+          saveNotificationSettingsToServer();
+
+          playEventSound(category, 1.0);
+          showToast(`Áudio "${file.name}" salvo com sucesso!`, 'success');
+        } catch(err) {
+          console.error('Erro ao processar áudio:', err);
+          showToast('Erro ao salvar áudio no navegador.', 'error');
+        }
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    async function removeCustomAudio(category) {
+      localStorage.removeItem('trackpro_custom_audio_' + category);
+      localStorage.removeItem('trackpro_custom_audio_name_' + category);
+      const defaultSound = category === 'sale_initiated' ? 'pix' : (category === 'scheduled_summary' ? 'bell' : 'kaching');
+      localStorage.setItem('trackpro_sound_' + category, defaultSound);
+
+      updateAudioSettingsUI();
+
+      try {
+        await fetch('/api/notifications/upload-sound', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category, audio_data: null, filename: null })
+        });
+      } catch(e) {}
+
+      saveNotificationSettingsToServer();
+      showToast('Áudio personalizado removido. Som padrão restaurado.', 'info');
+    }
+
+    function handleSoundSelectChange(category, val) {
+      localStorage.setItem('trackpro_sound_' + category, val);
+      playEventSound(category, 1.0);
       saveNotificationSettingsToServer();
     }
 
-    function testSelectedSound() {
-      const type = localStorage.getItem('trackpro_sound_type') || 'kaching';
-      playTrackProSound(type, 1.0);
+    function updateAudioSettingsUI() {
+      const categories = ['sale_approved', 'sale_initiated', 'scheduled_summary'];
+      categories.forEach(cat => {
+        const sel = document.getElementById('sound-select-' + cat);
+        const customOpt = document.getElementById('opt-custom-' + cat);
+        const badge = document.getElementById('custom-badge-' + cat);
+        const nameSpan = document.getElementById('custom-name-' + cat);
+
+        const customAudio = localStorage.getItem('trackpro_custom_audio_' + cat);
+        const customName = localStorage.getItem('trackpro_custom_audio_name_' + cat) || 'meu_audio.mp3';
+        const currentSound = localStorage.getItem('trackpro_sound_' + cat) || (cat === 'sale_initiated' ? 'pix' : (cat === 'scheduled_summary' ? 'bell' : 'kaching'));
+
+        if (customAudio) {
+          if (customOpt) {
+            customOpt.disabled = false;
+            customOpt.textContent = `📁 Personalizado: ${customName}`;
+          }
+          if (badge) badge.classList.remove('hidden');
+          if (nameSpan) nameSpan.textContent = customName;
+        } else {
+          if (customOpt) {
+            customOpt.disabled = true;
+            customOpt.textContent = '📁 Áudio Personalizado (Nenhum enviado)';
+          }
+          if (badge) badge.classList.add('hidden');
+        }
+
+        if (sel) {
+          sel.value = currentSound;
+        }
+      });
+      if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+      }
     }
 
     function handleVolumeChange(val) {
@@ -3766,15 +4141,16 @@
       const display = document.getElementById('volume-val-display');
       if (display) display.textContent = pct + '%';
       localStorage.setItem('trackpro_sound_volume', val);
-      playTrackProSound(null, parseFloat(val));
+      playEventSound('sale_approved', parseFloat(val));
       saveNotificationSettingsToServer();
     }
 
     function handleSoundToggleChange(checked) {
       soundEnabled = checked;
       localStorage.setItem('trackpro_sound_enabled', checked);
-      updateSoundUI();
-      if (checked) testSelectedSound();
+      if (checked) {
+        playEventSound('sale_approved', 1.0);
+      }
       saveNotificationSettingsToServer();
     }
 
@@ -3934,10 +4310,12 @@
 
     // ==================== SIMULADOR DE ALERTAS ====================
     async function simulateSaleAlert() {
+      playEventSound('sale_approved', 1.0);
       testMobilePushReal('sale');
     }
 
     async function simulatePixAlert() {
+      playEventSound('sale_initiated', 1.0);
       testMobilePushReal('pix');
     }
 
@@ -4033,7 +4411,7 @@
         const res = await fetch('/api/notifications/scheduled-summary');
         const data = await res.json();
         if (data.success) {
-          playTrackProSound('bell', 1.0);
+          playEventSound('scheduled_summary', 1.0);
           showMobileNotification(data.title, data.message, 'daily-summary');
           showToast(`🔔 ${data.title}: ${data.message}`, 'info');
           loadNotifications();
@@ -4059,7 +4437,7 @@
             const res = await fetch('/api/notifications/scheduled-summary');
             const data = await res.json();
             if (data.success) {
-              playTrackProSound('bell', 1.0);
+              playEventSound('scheduled_summary', 1.0);
               showMobileNotification(data.title, data.message, 'daily-summary');
               showToast(`📊 ${data.title}: ${data.message}`, 'info');
               loadNotifications();
@@ -4231,9 +4609,12 @@
 
     // ==================== SALVAR CONFIGURAÇÕES DE NOTIFICAÇÃO NO SERVIDOR ====================
     async function saveNotificationSettingsToServer() {
-      const soundType = localStorage.getItem('trackpro_sound_type') || 'kaching';
       const soundVol = parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0');
       const soundEn = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      const soundApproved = localStorage.getItem('trackpro_sound_sale_approved') || 'kaching';
+      const soundInitiated = localStorage.getItem('trackpro_sound_sale_initiated') || 'pix';
+      const soundScheduled = localStorage.getItem('trackpro_sound_scheduled_summary') || 'bell';
+
       const notifySale = document.getElementById('toggle-notify-sale')?.checked ?? true;
       const notifyPix = document.getElementById('toggle-notify-pix')?.checked ?? true;
       const notifyBoleto = document.getElementById('toggle-notify-boleto')?.checked ?? true;
@@ -4247,8 +4628,11 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sound_enabled: soundEn,
-            sound_type: soundType,
+            sound_type: soundApproved,
             sound_volume: soundVol,
+            sound_sale_approved: soundApproved,
+            sound_sale_initiated: soundInitiated,
+            sound_scheduled_summary: soundScheduled,
             notify_sale_approved: notifySale,
             notify_pix_generated: notifyPix,
             notify_boleto_printed: notifyBoleto,
@@ -4265,10 +4649,31 @@
       try {
         const res = await fetch('/api/notifications/settings');
         const data = await res.json();
-        if (data && data.sound_type) {
-          localStorage.setItem('trackpro_sound_type', data.sound_type);
-          const radio = document.getElementById('sound-' + data.sound_type);
-          if (radio) radio.checked = true;
+        if (data) {
+          if (data.sound_sale_approved) {
+            localStorage.setItem('trackpro_sound_sale_approved', data.sound_sale_approved);
+          } else if (data.sound_type) {
+            localStorage.setItem('trackpro_sound_sale_approved', data.sound_type);
+          }
+          if (data.sound_sale_initiated) {
+            localStorage.setItem('trackpro_sound_sale_initiated', data.sound_sale_initiated);
+          }
+          if (data.sound_scheduled_summary) {
+            localStorage.setItem('trackpro_sound_scheduled_summary', data.sound_scheduled_summary);
+          }
+
+          if (data.custom_audio_sale_approved) {
+            localStorage.setItem('trackpro_custom_audio_sale_approved', data.custom_audio_sale_approved);
+            localStorage.setItem('trackpro_custom_audio_name_sale_approved', data.custom_audio_name_sale_approved || 'audio.mp3');
+          }
+          if (data.custom_audio_sale_initiated) {
+            localStorage.setItem('trackpro_custom_audio_sale_initiated', data.custom_audio_sale_initiated);
+            localStorage.setItem('trackpro_custom_audio_name_sale_initiated', data.custom_audio_name_sale_initiated || 'audio.mp3');
+          }
+          if (data.custom_audio_scheduled_summary) {
+            localStorage.setItem('trackpro_custom_audio_scheduled_summary', data.custom_audio_scheduled_summary);
+            localStorage.setItem('trackpro_custom_audio_name_scheduled_summary', data.custom_audio_name_scheduled_summary || 'audio.mp3');
+          }
 
           if (data.sound_volume !== undefined) {
             localStorage.setItem('trackpro_sound_volume', data.sound_volume);
@@ -4315,8 +4720,12 @@
             const el = document.getElementById('toggle-scheduled-summary');
             if (el) el.checked = data.notify_scheduled_summary === 1;
           }
+
+          updateAudioSettingsUI();
         }
-      } catch (e) {}
+      } catch (err) {
+        console.error('Erro ao carregar configurações de notificação:', err);
+      }
     }
 
     // ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
@@ -5665,7 +6074,14 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
     }
 
     // ==================== NAVEGAÇÃO DE ABAS ====================
-    function switchTab(tabId) {
+            function switchTab(tabId, subtab) {
+      if (tabId === 'notifications') {
+        tabId = 'settings';
+        subtab = 'notifications';
+      } else if (tabId === 'lockstudio') {
+        tabId = 'settings';
+        subtab = 'lockstudio';
+      }
       currentTab = tabId;
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-item').forEach(el => {
@@ -5695,20 +6111,188 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       const activeDrawer = document.getElementById('drawer-nav-' + tabId);
       if (activeDrawer) activeDrawer.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-brand-500/10 text-brand-400 border border-brand-500/25';
 
-      if (tabId === 'notifications') {
-        checkMobilePushStatus();
+      if (tabId === 'settings') {
+        switchSettingsSubTab(subtab || 'notifications');
+      }
+      if (tabId === 'webhooks') {
+        const promptPre = document.getElementById('display-master-ai-prompt');
+        if (promptPre && !promptPre.textContent && typeof MASTER_AI_PROMPT !== 'undefined') {
+          promptPre.textContent = MASTER_AI_PROMPT;
+        }
       }
       if (tabId === 'milestones') {
         updateMilestonesUI();
-      }
-      if (tabId === 'lockstudio') {
-        loadLockStudioIntegration();
       }
 
       closeMobileSidebar();
       refreshData();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+const MASTER_AI_PROMPT = `# INSTRUÇÃO DE IMPLEMENTAÇÃO: RASTREAMENTO PONTA A PONTA (TRACKPRO + PAGAR.ME v5)
+
+Você é um desenvolvedor sênior fullstack. Implemente o rastreamento completo de vendas e tráfego nesta aplicação integrado nativamente à Pagar.me v5 e ao TrackPro seguindo as especificações abaixo:
+
+---
+
+### 1. SCRIPT GLOBAL NO HEAD
+No arquivo principal de layout/HTML (\`index.html\` ou \`app/layout.tsx\`), insira no \`<head>\` a tag oficial do TrackPro:
+<script src="https://meutrackpro.onrender.com/trackpro.js" async><\/script>
+
+---
+
+### 2. CAPTURA DE TRÁFEGO E SESSÃO (FRONT-END)
+Ao carregar a página inicial:
+- Capture os seguintes parâmetros da URL: \`utm_source\`, \`utm_medium\`, \`utm_campaign\`, \`utm_content\`, \`utm_term\`, \`src\`, \`sck\`, \`fbclid\`.
+- Verifique os cookies do Meta \`_fbc\` e \`_fbp\`. Caso haja \`fbclid\` na URL e \`_fbc\` ainda não exista, crie o cookie \`_fbc\` no formato padrão \`fb.1.<timestamp>.<fbclid>\`.
+- Salve todos esses dados persistidos em \`localStorage\`, \`sessionStorage\` e em um Cookie chamado \`_trackpro_traffic\` para que sobrevivam a navegações e redirecionamentos.
+
+---
+
+### 3. BOTÕES DE COMPRA E MODAL DE CHECKOUT
+Ao clicar em qualquer botão de compra ou seleção de plano na página:
+1. Abra um modal ou drawer de checkout solicitando:
+   - **Nome Completo**
+   - **WhatsApp / Celular com DDD**
+   - **E-mail**
+   - **Confirmação de E-mail** (validar se ambos coincidem)
+   - **Método de Pagamento** (PIX ou Cartão de Crédito)
+2. Dispare imediatamente o evento InitiateCheckout (IC):
+\`\`\`javascript
+// Meta Pixel nativo
+if (typeof window !== 'undefined' && window.fbq) {
+  window.fbq('track', 'InitiateCheckout', {
+    content_name: plan.name,
+    value: plan.priceInCents / 100,
+    currency: 'BRL'
+  });
+}
+// TrackPro
+if (typeof window !== 'undefined' && window.trackpro) {
+  window.trackpro.initiateCheckout({
+    content_name: plan.name,
+    value: plan.priceInCents / 100,
+    currency: 'BRL'
+  });
+}
+\`\`\`
+
+---
+
+### 4. BACK-END: CRIAÇÃO DO PEDIDO NA PAGAR.ME v5
+Na rota de criação de pedido (\`/api/create-order\` ou Edge Function), ao enviar o payload para \`POST https://api.pagar.me/core/v5/orders\`:
+- Inclua obrigatoriamente dentro de \`metadata\` todas as variáveis de tráfego capturadas:
+\`\`\`json
+"metadata": {
+  "plan_id": plan.id,
+  "sck": trafficData.sck || "",
+  "src": trafficData.src || "",
+  "utm_source": trafficData.utm_source || "",
+  "utm_medium": trafficData.utm_medium || "",
+  "utm_campaign": trafficData.utm_campaign || "",
+  "utm_content": trafficData.utm_content || "",
+  "utm_term": trafficData.utm_term || "",
+  "fbc": cookies._fbc || "",
+  "fbp": cookies._fbp || ""
+}
+\`\`\`
+- Dados do cliente no payload: nome, email, telefone celular com DDD e documento (CPF/CNPJ).
+
+---
+
+### 5. BACK-END: REPASSE DE VENDA APROVADA PARA O TRACKPRO
+Nas rotas de confirmação de pagamento (\`/api/check-order\` e \`/api/webhooks/pagarme\`):
+- Assim que o pedido tiver status confirmado como \`paid\` (ou evento de webhook \`order.paid\`):
+- Encaminhe uma requisição HTTP POST assíncrona contendo o payload original retornado pela Pagar.me para a URL do Webhook do TrackPro:
+  \`TRACKING_WEBHOOK_URL\` (padrão: \`https://meutrackpro.onrender.com/api/webhook/pagarme\`)
+- Exemplo de envio no Node.js / Next.js:
+\`\`\`javascript
+const webhookUrl = process.env.TRACKING_WEBHOOK_URL || 'https://meutrackpro.onrender.com/api/webhook/pagarme';
+fetch(webhookUrl, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(pagarmeOrderData)
+}).catch(err => console.error('Erro ao enviar webhook para TrackPro:', err));
+\`\`\``;
+
+
+    function copyMasterAiPrompt() {
+      if (typeof copyLockStudioText === 'function') {
+        copyLockStudioText(MASTER_AI_PROMPT, 'Prompt mestre copiado! Basta colar na IA da sua página de vendas.');
+      } else {
+        navigator.clipboard.writeText(MASTER_AI_PROMPT).then(() => {
+          showToast('Prompt mestre copiado! Basta colar na IA da sua página de vendas.', 'success');
+        });
+      }
+    }
+
+        function switchSettingsSubTab(subtab) {
+      if (!subtab || subtab === 'prompt-ai') subtab = 'notifications';
+      document.querySelectorAll('.settings-subtab-btn').forEach(btn => {
+        btn.className = 'settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer';
+      });
+      document.querySelectorAll('.settings-subpane').forEach(p => p.classList.add('hidden'));
+
+      const activeBtn = document.getElementById('subtab-btn-' + subtab);
+      if (activeBtn) {
+        activeBtn.className = 'settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-purple-600 text-white shadow-md border border-purple-500 cursor-pointer';
+      }
+
+      const activePane = document.getElementById('settings-pane-' + subtab);
+      if (activePane) {
+        activePane.classList.remove('hidden');
+      }
+
+      if (subtab === 'lockstudio') {
+        if (typeof loadLockStudioIntegration === 'function') loadLockStudioIntegration();
+      } else if (subtab === 'notifications') {
+        if (typeof checkMobilePushStatus === 'function') checkMobilePushStatus();
+      } else if (subtab === 'financial') {
+        if (typeof loadFinancialSettingsIntoTab === 'function') loadFinancialSettingsIntoTab();
+      }
+
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    }
+
+    async function loadFinancialSettingsIntoTab() {
+      try {
+        const res = await fetch('/api/settings/financial');
+        const data = await res.json();
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+        setVal('cfg-gateway-pct-tab', data.gateway_tax_percent);
+        setVal('cfg-gateway-fix-tab', data.gateway_fixed_fee);
+        setVal('cfg-invoice-pct-tab', data.invoice_tax_percent);
+        setVal('cfg-product-pct-tab', data.product_cost_percent);
+      } catch (e) {
+        console.error('Erro ao carregar financial settings:', e);
+      }
+    }
+
+    async function saveFinancialSettingsFromTab() {
+      const gwPct = parseFloat(document.getElementById('cfg-gateway-pct-tab')?.value || 8.9);
+      const gwFix = parseFloat(document.getElementById('cfg-gateway-fix-tab')?.value || 2.49);
+      const invPct = parseFloat(document.getElementById('cfg-invoice-pct-tab')?.value || 6.0);
+      const prodPct = parseFloat(document.getElementById('cfg-product-pct-tab')?.value || 0.0);
+
+      try {
+        const res = await fetch('/api/settings/financial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gateway_tax_percent: gwPct, gateway_fixed_fee: gwFix, invoice_tax_percent: invPct, product_cost_percent: prodPct })
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast('Taxas financeiras salvas com sucesso!', 'success');
+          refreshData();
+        } else {
+          showToast(d.error || 'Erro ao salvar taxas', 'error');
+        }
+      } catch (err) {
+        showToast('Erro ao salvar: ' + err.message, 'error');
+      }
+    }
+
+
 
     // ==================== MODAIS ====================
     function openModal(id, subtab) {
@@ -6738,10 +7322,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
               const latest = data.recentOrders[0];
               const isPix = (latest.payment_method || '').toLowerCase() === 'pix' && latest.status !== 'paid';
               if (isPix) {
-                playTrackProSound('pix', 1.0);
+                playEventSound('sale_initiated');
               } else {
-                const sound = localStorage.getItem('trackpro_sound_type') || 'kaching';
-                playTrackProSound(sound, 1.0);
+                playEventSound('sale_approved');
               }
               showSaleToast(latest);
             }
@@ -8568,8 +9151,15 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
           headers: getAuthHeadersObj()
         });
         const json = await res.json();
-        if (json.success && json.data) {
-          const d = json.data;
+        const d = (json.success && json.data) ? json.data : {
+          roi: json.roi ?? 0,
+          profit: json.lucro ?? json.profit ?? 0,
+          net_revenue: json.faturamento_liquido ?? json.net_revenue ?? 0,
+          investment: json.investimento ?? json.investment ?? json.ad_spend ?? 0,
+          gross_revenue: json.faturamento_bruto ?? json.gross_revenue ?? 0,
+          sales_count: json.quantidade_vendas ?? json.sales_count ?? 0
+        };
+        if (d) {
           const roiEl = document.getElementById('widget-kpi-roi');
           if (roiEl) {
             roiEl.textContent = (d.roi >= 0 ? '+' : '') + d.roi.toFixed(1) + '%';

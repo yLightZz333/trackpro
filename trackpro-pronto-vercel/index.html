@@ -1945,85 +1945,151 @@
         <!-- Grade de Configurações -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           
-          <!-- COLUNA 1: SELEÇÃO DE SOM & VOLUME -->
+          <!-- COLUNA 1: SELEÇÃO DE SOM & VOLUME (VENDA APROVADA, INICIADA & AGENDADA) -->
           <div class="bg-dark-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
               <div class="flex items-center gap-2">
-                <i data-lucide="music" class="w-4 h-4 text-emerald-400"></i>
-                <h3 class="font-bold text-sm text-white">Efeito Sonoro de Venda</h3>
+                <i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
+                <h3 class="font-bold text-sm text-white">Central de Sons & Alertas</h3>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
+              <label class="relative inline-flex items-center cursor-pointer" title="Ligar / Desligar todos os sons">
                 <input type="checkbox" id="notif-sound-toggle" onchange="handleSoundToggleChange(this.checked)" checked class="sr-only peer">
                 <div class="w-9 h-5 bg-dark-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 border border-slate-700"></div>
               </label>
             </div>
 
-            <!-- Volume Slider -->
-            <div class="space-y-1.5">
+            <!-- Volume Slider Geral -->
+            <div class="space-y-1.5 bg-dark-950/60 border border-slate-800/80 rounded-xl p-3">
               <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-400 font-medium">Volume do Som</span>
+                <span class="text-slate-400 font-medium flex items-center gap-1.5">
+                  <i data-lucide="sliders" class="w-3.5 h-3.5 text-slate-500"></i>
+                  Volume dos Efeitos
+                </span>
                 <span id="volume-val-display" class="font-bold text-white font-mono">100%</span>
               </div>
-              <input type="range" id="notif-volume-slider" min="0" max="1" step="0.05" value="1.0" oninput="handleVolumeChange(this.value)" class="w-full h-1.5 bg-dark-950 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+              <input type="range" id="notif-volume-slider" min="0" max="1" step="0.05" value="1.0" oninput="handleVolumeChange(this.value)" class="w-full h-1.5 bg-dark-900 rounded-lg appearance-none cursor-pointer accent-emerald-500">
             </div>
 
-            <!-- Opções de Sons com Botão Ouvir -->
-            <div class="space-y-2 pt-1">
-              <label class="text-xs font-semibold text-slate-300">Escolha o Toque de Sucesso:</label>
-              
-              <!-- 1. Ka-Ching Clássico -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('kaching')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-kaching" value="kaching" checked class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Ka-Ching Clássico</span>
-                    <span class="text-[10px] text-slate-400 block">Caixa Registradora (Oficial UTMify)</span>
-                  </div>
+            <!-- 1. BLOCO: VENDA APROVADA (PAGO) -->
+            <div class="p-3.5 rounded-xl bg-dark-950/80 border border-emerald-500/20 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>💸 Venda Aprovada</span>
+                  </span>
+                  <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">Pago</span>
                 </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('kaching', 1.0);" class="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                </button>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="playEventSound('sale_approved', 1.0)" class="px-2 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all" title="Ouvir som configurado">
+                    <i data-lucide="play" class="w-3 h-3"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="triggerAudioUpload('sale_approved')" class="px-2 py-1 bg-dark-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all" title="Subir arquivo de áudio (.mp3, .wav)">
+                    <i data-lucide="upload" class="w-3 h-3 text-emerald-400"></i> Subir Áudio
+                  </button>
+                  <input type="file" id="audio-upload-sale_approved" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="handleCustomAudioUpload(event, 'sale_approved')">
+                </div>
               </div>
 
-              <!-- 2. Moedas Caindo -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('coins')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-coins" value="coins" class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Moedas Caindo</span>
-                    <span class="text-[10px] text-slate-400 block">Tilintar Metálico (Estilo LowTrack)</span>
-                  </div>
-                </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('coins', 1.0);" class="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <!-- Seletor de Som Venda Aprovada -->
+              <select id="sound-select-sale_approved" onchange="handleSoundSelectChange('sale_approved', this.value)" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium">
+                <option value="kaching">🔔 Ka-Ching Clássico (Caixa Registradora)</option>
+                <option value="coins">🪙 Moedas Caindo (Tilintar LowTrack)</option>
+                <option value="bell">🏆 Sino de Conquista (Moderno)</option>
+                <option value="pop">⚡ Pop Digital (Fintech)</option>
+                <option value="custom" id="opt-custom-sale_approved" disabled>📁 Áudio Personalizado (Nenhum enviado)</option>
+              </select>
+
+              <!-- Badge de Áudio Personalizado se houver -->
+              <div id="custom-badge-sale_approved" class="hidden flex items-center justify-between text-[11px] bg-emerald-950/40 border border-emerald-500/30 rounded-lg px-2.5 py-1 text-emerald-300">
+                <span class="truncate flex items-center gap-1.5">
+                  <i data-lucide="music" class="w-3 h-3"></i>
+                  <span id="custom-name-sale_approved" class="font-mono">audio.mp3</span>
+                </span>
+                <button type="button" onclick="removeCustomAudio('sale_approved')" class="text-rose-400 hover:text-rose-300 p-0.5" title="Remover áudio">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
                 </button>
               </div>
+            </div>
 
-              <!-- 3. Sino de Sucesso -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('bell')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-bell" value="bell" class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Sino de Conquista</span>
-                    <span class="text-[10px] text-slate-400 block">Chime Moderno & Elegante</span>
-                  </div>
+            <!-- 2. BLOCO: VENDA INICIADA (PIX GERADO / CHECKOUT) -->
+            <div class="p-3.5 rounded-xl bg-dark-950/80 border border-sky-500/20 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>⚡ Venda Iniciada</span>
+                  </span>
+                  <span class="text-[9px] bg-sky-500/20 text-sky-400 font-bold px-1.5 py-0.5 rounded border border-sky-500/30">PIX Gerado</span>
                 </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('bell', 1.0);" class="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                </button>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="playEventSound('sale_initiated', 1.0)" class="px-2 py-1 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all" title="Ouvir som configurado">
+                    <i data-lucide="play" class="w-3 h-3"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="triggerAudioUpload('sale_initiated')" class="px-2 py-1 bg-dark-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all" title="Subir arquivo de áudio (.mp3, .wav)">
+                    <i data-lucide="upload" class="w-3 h-3 text-sky-400"></i> Subir Áudio
+                  </button>
+                  <input type="file" id="audio-upload-sale_initiated" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="handleCustomAudioUpload(event, 'sale_initiated')">
+                </div>
               </div>
 
-              <!-- 4. Pop Digital -->
-              <div class="sound-option-card flex items-center justify-between p-3 rounded-xl bg-dark-950/80 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-all" onclick="selectSoundType('pop')">
-                <div class="flex items-center gap-3">
-                  <input type="radio" name="sound_type_radio" id="sound-pop" value="pop" class="text-emerald-500 focus:ring-0">
-                  <div>
-                    <span class="font-bold text-xs text-white block">Pop Digital</span>
-                    <span class="text-[10px] text-slate-400 block">Alerta Fintech Energético</span>
-                  </div>
+              <!-- Seletor de Som Venda Iniciada -->
+              <select id="sound-select-sale_initiated" onchange="handleSoundSelectChange('sale_initiated', this.value)" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 font-medium">
+                <option value="pix">⚡ PIX Suave (Confirmação)</option>
+                <option value="pop">⚡ Pop Digital (Fintech)</option>
+                <option value="kaching">🔔 Ka-Ching Clássico</option>
+                <option value="coins">🪙 Moedas Caindo</option>
+                <option value="bell">🏆 Sino de Conquista</option>
+                <option value="custom" id="opt-custom-sale_initiated" disabled>📁 Áudio Personalizado (Nenhum enviado)</option>
+              </select>
+
+              <!-- Badge de Áudio Personalizado se houver -->
+              <div id="custom-badge-sale_initiated" class="hidden flex items-center justify-between text-[11px] bg-sky-950/40 border border-sky-500/30 rounded-lg px-2.5 py-1 text-sky-300">
+                <span class="truncate flex items-center gap-1.5">
+                  <i data-lucide="music" class="w-3 h-3"></i>
+                  <span id="custom-name-sale_initiated" class="font-mono">audio.mp3</span>
+                </span>
+                <button type="button" onclick="removeCustomAudio('sale_initiated')" class="text-rose-400 hover:text-rose-300 p-0.5" title="Remover áudio">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. BLOCO: NOTIFICAÇÃO AGENDADA (RESUMO DIÁRIO) -->
+            <div class="p-3.5 rounded-xl bg-dark-950/80 border border-indigo-500/20 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>⏰ Resumo Agendado</span>
+                  </span>
+                  <span class="text-[9px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded border border-indigo-500/30">12h, 16h...</span>
                 </div>
-                <button type="button" onclick="event.stopPropagation(); playTrackProSound('pop', 1.0);" class="p-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" title="Ouvir Demonstração">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="playEventSound('scheduled_summary', 1.0)" class="px-2 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all" title="Ouvir som configurado">
+                    <i data-lucide="play" class="w-3 h-3"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="triggerAudioUpload('scheduled_summary')" class="px-2 py-1 bg-dark-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all" title="Subir arquivo de áudio (.mp3, .wav)">
+                    <i data-lucide="upload" class="w-3 h-3 text-indigo-400"></i> Subir Áudio
+                  </button>
+                  <input type="file" id="audio-upload-scheduled_summary" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="handleCustomAudioUpload(event, 'scheduled_summary')">
+                </div>
+              </div>
+
+              <!-- Seletor de Som Resumo Agendado -->
+              <select id="sound-select-scheduled_summary" onchange="handleSoundSelectChange('scheduled_summary', this.value)" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium">
+                <option value="bell">🏆 Sino de Conquista (Moderno)</option>
+                <option value="pop">⚡ Pop Digital (Fintech)</option>
+                <option value="kaching">🔔 Ka-Ching Clássico</option>
+                <option value="coins">🪙 Moedas Caindo</option>
+                <option value="custom" id="opt-custom-scheduled_summary" disabled>📁 Áudio Personalizado (Nenhum enviado)</option>
+              </select>
+
+              <!-- Badge de Áudio Personalizado se houver -->
+              <div id="custom-badge-scheduled_summary" class="hidden flex items-center justify-between text-[11px] bg-indigo-950/40 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-indigo-300">
+                <span class="truncate flex items-center gap-1.5">
+                  <i data-lucide="music" class="w-3 h-3"></i>
+                  <span id="custom-name-scheduled_summary" class="font-mono">audio.mp3</span>
+                </span>
+                <button type="button" onclick="removeCustomAudio('scheduled_summary')" class="text-rose-400 hover:text-rose-300 p-0.5" title="Remover áudio">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
                 </button>
               </div>
             </div>
@@ -3910,17 +3976,164 @@
       }
     }
 
-    function selectSoundType(type) {
-      localStorage.setItem('trackpro_sound_type', type);
-      const radio = document.getElementById('sound-' + type);
-      if (radio) radio.checked = true;
-      playTrackProSound(type, 1.0);
+    // ==================== DISPATCHER DE SONS & ÁUDIOS PERSONALIZADOS ====================
+    let activeCustomAudios = {};
+
+    function playEventSound(category, customVol) {
+      const isEnabled = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      if (!isEnabled && customVol === undefined) return;
+      const vol = customVol !== undefined ? customVol : (parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0'));
+
+      let soundType = 'kaching';
+      if (category === 'sale_approved') {
+        soundType = localStorage.getItem('trackpro_sound_sale_approved') || 'kaching';
+      } else if (category === 'sale_initiated') {
+        soundType = localStorage.getItem('trackpro_sound_sale_initiated') || 'pix';
+      } else if (category === 'scheduled_summary') {
+        soundType = localStorage.getItem('trackpro_sound_scheduled_summary') || 'bell';
+      } else {
+        soundType = category || 'kaching';
+      }
+
+      if (soundType === 'custom') {
+        const customData = localStorage.getItem('trackpro_custom_audio_' + category);
+        if (customData && customData.startsWith('data:audio/')) {
+          try {
+            if (activeCustomAudios[category]) {
+              try { activeCustomAudios[category].pause(); } catch(e){}
+            }
+            const audio = new Audio(customData);
+            audio.volume = Math.min(1.0, Math.max(0.0, vol));
+            activeCustomAudios[category] = audio;
+            const p = audio.play();
+            if (p !== undefined) {
+              p.catch(err => {
+                console.warn('Playback audio customizado bloqueado ou com falha:', err);
+                const fallback = category === 'sale_initiated' ? 'pix' : (category === 'scheduled_summary' ? 'bell' : 'kaching');
+                playTrackProSound(fallback, vol);
+              });
+            }
+            return;
+          } catch(e) {
+            console.warn('Erro ao instanciar Audio customizado:', e);
+          }
+        }
+        soundType = category === 'sale_initiated' ? 'pix' : (category === 'scheduled_summary' ? 'bell' : 'kaching');
+      }
+
+      playTrackProSound(soundType, vol);
+    }
+
+    function triggerAudioUpload(category) {
+      const input = document.getElementById('audio-upload-' + category);
+      if (input) input.click();
+    }
+
+    async function handleCustomAudioUpload(event, category) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|aac|webm)$/i.test(file.name)) {
+        showToast('Por favor selecione um arquivo de áudio válido (.mp3, .wav, .ogg, .m4a)', 'error');
+        return;
+      }
+
+      if (file.size > 3.5 * 1024 * 1024) {
+        showToast('O áudio deve ter no máximo 3.5MB para resposta instantânea.', 'warning');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const base64Data = e.target.result;
+        try {
+          localStorage.setItem('trackpro_custom_audio_' + category, base64Data);
+          localStorage.setItem('trackpro_custom_audio_name_' + category, file.name);
+          localStorage.setItem('trackpro_sound_' + category, 'custom');
+
+          updateAudioSettingsUI();
+
+          try {
+            await fetch('/api/notifications/upload-sound', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ category, audio_data: base64Data, filename: file.name })
+            });
+          } catch(e) {}
+
+          saveNotificationSettingsToServer();
+
+          playEventSound(category, 1.0);
+          showToast(`Áudio "${file.name}" salvo com sucesso!`, 'success');
+        } catch(err) {
+          console.error('Erro ao processar áudio:', err);
+          showToast('Erro ao salvar áudio no navegador.', 'error');
+        }
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    async function removeCustomAudio(category) {
+      localStorage.removeItem('trackpro_custom_audio_' + category);
+      localStorage.removeItem('trackpro_custom_audio_name_' + category);
+      const defaultSound = category === 'sale_initiated' ? 'pix' : (category === 'scheduled_summary' ? 'bell' : 'kaching');
+      localStorage.setItem('trackpro_sound_' + category, defaultSound);
+
+      updateAudioSettingsUI();
+
+      try {
+        await fetch('/api/notifications/upload-sound', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category, audio_data: null, filename: null })
+        });
+      } catch(e) {}
+
+      saveNotificationSettingsToServer();
+      showToast('Áudio personalizado removido. Som padrão restaurado.', 'info');
+    }
+
+    function handleSoundSelectChange(category, val) {
+      localStorage.setItem('trackpro_sound_' + category, val);
+      playEventSound(category, 1.0);
       saveNotificationSettingsToServer();
     }
 
-    function testSelectedSound() {
-      const type = localStorage.getItem('trackpro_sound_type') || 'kaching';
-      playTrackProSound(type, 1.0);
+    function updateAudioSettingsUI() {
+      const categories = ['sale_approved', 'sale_initiated', 'scheduled_summary'];
+      categories.forEach(cat => {
+        const sel = document.getElementById('sound-select-' + cat);
+        const customOpt = document.getElementById('opt-custom-' + cat);
+        const badge = document.getElementById('custom-badge-' + cat);
+        const nameSpan = document.getElementById('custom-name-' + cat);
+
+        const customAudio = localStorage.getItem('trackpro_custom_audio_' + cat);
+        const customName = localStorage.getItem('trackpro_custom_audio_name_' + cat) || 'meu_audio.mp3';
+        const currentSound = localStorage.getItem('trackpro_sound_' + cat) || (cat === 'sale_initiated' ? 'pix' : (cat === 'scheduled_summary' ? 'bell' : 'kaching'));
+
+        if (customAudio) {
+          if (customOpt) {
+            customOpt.disabled = false;
+            customOpt.textContent = `📁 Personalizado: ${customName}`;
+          }
+          if (badge) badge.classList.remove('hidden');
+          if (nameSpan) nameSpan.textContent = customName;
+        } else {
+          if (customOpt) {
+            customOpt.disabled = true;
+            customOpt.textContent = '📁 Áudio Personalizado (Nenhum enviado)';
+          }
+          if (badge) badge.classList.add('hidden');
+        }
+
+        if (sel) {
+          sel.value = currentSound;
+        }
+      });
+      if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+      }
     }
 
     function handleVolumeChange(val) {
@@ -3928,15 +4141,16 @@
       const display = document.getElementById('volume-val-display');
       if (display) display.textContent = pct + '%';
       localStorage.setItem('trackpro_sound_volume', val);
-      playTrackProSound(null, parseFloat(val));
+      playEventSound('sale_approved', parseFloat(val));
       saveNotificationSettingsToServer();
     }
 
     function handleSoundToggleChange(checked) {
       soundEnabled = checked;
       localStorage.setItem('trackpro_sound_enabled', checked);
-      updateSoundUI();
-      if (checked) testSelectedSound();
+      if (checked) {
+        playEventSound('sale_approved', 1.0);
+      }
       saveNotificationSettingsToServer();
     }
 
@@ -4096,10 +4310,12 @@
 
     // ==================== SIMULADOR DE ALERTAS ====================
     async function simulateSaleAlert() {
+      playEventSound('sale_approved', 1.0);
       testMobilePushReal('sale');
     }
 
     async function simulatePixAlert() {
+      playEventSound('sale_initiated', 1.0);
       testMobilePushReal('pix');
     }
 
@@ -4195,7 +4411,7 @@
         const res = await fetch('/api/notifications/scheduled-summary');
         const data = await res.json();
         if (data.success) {
-          playTrackProSound('bell', 1.0);
+          playEventSound('scheduled_summary', 1.0);
           showMobileNotification(data.title, data.message, 'daily-summary');
           showToast(`🔔 ${data.title}: ${data.message}`, 'info');
           loadNotifications();
@@ -4221,7 +4437,7 @@
             const res = await fetch('/api/notifications/scheduled-summary');
             const data = await res.json();
             if (data.success) {
-              playTrackProSound('bell', 1.0);
+              playEventSound('scheduled_summary', 1.0);
               showMobileNotification(data.title, data.message, 'daily-summary');
               showToast(`📊 ${data.title}: ${data.message}`, 'info');
               loadNotifications();
@@ -4393,9 +4609,12 @@
 
     // ==================== SALVAR CONFIGURAÇÕES DE NOTIFICAÇÃO NO SERVIDOR ====================
     async function saveNotificationSettingsToServer() {
-      const soundType = localStorage.getItem('trackpro_sound_type') || 'kaching';
       const soundVol = parseFloat(localStorage.getItem('trackpro_sound_volume') || '1.0');
       const soundEn = localStorage.getItem('trackpro_sound_enabled') !== 'false';
+      const soundApproved = localStorage.getItem('trackpro_sound_sale_approved') || 'kaching';
+      const soundInitiated = localStorage.getItem('trackpro_sound_sale_initiated') || 'pix';
+      const soundScheduled = localStorage.getItem('trackpro_sound_scheduled_summary') || 'bell';
+
       const notifySale = document.getElementById('toggle-notify-sale')?.checked ?? true;
       const notifyPix = document.getElementById('toggle-notify-pix')?.checked ?? true;
       const notifyBoleto = document.getElementById('toggle-notify-boleto')?.checked ?? true;
@@ -4409,8 +4628,11 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sound_enabled: soundEn,
-            sound_type: soundType,
+            sound_type: soundApproved,
             sound_volume: soundVol,
+            sound_sale_approved: soundApproved,
+            sound_sale_initiated: soundInitiated,
+            sound_scheduled_summary: soundScheduled,
             notify_sale_approved: notifySale,
             notify_pix_generated: notifyPix,
             notify_boleto_printed: notifyBoleto,
@@ -4427,10 +4649,31 @@
       try {
         const res = await fetch('/api/notifications/settings');
         const data = await res.json();
-        if (data && data.sound_type) {
-          localStorage.setItem('trackpro_sound_type', data.sound_type);
-          const radio = document.getElementById('sound-' + data.sound_type);
-          if (radio) radio.checked = true;
+        if (data) {
+          if (data.sound_sale_approved) {
+            localStorage.setItem('trackpro_sound_sale_approved', data.sound_sale_approved);
+          } else if (data.sound_type) {
+            localStorage.setItem('trackpro_sound_sale_approved', data.sound_type);
+          }
+          if (data.sound_sale_initiated) {
+            localStorage.setItem('trackpro_sound_sale_initiated', data.sound_sale_initiated);
+          }
+          if (data.sound_scheduled_summary) {
+            localStorage.setItem('trackpro_sound_scheduled_summary', data.sound_scheduled_summary);
+          }
+
+          if (data.custom_audio_sale_approved) {
+            localStorage.setItem('trackpro_custom_audio_sale_approved', data.custom_audio_sale_approved);
+            localStorage.setItem('trackpro_custom_audio_name_sale_approved', data.custom_audio_name_sale_approved || 'audio.mp3');
+          }
+          if (data.custom_audio_sale_initiated) {
+            localStorage.setItem('trackpro_custom_audio_sale_initiated', data.custom_audio_sale_initiated);
+            localStorage.setItem('trackpro_custom_audio_name_sale_initiated', data.custom_audio_name_sale_initiated || 'audio.mp3');
+          }
+          if (data.custom_audio_scheduled_summary) {
+            localStorage.setItem('trackpro_custom_audio_scheduled_summary', data.custom_audio_scheduled_summary);
+            localStorage.setItem('trackpro_custom_audio_name_scheduled_summary', data.custom_audio_name_scheduled_summary || 'audio.mp3');
+          }
 
           if (data.sound_volume !== undefined) {
             localStorage.setItem('trackpro_sound_volume', data.sound_volume);
@@ -4477,8 +4720,12 @@
             const el = document.getElementById('toggle-scheduled-summary');
             if (el) el.checked = data.notify_scheduled_summary === 1;
           }
+
+          updateAudioSettingsUI();
         }
-      } catch (e) {}
+      } catch (err) {
+        console.error('Erro ao carregar configurações de notificação:', err);
+      }
     }
 
     // ==================== AUTENTICAÇÃO E PERFIS MULTI-USUÁRIO ====================
@@ -7075,10 +7322,9 @@ fetch(webhookUrl, {
               const latest = data.recentOrders[0];
               const isPix = (latest.payment_method || '').toLowerCase() === 'pix' && latest.status !== 'paid';
               if (isPix) {
-                playTrackProSound('pix', 1.0);
+                playEventSound('sale_initiated');
               } else {
-                const sound = localStorage.getItem('trackpro_sound_type') || 'kaching';
-                playTrackProSound(sound, 1.0);
+                playEventSound('sale_approved');
               }
               showSaleToast(latest);
             }

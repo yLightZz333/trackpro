@@ -280,6 +280,13 @@
         </div>
         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Push</span>
       </button>
+      <button onclick="switchTab('settings'); closeMobileSidebar();" id="drawer-nav-settings" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <div class="flex items-center gap-3">
+          <i data-lucide="settings" class="w-5 h-5 text-purple-400"></i>
+          <span>Configurações &amp; Prompt IA</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Novo</span>
+      </button>
 
       <div class="pt-2 border-t border-slate-800/80">
         <button onclick="openModal('modal-customize-dashboard'); closeMobileSidebar();" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40">
@@ -352,6 +359,13 @@
           <i data-lucide="award" class="w-4 h-4 text-rose-400"></i> Metas & Conquistas
         </div>
         <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-rose-500/10 text-rose-300 border border-rose-500/20">1M</span>
+      </button>
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <div class="flex items-center gap-3">
+          <i data-lucide="settings" class="w-4 h-4 text-purple-400"></i>
+          <span>Configurações</span>
+        </div>
+        <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">Central</span>
       </button>
 
     </nav>
@@ -482,6 +496,11 @@
             <div id="header-milestone-bar" class="h-full bg-gradient-to-r from-rose-500 to-amber-500 rounded-full transition-all duration-500" style="width: 0%"></div>
           </div>
         </button>
+        <!-- Botão Configurações Topbar -->
+        <button onclick="switchTab('settings')" id="header-settings-btn" class="px-3 py-1.5 rounded-xl bg-dark-800/80 hover:bg-dark-800 border border-slate-800/90 hover:border-slate-700 transition-all text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer shadow-sm" title="Configurações & Prompt de IA">
+          <i data-lucide="settings" class="w-4 h-4 text-purple-400"></i>
+          <span class="text-xs font-bold hidden md:inline">Configurações</span>
+        </button>
 
         <!-- Menu de Perfil do Usuário (Estilo Foto 1: Nome, Usuário, Avatar Redondo com Iniciais) -->
         <div class="relative">
@@ -511,6 +530,9 @@
         </button>
       </div>
       <div class="p-1.5 space-y-0.5">
+        <button onclick="switchTab('settings'); closeProfileDropdown();" class="w-full text-left px-3 py-2 text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-600/20 rounded-lg flex items-center gap-2">
+          <i data-lucide="settings" class="w-3.5 h-3.5 text-purple-400"></i> Central de Configurações
+        </button>
         <button onclick="switchTab('notifications'); closeProfileDropdown();" class="hidden md:hidden w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg flex items-center gap-2">
           <i data-lucide="smartphone" class="w-3.5 h-3.5 text-amber-400"></i> Alertas no Celular
         </button>
@@ -1779,7 +1801,163 @@
       </section>
 
       <!-- ==================== TAB: NOTIFICAÇÕES & SONS (UTMIFY / LOWTRACK STYLE) ==================== -->
-      <section id="tab-notifications" class="tab-pane hidden space-y-4 md:space-y-6">
+            <!-- Compatibility anchor placeholders -->
+      <section id="tab-notifications" class="tab-pane hidden"></section>
+      <section id="tab-lockstudio" class="tab-pane hidden"></section>
+
+      <!-- ==================== TAB: CONFIGURAÇÕES & INTEGRAÇÕES ==================== -->
+      <section id="tab-settings" class="tab-pane hidden space-y-6 max-w-7xl mx-auto">
+        <!-- Settings Header Banner -->
+        <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+          <div class="absolute -right-16 -top-16 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold mb-3">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                <span>CENTRAL DE CONFIGURAÇÕES</span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                Configurações <span class="text-slate-500 font-light">&amp;</span> <span class="text-purple-400">Integrações</span>
+              </h1>
+              <p class="text-sm text-slate-400 mt-1.5 max-w-2xl leading-relaxed">
+                Configure notificações e sons de vendas, tela de bloqueio (LockStudio), taxas financeiras e copie o prompt para criação de sites e checkouts com IA.
+              </p>
+            </div>
+
+            <!-- Botao de Acao Rapida no Topo -->
+            <div>
+              <button onclick="copyMasterAiPrompt()" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-brand-600 hover:from-purple-500 hover:to-brand-500 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-purple-600/30 flex items-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                <span>Copiar Prompt para IA</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Navegacao de Sub-Abas -->
+          <div class="flex items-center gap-2 mt-6 pt-6 border-t border-slate-800 overflow-x-auto pb-1">
+            <button onclick="switchSettingsSubTab('prompt-ai')" id="subtab-btn-prompt-ai" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-purple-600 text-white shadow-md border border-purple-500 cursor-pointer">
+              <i data-lucide="bot" class="w-4 h-4"></i> Prompt IA &amp; Checkout
+            </button>
+            <button onclick="switchSettingsSubTab('notifications')" id="subtab-btn-notifications" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer">
+              <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i> Notificações &amp; Alertas
+            </button>
+            <button onclick="switchSettingsSubTab('lockstudio')" id="subtab-btn-lockstudio" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer">
+              <i data-lucide="smartphone" class="w-4 h-4 text-emerald-400"></i> LockStudio (Celular)
+            </button>
+            <button onclick="switchSettingsSubTab('financial')" id="subtab-btn-financial" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer">
+              <i data-lucide="calculator" class="w-4 h-4 text-brand-400"></i> Taxas &amp; Financeiro
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================== SUB-ABA 1: PROMPT IA & CHECKOUT ==================== -->
+        <div id="settings-pane-prompt-ai" class="settings-subpane space-y-6">
+          <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/25 shrink-0">
+                  <i data-lucide="bot" class="w-7 h-7"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-extrabold text-white">Prompt de Rastreamento para IA</h2>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Pagar.me v5 + TrackPro</span>
+                  </div>
+                  <p class="text-xs text-slate-400 mt-1">
+                    Crie novas páginas de vendas ou checkouts no Lovable, v0, Replit, Cursor ou ChatGPT copiando este prompt pronto com 1 clique.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Botao Principal de Copiar -->
+              <div>
+                <button onclick="copyMasterAiPrompt()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-brand-600 hover:from-purple-500 hover:to-brand-500 text-white font-black text-sm shadow-xl shadow-purple-600/30 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+                  <i data-lucide="copy" class="w-5 h-5 text-purple-200"></i>
+                  <span>Copiar Prompt Mestre para IA</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Cards Informativos com Atalhos Rapidos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div class="p-4 bg-dark-950/70 border border-slate-800 rounded-2xl space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white flex items-center gap-2">
+                    <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i>
+                    <span>Webhook Oficial (Venda Aprovada)</span>
+                  </span>
+                  <button onclick="copyLockStudioText('https://meutrackpro.onrender.com/api/webhook/pagarme', 'Webhook copiado!')" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+                  </button>
+                </div>
+                <code class="block text-xs font-mono text-purple-300 bg-dark-900/90 p-2.5 rounded-xl border border-slate-800 select-all overflow-x-auto">
+                  https://meutrackpro.onrender.com/api/webhook/pagarme
+                </code>
+                <p class="text-[11px] text-slate-400">Variável na Vercel: <code class="text-slate-300">TRACKING_WEBHOOK_URL</code></p>
+              </div>
+
+              <div class="p-4 bg-dark-950/70 border border-slate-800 rounded-2xl space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white flex items-center gap-2">
+                    <i data-lucide="code" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Tag Global do Script (&lt;head&gt;)</span>
+                  </span>
+                  <button onclick="copyLockStudioText('&lt;script src=&quot;https://meutrackpro.onrender.com/trackpro.js&quot; async&gt;&lt;/script&gt;', 'Tag do script copiada!')" class="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+                  </button>
+                </div>
+                <code class="block text-xs font-mono text-emerald-300 bg-dark-900/90 p-2.5 rounded-xl border border-slate-800 select-all overflow-x-auto">
+                  &lt;script src="https://meutrackpro.onrender.com/trackpro.js" async&gt;&lt;/script&gt;
+                </code>
+                <p class="text-[11px] text-slate-400">Captura automática de UTMs, fbc, fbp, PageView e IC</p>
+              </div>
+            </div>
+
+            <!-- Passos de Como Usar -->
+            <div class="p-4 bg-dark-950/50 border border-slate-800/80 rounded-2xl space-y-3">
+              <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-brand-400"></i> Como funciona a criação de páginas com IA
+              </h4>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+                <div class="p-3 bg-dark-900/60 rounded-xl border border-slate-800/60">
+                  <span class="text-purple-400 font-bold block mb-1">Passo 1</span>
+                  Clique no botão <strong>Copiar Prompt Mestre para IA</strong> acima para salvar as instruções no seu teclado.
+                </div>
+                <div class="p-3 bg-dark-900/60 rounded-xl border border-slate-800/60">
+                  <span class="text-brand-400 font-bold block mb-1">Passo 2</span>
+                  Abra sua IA de preferência (Cursor, Lovable, v0, Bolt, ChatGPT ou Claude) e cole o prompt no chat.
+                </div>
+                <div class="p-3 bg-dark-900/60 rounded-xl border border-slate-800/60">
+                  <span class="text-emerald-400 font-bold block mb-1">Passo 3</span>
+                  A IA criará a página com modal pedindo Nome, WhatsApp, Email, Pix/Cartão e sincronização direta no TrackPro!
+                </div>
+              </div>
+            </div>
+
+            <!-- Accordion opcional para visualizar o prompt (oculto por padrao) -->
+            <details class="group border border-slate-800/80 rounded-2xl p-4 bg-dark-950/60 transition-all">
+              <summary class="cursor-pointer font-semibold text-xs text-slate-300 hover:text-purple-400 flex items-center justify-between select-none">
+                <span class="flex items-center gap-2">
+                  <i data-lucide="eye" class="w-4 h-4 text-purple-400"></i>
+                  <span>Visualizar conteúdo completo do prompt (Opcional)</span>
+                </span>
+                <span class="text-xs text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div class="mt-4 pt-3 border-t border-slate-800/80 relative">
+                <pre id="display-master-ai-prompt" class="p-4 bg-dark-900 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap select-all leading-relaxed max-h-80 overflow-y-auto"></pre>
+                <button onclick="copyMasterAiPrompt()" class="absolute top-5 right-3 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+                </button>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- ==================== SUB-ABA 2: NOTIFICACOES & ALERTAS ==================== -->
+        <div id="settings-pane-notifications" class="settings-subpane hidden space-y-4 md:space-y-6">
+
         <!-- Banner Principal de Notificações Push Mobile -->
         <div class="bg-gradient-to-r from-amber-500/15 via-dark-900 to-dark-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2102,10 +2280,12 @@
             <!-- Linhas de notificações injetadas via JavaScript -->
           </div>
         </div>
-      </section>
+      
+        </div>
 
-      <!-- ==================== TAB 10: INTEGRAÇÕES - LOCKSTUDIO (TELA DE BLOQUEIO ANDROID) ==================== -->
-      <section id="tab-lockstudio" class="tab-pane hidden space-y-6 max-w-7xl mx-auto">
+        <!-- ==================== SUB-ABA 3: LOCKSTUDIO (CELULAR) ==================== -->
+        <div id="settings-pane-lockstudio" class="settings-subpane hidden space-y-6">
+
         <!-- Header Banner -->
         <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
           <div class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -2397,7 +2577,65 @@
             </div>
           </div>
         </div>
+      
+        </div>
+
+        <!-- ==================== SUB-ABA 4: TAXAS & FINANCEIRO ==================== -->
+        <div id="settings-pane-financial" class="settings-subpane hidden space-y-6">
+          <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+            <div class="flex items-center gap-3 border-b border-slate-800/80 pb-4">
+              <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-white">Parâmetros de Custos &amp; Taxas</h3>
+                <p class="text-xs text-slate-400">Usados nos cálculos oficiais de Faturamento Líquido, Lucro Real e ROI.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Taxa do Gateway (%)</label>
+                <div class="relative">
+                  <input type="number" step="0.1" id="cfg-gateway-pct-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="8.9">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Taxa Fixa Gateway (R$)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-xs text-slate-400">R$</span>
+                  <input type="number" step="0.01" id="cfg-gateway-fix-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="2.49">
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Imposto s/ Nota Fiscal (%)</label>
+                <div class="relative">
+                  <input type="number" step="0.1" id="cfg-invoice-pct-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="6.0">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300">Custo do Produto (%)</label>
+                <div class="relative">
+                  <input type="number" step="0.1" id="cfg-product-pct-tab" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" value="0.0">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 flex justify-end">
+              <button onclick="saveFinancialSettingsFromTab()" class="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-brand-500/20 transition-all cursor-pointer">
+                <i data-lucide="check" class="w-4 h-4"></i> Salvar Taxas Financeiras
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
+
 
 
       <!-- ==================== TAB 9: METAS & CONQUISTAS (PROGRESSÃO DE 0 A 1M) ==================== -->
@@ -5665,7 +5903,14 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
     }
 
     // ==================== NAVEGAÇÃO DE ABAS ====================
-    function switchTab(tabId) {
+        function switchTab(tabId, subtab) {
+      if (tabId === 'notifications') {
+        tabId = 'settings';
+        subtab = 'notifications';
+      } else if (tabId === 'lockstudio') {
+        tabId = 'settings';
+        subtab = 'lockstudio';
+      }
       currentTab = tabId;
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-item').forEach(el => {
@@ -5695,20 +5940,187 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       const activeDrawer = document.getElementById('drawer-nav-' + tabId);
       if (activeDrawer) activeDrawer.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-brand-500/10 text-brand-400 border border-brand-500/25';
 
-      if (tabId === 'notifications') {
-        checkMobilePushStatus();
+      if (tabId === 'settings') {
+        switchSettingsSubTab(subtab || 'prompt-ai');
       }
       if (tabId === 'milestones') {
         updateMilestonesUI();
-      }
-      if (tabId === 'lockstudio') {
-        loadLockStudioIntegration();
       }
 
       closeMobileSidebar();
       refreshData();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+const MASTER_AI_PROMPT = `# INSTRUÇÃO DE IMPLEMENTAÇÃO: RASTREAMENTO PONTA A PONTA (TRACKPRO + PAGAR.ME v5)
+
+Você é um desenvolvedor sênior fullstack. Implemente o rastreamento completo de vendas e tráfego nesta aplicação integrado nativamente à Pagar.me v5 e ao TrackPro seguindo as especificações abaixo:
+
+---
+
+### 1. SCRIPT GLOBAL NO HEAD
+No arquivo principal de layout/HTML (\`index.html\` ou \`app/layout.tsx\`), insira no \`<head>\` a tag oficial do TrackPro:
+<script src="https://meutrackpro.onrender.com/trackpro.js" async></script>
+
+---
+
+### 2. CAPTURA DE TRÁFEGO E SESSÃO (FRONT-END)
+Ao carregar a página inicial:
+- Capture os seguintes parâmetros da URL: \`utm_source\`, \`utm_medium\`, \`utm_campaign\`, \`utm_content\`, \`utm_term\`, \`src\`, \`sck\`, \`fbclid\`.
+- Verifique os cookies do Meta \`_fbc\` e \`_fbp\`. Caso haja \`fbclid\` na URL e \`_fbc\` ainda não exista, crie o cookie \`_fbc\` no formato padrão \`fb.1.<timestamp>.<fbclid>\`.
+- Salve todos esses dados persistidos em \`localStorage\`, \`sessionStorage\` e em um Cookie chamado \`_trackpro_traffic\` para que sobrevivam a navegações e redirecionamentos.
+
+---
+
+### 3. BOTÕES DE COMPRA E MODAL DE CHECKOUT
+Ao clicar em qualquer botão de compra ou seleção de plano na página:
+1. Abra um modal ou drawer de checkout solicitando:
+   - **Nome Completo**
+   - **WhatsApp / Celular com DDD**
+   - **E-mail**
+   - **Confirmação de E-mail** (validar se ambos coincidem)
+   - **Método de Pagamento** (PIX ou Cartão de Crédito)
+2. Dispare imediatamente o evento InitiateCheckout (IC):
+\`\`\`javascript
+// Meta Pixel nativo
+if (typeof window !== 'undefined' && window.fbq) {
+  window.fbq('track', 'InitiateCheckout', {
+    content_name: plan.name,
+    value: plan.priceInCents / 100,
+    currency: 'BRL'
+  });
+}
+// TrackPro
+if (typeof window !== 'undefined' && window.trackpro) {
+  window.trackpro.initiateCheckout({
+    content_name: plan.name,
+    value: plan.priceInCents / 100,
+    currency: 'BRL'
+  });
+}
+\`\`\`
+
+---
+
+### 4. BACK-END: CRIAÇÃO DO PEDIDO NA PAGAR.ME v5
+Na rota de criação de pedido (\`/api/create-order\` ou Edge Function), ao enviar o payload para \`POST https://api.pagar.me/core/v5/orders\`:
+- Inclua obrigatoriamente dentro de \`metadata\` todas as variáveis de tráfego capturadas:
+\`\`\`json
+"metadata": {
+  "plan_id": plan.id,
+  "sck": trafficData.sck || "",
+  "src": trafficData.src || "",
+  "utm_source": trafficData.utm_source || "",
+  "utm_medium": trafficData.utm_medium || "",
+  "utm_campaign": trafficData.utm_campaign || "",
+  "utm_content": trafficData.utm_content || "",
+  "utm_term": trafficData.utm_term || "",
+  "fbc": cookies._fbc || "",
+  "fbp": cookies._fbp || ""
+}
+\`\`\`
+- Dados do cliente no payload: nome, email, telefone celular com DDD e documento (CPF/CNPJ).
+
+---
+
+### 5. BACK-END: REPASSE DE VENDA APROVADA PARA O TRACKPRO
+Nas rotas de confirmação de pagamento (\`/api/check-order\` e \`/api/webhooks/pagarme\`):
+- Assim que o pedido tiver status confirmado como \`paid\` (ou evento de webhook \`order.paid\`):
+- Encaminhe uma requisição HTTP POST assíncrona contendo o payload original retornado pela Pagar.me para a URL do Webhook do TrackPro:
+  \`TRACKING_WEBHOOK_URL\` (padrão: \`https://meutrackpro.onrender.com/api/webhook/pagarme\`)
+- Exemplo de envio no Node.js / Next.js:
+\`\`\`javascript
+const webhookUrl = process.env.TRACKING_WEBHOOK_URL || 'https://meutrackpro.onrender.com/api/webhook/pagarme';
+fetch(webhookUrl, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(pagarmeOrderData)
+}).catch(err => console.error('Erro ao enviar webhook para TrackPro:', err));
+\`\`\``;
+
+
+    function copyMasterAiPrompt() {
+      if (typeof copyLockStudioText === 'function') {
+        copyLockStudioText(MASTER_AI_PROMPT, 'Prompt mestre copiado! Basta colar na IA da sua página de vendas.');
+      } else {
+        navigator.clipboard.writeText(MASTER_AI_PROMPT).then(() => {
+          showToast('Prompt mestre copiado! Basta colar na IA da sua página de vendas.', 'success');
+        });
+      }
+    }
+
+    function switchSettingsSubTab(subtab) {
+      if (!subtab) subtab = 'prompt-ai';
+      document.querySelectorAll('.settings-subtab-btn').forEach(btn => {
+        btn.className = 'settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer';
+      });
+      document.querySelectorAll('.settings-subpane').forEach(p => p.classList.add('hidden'));
+
+      const activeBtn = document.getElementById('subtab-btn-' + subtab);
+      if (activeBtn) {
+        activeBtn.className = 'settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-purple-600 text-white shadow-md border border-purple-500 cursor-pointer';
+      }
+
+      const activePane = document.getElementById('settings-pane-' + subtab);
+      if (activePane) {
+        activePane.classList.remove('hidden');
+      }
+
+      const promptPre = document.getElementById('display-master-ai-prompt');
+      if (promptPre && !promptPre.textContent) {
+        promptPre.textContent = MASTER_AI_PROMPT;
+      }
+
+      if (subtab === 'lockstudio') {
+        if (typeof loadLockStudioIntegration === 'function') loadLockStudioIntegration();
+      } else if (subtab === 'notifications') {
+        if (typeof checkMobilePushStatus === 'function') checkMobilePushStatus();
+      } else if (subtab === 'financial') {
+        if (typeof loadFinancialSettingsIntoTab === 'function') loadFinancialSettingsIntoTab();
+      }
+
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    }
+
+    async function loadFinancialSettingsIntoTab() {
+      try {
+        const res = await fetch('/api/settings/financial');
+        const data = await res.json();
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+        setVal('cfg-gateway-pct-tab', data.gateway_tax_percent);
+        setVal('cfg-gateway-fix-tab', data.gateway_fixed_fee);
+        setVal('cfg-invoice-pct-tab', data.invoice_tax_percent);
+        setVal('cfg-product-pct-tab', data.product_cost_percent);
+      } catch (e) {
+        console.error('Erro ao carregar financial settings:', e);
+      }
+    }
+
+    async function saveFinancialSettingsFromTab() {
+      const gwPct = parseFloat(document.getElementById('cfg-gateway-pct-tab')?.value || 8.9);
+      const gwFix = parseFloat(document.getElementById('cfg-gateway-fix-tab')?.value || 2.49);
+      const invPct = parseFloat(document.getElementById('cfg-invoice-pct-tab')?.value || 6.0);
+      const prodPct = parseFloat(document.getElementById('cfg-product-pct-tab')?.value || 0.0);
+
+      try {
+        const res = await fetch('/api/settings/financial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gateway_tax_percent: gwPct, gateway_fixed_fee: gwFix, invoice_tax_percent: invPct, product_cost_percent: prodPct })
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast('Taxas financeiras salvas com sucesso!', 'success');
+          refreshData();
+        } else {
+          showToast(d.error || 'Erro ao salvar taxas', 'error');
+        }
+      } catch (err) {
+        showToast('Erro ao salvar: ' + err.message, 'error');
+      }
+    }
+
+
 
     // ==================== MODAIS ====================
     function openModal(id, subtab) {

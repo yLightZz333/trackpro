@@ -249,14 +249,6 @@
         </div>
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
       </button>
-
-      <button onclick="switchTab('lockstudio'); closeMobileSidebar();" id="drawer-nav-lockstudio" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
-        <div class="flex items-center gap-3">
-          <i data-lucide="smartphone" class="w-5 h-5 text-emerald-400"></i>
-          <span>LockStudio (Tela Bloqueada)</span>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">API</span>
-      </button>
       <button onclick="switchTab('milestones'); closeMobileSidebar();" id="drawer-nav-milestones" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
         <div class="flex items-center gap-3">
           <i data-lucide="award" class="w-5 h-5 text-rose-400"></i>
@@ -272,18 +264,10 @@
         </div>
         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
       </button>
-
-      <button onclick="switchTab('notifications'); closeMobileSidebar();" id="drawer-nav-notifications" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
-        <div class="flex items-center gap-3">
-          <i data-lucide="smartphone" class="w-5 h-5 text-amber-400"></i>
-          <span>Alertas no Celular (Push)</span>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Push</span>
-      </button>
       <button onclick="switchTab('settings'); closeMobileSidebar();" id="drawer-nav-settings" class="drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800/60">
         <div class="flex items-center gap-3">
           <i data-lucide="settings" class="w-5 h-5 text-purple-400"></i>
-          <span>Configurações &amp; Prompt IA</span>
+          <span>Configurações</span>
         </div>
         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Novo</span>
       </button>
@@ -346,13 +330,6 @@
       </button>
       <button onclick="switchTab('webhooks')" id="nav-webhooks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i> Plataformas & Webhooks
-      </button>
-      <button onclick="switchTab('lockstudio')" id="nav-lockstudio" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <div class="flex items-center gap-3">
-          <i data-lucide="smartphone" class="w-4 h-4 text-emerald-400"></i>
-          <span>LockStudio (Celular)</span>
-        </div>
-        <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Widget</span>
       </button>
       <button onclick="switchTab('milestones')" id="nav-milestones" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
         <div class="flex items-center gap-3">
@@ -1784,19 +1761,79 @@
           </div>
         </div>
 
-        <div class="bg-gradient-to-r from-purple-900/20 via-indigo-900/15 to-brand-900/20 border border-purple-500/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold shrink-0">
-              <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <!-- Card: Prompt Mestre para IA (Páginas de Vendas & Checkout Integrado) -->
+        <div class="bg-gradient-to-r from-purple-900/25 via-dark-900 to-dark-900 border border-purple-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/25 shrink-0">
+                <i data-lucide="bot" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-bold text-base text-white">Prompt Mestre para Criação de Páginas com IA</h4>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Pagar.me v5 + TrackPro</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1">Cole este prompt no Cursor, Lovable, v0, Replit, ChatGPT ou Claude para a IA criar o checkout transparente completo com modal e sincronização automática.</p>
+              </div>
             </div>
-            <div>
-              <p class="text-xs font-bold text-white">Pixel da Meta & Prompt Completo para IA (Cursor, v0, ChatGPT, Bolt)</p>
-              <p class="text-[11px] text-slate-400">Ao cadastrar seu Pixel na aba <strong class="text-slate-300">Pixels Meta</strong>, o prompt já é gerado automaticamente com os dois scripts prontos.</p>
+
+            <div class="shrink-0">
+              <button onclick="copyMasterAiPrompt()" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-brand-600 hover:from-purple-500 hover:to-brand-500 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                <span>Copiar Prompt Mestre para IA</span>
+              </button>
             </div>
           </div>
-          <button onclick="switchTab('pixels')" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0">
-            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i> Ir para Pixels Meta
-          </button>
+
+          <!-- Cards Informativos com Atalhos Rapidos -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <div class="p-3 bg-dark-950/70 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="webhook" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>Webhook Oficial (Venda Aprovada)</span>
+                </span>
+                <button onclick="copyLockStudioText('https://meutrackpro.onrender.com/api/webhook/pagarme', 'Webhook copiado!')" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Copiar
+                </button>
+              </div>
+              <code class="block text-[11px] font-mono text-purple-300 bg-dark-900/90 p-2 rounded-lg border border-slate-800 select-all overflow-x-auto">
+                https://meutrackpro.onrender.com/api/webhook/pagarme
+              </code>
+            </div>
+
+            <div class="p-3 bg-dark-950/70 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="code" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Tag Global do Script (&lt;head&gt;)</span>
+                </span>
+                <button onclick="copyLockStudioText('&lt;script src=&quot;https://meutrackpro.onrender.com/trackpro.js&quot; async&gt;&lt;/script&gt;', 'Tag do script copiada!')" class="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Copiar
+                </button>
+              </div>
+              <code class="block text-[11px] font-mono text-emerald-300 bg-dark-900/90 p-2 rounded-lg border border-slate-800 select-all overflow-x-auto">
+                &lt;script src="https://meutrackpro.onrender.com/trackpro.js" async&gt;&lt;/script&gt;
+              </code>
+            </div>
+          </div>
+
+          <!-- Accordion opcional para visualizar o prompt (oculto por padrao) -->
+          <details ontoggle="if(this.open){ const p = document.getElementById('display-master-ai-prompt'); if(p && !p.textContent) p.textContent = MASTER_AI_PROMPT; }" class="group border border-slate-800/80 rounded-xl p-3 bg-dark-950/60 transition-all">
+            <summary class="cursor-pointer font-semibold text-xs text-slate-400 hover:text-purple-400 flex items-center justify-between select-none">
+              <span class="flex items-center gap-2">
+                <i data-lucide="eye" class="w-3.5 h-3.5 text-purple-400"></i>
+                <span>Visualizar conteúdo completo do prompt (Opcional)</span>
+              </span>
+              <span class="text-xs text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div class="mt-3 pt-3 border-t border-slate-800/80 relative">
+              <pre id="display-master-ai-prompt" class="p-3.5 bg-dark-900 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap select-all leading-relaxed max-h-72 overflow-y-auto"></pre>
+              <button onclick="copyMasterAiPrompt()" class="absolute top-5 right-3 px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+              </button>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -1806,6 +1843,7 @@
       <section id="tab-lockstudio" class="tab-pane hidden"></section>
 
       <!-- ==================== TAB: CONFIGURAÇÕES & INTEGRAÇÕES ==================== -->
+            <!-- ==================== TAB: CONFIGURAÇÕES & INTEGRAÇÕES ==================== -->
       <section id="tab-settings" class="tab-pane hidden space-y-6 max-w-7xl mx-auto">
         <!-- Settings Header Banner -->
         <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
@@ -1819,28 +1857,17 @@
                 <span>CENTRAL DE CONFIGURAÇÕES</span>
               </div>
               <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-                Configurações <span class="text-slate-500 font-light">&amp;</span> <span class="text-purple-400">Integrações</span>
+                Configurações <span class="text-slate-500 font-light">&amp;</span> <span class="text-purple-400">Preferências</span>
               </h1>
               <p class="text-sm text-slate-400 mt-1.5 max-w-2xl leading-relaxed">
-                Configure notificações e sons de vendas, tela de bloqueio (LockStudio), taxas financeiras e copie o prompt para criação de sites e checkouts com IA.
+                Configure notificações e sons de vendas, integração com o celular (LockStudio) e taxas financeiras da sua operação.
               </p>
-            </div>
-
-            <!-- Botao de Acao Rapida no Topo -->
-            <div>
-              <button onclick="copyMasterAiPrompt()" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-brand-600 hover:from-purple-500 hover:to-brand-500 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-purple-600/30 flex items-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
-                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
-                <span>Copiar Prompt para IA</span>
-              </button>
             </div>
           </div>
 
           <!-- Navegacao de Sub-Abas -->
           <div class="flex items-center gap-2 mt-6 pt-6 border-t border-slate-800 overflow-x-auto pb-1">
-            <button onclick="switchSettingsSubTab('prompt-ai')" id="subtab-btn-prompt-ai" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-purple-600 text-white shadow-md border border-purple-500 cursor-pointer">
-              <i data-lucide="bot" class="w-4 h-4"></i> Prompt IA &amp; Checkout
-            </button>
-            <button onclick="switchSettingsSubTab('notifications')" id="subtab-btn-notifications" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer">
+            <button onclick="switchSettingsSubTab('notifications')" id="subtab-btn-notifications" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-purple-600 text-white shadow-md border border-purple-500 cursor-pointer">
               <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i> Notificações &amp; Alertas
             </button>
             <button onclick="switchSettingsSubTab('lockstudio')" id="subtab-btn-lockstudio" class="settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer">
@@ -1852,111 +1879,8 @@
           </div>
         </div>
 
-        <!-- ==================== SUB-ABA 1: PROMPT IA & CHECKOUT ==================== -->
-        <div id="settings-pane-prompt-ai" class="settings-subpane space-y-6">
-          <div class="bg-dark-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/25 shrink-0">
-                  <i data-lucide="bot" class="w-7 h-7"></i>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h2 class="text-xl font-extrabold text-white">Prompt de Rastreamento para IA</h2>
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Pagar.me v5 + TrackPro</span>
-                  </div>
-                  <p class="text-xs text-slate-400 mt-1">
-                    Crie novas páginas de vendas ou checkouts no Lovable, v0, Replit, Cursor ou ChatGPT copiando este prompt pronto com 1 clique.
-                  </p>
-                </div>
-              </div>
-
-              <!-- Botao Principal de Copiar -->
-              <div>
-                <button onclick="copyMasterAiPrompt()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-brand-600 hover:from-purple-500 hover:to-brand-500 text-white font-black text-sm shadow-xl shadow-purple-600/30 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
-                  <i data-lucide="copy" class="w-5 h-5 text-purple-200"></i>
-                  <span>Copiar Prompt Mestre para IA</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Cards Informativos com Atalhos Rapidos -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div class="p-4 bg-dark-950/70 border border-slate-800 rounded-2xl space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-white flex items-center gap-2">
-                    <i data-lucide="webhook" class="w-4 h-4 text-purple-400"></i>
-                    <span>Webhook Oficial (Venda Aprovada)</span>
-                  </span>
-                  <button onclick="copyLockStudioText('https://meutrackpro.onrender.com/api/webhook/pagarme', 'Webhook copiado!')" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer">
-                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
-                  </button>
-                </div>
-                <code class="block text-xs font-mono text-purple-300 bg-dark-900/90 p-2.5 rounded-xl border border-slate-800 select-all overflow-x-auto">
-                  https://meutrackpro.onrender.com/api/webhook/pagarme
-                </code>
-                <p class="text-[11px] text-slate-400">Variável na Vercel: <code class="text-slate-300">TRACKING_WEBHOOK_URL</code></p>
-              </div>
-
-              <div class="p-4 bg-dark-950/70 border border-slate-800 rounded-2xl space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-white flex items-center gap-2">
-                    <i data-lucide="code" class="w-4 h-4 text-emerald-400"></i>
-                    <span>Tag Global do Script (&lt;head&gt;)</span>
-                  </span>
-                  <button onclick="copyLockStudioText('&lt;script src=&quot;https://meutrackpro.onrender.com/trackpro.js&quot; async&gt;&lt;/script&gt;', 'Tag do script copiada!')" class="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer">
-                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
-                  </button>
-                </div>
-                <code class="block text-xs font-mono text-emerald-300 bg-dark-900/90 p-2.5 rounded-xl border border-slate-800 select-all overflow-x-auto">
-                  &lt;script src="https://meutrackpro.onrender.com/trackpro.js" async&gt;&lt;/script&gt;
-                </code>
-                <p class="text-[11px] text-slate-400">Captura automática de UTMs, fbc, fbp, PageView e IC</p>
-              </div>
-            </div>
-
-            <!-- Passos de Como Usar -->
-            <div class="p-4 bg-dark-950/50 border border-slate-800/80 rounded-2xl space-y-3">
-              <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                <i data-lucide="info" class="w-4 h-4 text-brand-400"></i> Como funciona a criação de páginas com IA
-              </h4>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
-                <div class="p-3 bg-dark-900/60 rounded-xl border border-slate-800/60">
-                  <span class="text-purple-400 font-bold block mb-1">Passo 1</span>
-                  Clique no botão <strong>Copiar Prompt Mestre para IA</strong> acima para salvar as instruções no seu teclado.
-                </div>
-                <div class="p-3 bg-dark-900/60 rounded-xl border border-slate-800/60">
-                  <span class="text-brand-400 font-bold block mb-1">Passo 2</span>
-                  Abra sua IA de preferência (Cursor, Lovable, v0, Bolt, ChatGPT ou Claude) e cole o prompt no chat.
-                </div>
-                <div class="p-3 bg-dark-900/60 rounded-xl border border-slate-800/60">
-                  <span class="text-emerald-400 font-bold block mb-1">Passo 3</span>
-                  A IA criará a página com modal pedindo Nome, WhatsApp, Email, Pix/Cartão e sincronização direta no TrackPro!
-                </div>
-              </div>
-            </div>
-
-            <!-- Accordion opcional para visualizar o prompt (oculto por padrao) -->
-            <details class="group border border-slate-800/80 rounded-2xl p-4 bg-dark-950/60 transition-all">
-              <summary class="cursor-pointer font-semibold text-xs text-slate-300 hover:text-purple-400 flex items-center justify-between select-none">
-                <span class="flex items-center gap-2">
-                  <i data-lucide="eye" class="w-4 h-4 text-purple-400"></i>
-                  <span>Visualizar conteúdo completo do prompt (Opcional)</span>
-                </span>
-                <span class="text-xs text-slate-500 group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <div class="mt-4 pt-3 border-t border-slate-800/80 relative">
-                <pre id="display-master-ai-prompt" class="p-4 bg-dark-900 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap select-all leading-relaxed max-h-80 overflow-y-auto"></pre>
-                <button onclick="copyMasterAiPrompt()" class="absolute top-5 right-3 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer">
-                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
-                </button>
-              </div>
-            </details>
-          </div>
-        </div>
-
         <!-- ==================== SUB-ABA 2: NOTIFICACOES & ALERTAS ==================== -->
-        <div id="settings-pane-notifications" class="settings-subpane hidden space-y-4 md:space-y-6">
+        <div id="settings-pane-notifications" class="settings-subpane space-y-4 md:space-y-6">
 
         <!-- Banner Principal de Notificações Push Mobile -->
         <div class="bg-gradient-to-r from-amber-500/15 via-dark-900 to-dark-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl space-y-4">
@@ -5903,7 +5827,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
     }
 
     // ==================== NAVEGAÇÃO DE ABAS ====================
-        function switchTab(tabId, subtab) {
+            function switchTab(tabId, subtab) {
       if (tabId === 'notifications') {
         tabId = 'settings';
         subtab = 'notifications';
@@ -5941,7 +5865,13 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       if (activeDrawer) activeDrawer.className = 'drawer-nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-brand-500/10 text-brand-400 border border-brand-500/25';
 
       if (tabId === 'settings') {
-        switchSettingsSubTab(subtab || 'prompt-ai');
+        switchSettingsSubTab(subtab || 'notifications');
+      }
+      if (tabId === 'webhooks') {
+        const promptPre = document.getElementById('display-master-ai-prompt');
+        if (promptPre && !promptPre.textContent && typeof MASTER_AI_PROMPT !== 'undefined') {
+          promptPre.textContent = MASTER_AI_PROMPT;
+        }
       }
       if (tabId === 'milestones') {
         updateMilestonesUI();
@@ -6049,8 +5979,8 @@ fetch(webhookUrl, {
       }
     }
 
-    function switchSettingsSubTab(subtab) {
-      if (!subtab) subtab = 'prompt-ai';
+        function switchSettingsSubTab(subtab) {
+      if (!subtab || subtab === 'prompt-ai') subtab = 'notifications';
       document.querySelectorAll('.settings-subtab-btn').forEach(btn => {
         btn.className = 'settings-subtab-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-dark-800 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700 cursor-pointer';
       });
@@ -6064,11 +5994,6 @@ fetch(webhookUrl, {
       const activePane = document.getElementById('settings-pane-' + subtab);
       if (activePane) {
         activePane.classList.remove('hidden');
-      }
-
-      const promptPre = document.getElementById('display-master-ai-prompt');
-      if (promptPre && !promptPre.textContent) {
-        promptPre.textContent = MASTER_AI_PROMPT;
       }
 
       if (subtab === 'lockstudio') {

@@ -131,7 +131,16 @@ def load_env_file():
 
 load_env_file()
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trackpro.db')
+DATA_DIR = os.environ.get('DATA_DIR')
+if not DATA_DIR:
+    if os.path.exists('/var/data') and os.access('/var/data', os.W_OK):
+        DATA_DIR = '/var/data'
+    elif os.path.exists('/data') and os.access('/data', os.W_OK):
+        DATA_DIR = '/data'
+    else:
+        DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DB_PATH = os.path.join(DATA_DIR, 'trackpro.db')
 DEMO_TOKEN = 'a8b3c4d5-e6f7-4a1b-9c8d-123456789abc'
 
 def get_db():

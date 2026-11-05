@@ -2807,8 +2807,8 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 mth = parsed_order.get('payment_method', 'pix')
 
                 if parsed_order['status'] == 'paid':
-                    sale_title = "💸 VENDA APROVADA!"
-                    sale_msg = f"Venda de R$ {pr_reais:,.2f} aprovada via {mth}! ({plt} - {c_name})".replace(',', 'X').replace('.', ',').replace('X', '.')
+                    sale_title = "Venda aprovada!"
+                    sale_msg = f"Valor: R$ {pr_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     cursor.execute("""
                         INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
                         VALUES (?, 'sale_approved', ?, ?, ?, ?)
@@ -3101,9 +3101,9 @@ self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
 self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
 self.addEventListener('push', (e) => {
-    let d = {}; try { d = e.data.json(); } catch(err) { d = { title: '💸 Venda Aprovada - TrackPro', body: e.data ? e.data.text() : '' }; }
-    e.waitUntil(self.registration.showNotification(d.title || '💸 Venda Aprovada - TrackPro', {
-        body: d.body || 'Nova notificação da sua operação!',
+    let d = {}; try { d = e.data.json(); } catch(err) { d = { title: 'Venda aprovada!', body: e.data ? e.data.text() : 'Valor: R$ 97,00' }; }
+    e.waitUntil(self.registration.showNotification(d.title || 'Venda aprovada!', {
+        body: d.body || 'Valor: R$ 97,00',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
         vibrate: [250, 100, 250, 100, 250],
@@ -4737,11 +4737,11 @@ self.addEventListener('notificationclick', (e) => {
             user_id = self._get_current_user_id() or 1
             test_type = body.get('type', 'sale')
             if test_type == 'pix':
-                title = "⚡ PIX GERADO - R$ 97,00"
-                body_msg = "PIX gerado aguardando pagamento do cliente (Kiwify)"
+                title = "PIX gerado!"
+                body_msg = "Valor: R$ 97,00"
             else:
-                title = "💸 VENDA APROVADA - R$ 197,00"
-                body_msg = "Venda de R$ 197,00 aprovada via Cartão! (Kiwify - Lucas Silva)"
+                title = "Venda aprovada!"
+                body_msg = "Valor: R$ 197,00"
 
             conn = get_db()
             cursor = conn.cursor()
@@ -5082,20 +5082,20 @@ self.addEventListener('notificationclick', (e) => {
             conn = get_db()
             cursor = conn.cursor()
             if test_type == 'pix_generated':
-                title = "⚡ PIX GERADO!"
-                msg = f"PIX de R$ {amount_reais:,.2f} gerado! Cliente: Marcos Vinicius (Aguardando pagamento)".replace(',', 'X').replace('.', ',').replace('X', '.')
+                title = "PIX gerado!"
+                msg = f"Valor: R$ {amount_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 method = 'pix'
             elif test_type == 'boleto_printed':
-                title = "📄 BOLETO IMPRESSO!"
-                msg = f"Boleto de R$ {amount_reais:,.2f} impresso! Cliente: Ana Carolina (Hotmart)".replace(',', 'X').replace('.', ',').replace('X', '.')
+                title = "Boleto impresso!"
+                msg = f"Valor: R$ {amount_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 method = 'boleto'
             elif test_type == 'refund':
-                title = "⚠️ REEMBOLSO REGISTRADO"
-                msg = f"Reembolso de R$ {amount_reais:,.2f} registrado com sucesso.".replace(',', 'X').replace('.', ',').replace('X', '.')
+                title = "Reembolso"
+                msg = f"Valor: R$ {amount_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 method = 'refund'
             else:
-                title = "💸 VENDA APROVADA!"
-                msg = f"Venda de R$ {amount_reais:,.2f} aprovada via Cartão de Crédito! (Kiwify - Lucas Silva)".replace(',', 'X').replace('.', ',').replace('X', '.')
+                title = "Venda aprovada!"
+                msg = f"Valor: R$ {amount_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 method = 'cartao'
 
             cursor.execute("""
@@ -5950,8 +5950,8 @@ self.addEventListener('notificationclick', (e) => {
                 mth = parsed_order.get('payment_method', 'cartao')
 
                 if parsed_order['status'] == 'paid':
-                    sale_title = "💸 VENDA APROVADA!"
-                    sale_msg = f"Venda de R$ {pr_reais:,.2f} aprovada via {mth}! ({plt} - {c_name})".replace(',', 'X').replace('.', ',').replace('X', '.')
+                    sale_title = "Venda aprovada!"
+                    sale_msg = f"Valor: R$ {pr_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     cursor.execute("""
                         INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
                         VALUES (?, 'sale_approved', ?, ?, ?, ?)
@@ -5962,8 +5962,8 @@ self.addEventListener('notificationclick', (e) => {
                     dispatch_telegram_alert(notif_user_id, f"💸 <b>NOVA VENDA APROVADA!</b>\n\n💰 <b>Valor:</b> R$ {pr_reais:,.2f}\n📦 <b>Plataforma:</b> {plt}\n💳 <b>Pagamento:</b> {mth}\n👤 <b>Cliente:</b> {c_name}\n🎯 <b>Campanha:</b> {tr.get('utm_campaign') or 'Orgânico'}")
                 elif parsed_order['status'] == 'waiting_payment':
                     if 'pix' in str(mth).lower():
-                        pix_title = "⚡ PIX GERADO!"
-                        pix_msg = f"PIX de R$ {pr_reais:,.2f} gerado! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.')
+                        pix_title = "PIX gerado!"
+                        pix_msg = f"Valor: R$ {pr_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                         cursor.execute("""
                             INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
                             VALUES (?, 'pix_generated', ?, ?, ?, 'pix')
@@ -5972,8 +5972,8 @@ self.addEventListener('notificationclick', (e) => {
                         dispatch_web_push(notif_user_id, pix_title, pix_msg, tag="trackpro-pix-alert", data={"amount": pr_reais, "platform": plt})
                         dispatch_telegram_alert(notif_user_id, f"⚡ <b>PIX GERADO!</b>\n\n💰 <b>Valor:</b> R$ {pr_reais:,.2f}\n📦 <b>Plataforma:</b> {plt}\n👤 <b>Cliente:</b> {c_name}")
                     elif 'boleto' in str(mth).lower():
-                        bol_title = "📄 BOLETO IMPRESSO!"
-                        bol_msg = f"Boleto de R$ {pr_reais:,.2f} impresso! Cliente: {c_name} ({plt})".replace(',', 'X').replace('.', ',').replace('X', '.')
+                        bol_title = "Boleto impresso!"
+                        bol_msg = f"Valor: R$ {pr_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                         cursor.execute("""
                             INSERT INTO notifications (user_id, type, title, message, amount_in_cents, payment_method)
                             VALUES (?, 'boleto_printed', ?, ?, ?, 'boleto')

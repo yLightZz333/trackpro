@@ -6035,9 +6035,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
       // Notificação nativa do sistema se permitido
       if ("Notification" in window && Notification.permission === "granted") {
         try {
-          new Notification("🎉 Venda Aprovada na TrackPro!", {
-            body: `R$ ${Number(order.amount).toFixed(2)} - ${order.customer} (${order.platform})`,
-            icon: '/manifest.webmanifest'
+          new Notification("Venda aprovada!", {
+            body: `Valor: R$ ${Number(order.amount).toFixed(2).replace('.', ',')}`,
+            icon: '/icon-192.png'
           });
         } catch(e){}
       }

@@ -37,9 +37,9 @@ self.addEventListener('push', (event) => {
       data = { title: 'TrackPro Alerta', body: event.data.text() };
     }
   }
-  const title = data.title || '💸 Venda Aprovada - TrackPro';
+  const title = data.title || 'Venda aprovada!';
   const options = {
-    body: data.body || 'Nova notificação da sua operação!',
+    body: data.body || 'Valor: R$ 97,00',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     vibrate: [250, 100, 250, 100, 250],

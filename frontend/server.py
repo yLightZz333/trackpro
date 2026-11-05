@@ -143,11 +143,107 @@ if not DATA_DIR:
 DB_PATH = os.path.join(DATA_DIR, 'trackpro.db')
 DEMO_TOKEN = 'a8b3c4d5-e6f7-4a1b-9c8d-123456789abc'
 
+# ==================== TURSO CLOUD SQLITE ADAPTER ====================
+class TursoRow(dict):
+    def __init__(self, cols, values):
+        super().__init__(zip(cols, values))
+        self._values = tuple(values)
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self._values[item]
+        return super().__getitem__(item)
+
+class TursoCursor:
+    def __init__(self, client):
+        self._client = client
+        self._result = None
+        self._idx = 0
+        self.lastrowid = None
+        self.rowcount = 0
+
+    def execute(self, sql, params=None):
+        sql_clean = sql.strip()
+        if sql_clean.upper().startswith('PRAGMA'):
+            return self
+        if params is None:
+            params = []
+        elif isinstance(params, (tuple, list)):
+            params = list(params)
+        self._result = self._client.execute(sql_clean, params)
+        self.lastrowid = getattr(self._result, 'last_insert_rowid', None)
+        self.rowcount = getattr(self._result, 'rows_affected', 0)
+        self._idx = 0
+        return self
+
+    def executescript(self, script):
+        statements = [stmt.strip() for stmt in script.split(';') if stmt.strip()]
+        for stmt in statements:
+            if not stmt.upper().startswith('PRAGMA'):
+                self.execute(stmt)
+        return self
+
+    def fetchone(self):
+        if not self._result or self._idx >= len(self._result.rows):
+            return None
+        raw_row = self._result.rows[self._idx]
+        self._idx += 1
+        return TursoRow(self._result.columns, raw_row)
+
+    def fetchall(self):
+        if not self._result:
+            return []
+        cols = self._result.columns
+        res_rows = [TursoRow(cols, r) for r in self._result.rows[self._idx:]]
+        self._idx = len(self._result.rows)
+        return res_rows
+
+class TursoConnection:
+    def __init__(self, url, auth_token=None):
+        from libsql_client import create_client_sync
+        clean_url = url.strip()
+        if clean_url.startswith('libsql://'):
+            clean_url = 'https://' + clean_url[len('libsql://'):]
+        self._client = create_client_sync(clean_url, auth_token=auth_token)
+
+    def cursor(self):
+        return TursoCursor(self._client)
+
+    def execute(self, sql, params=None):
+        c = self.cursor()
+        c.execute(sql, params)
+        return c
+
+    def executescript(self, script):
+        c = self.cursor()
+        c.executescript(script)
+        return c
+
+    def commit(self):
+        pass
+
+    def close(self):
+        try:
+            self._client.close()
+        except Exception:
+            pass
+
+TURSO_URL = os.environ.get('TURSO_DATABASE_URL', '').strip()
+TURSO_TOKEN = os.environ.get('TURSO_AUTH_TOKEN', '').strip()
+
 def get_db():
+    if TURSO_URL:
+        try:
+            return TursoConnection(TURSO_URL, auth_token=TURSO_TOKEN or None)
+        except Exception as _e_turso:
+            print(f"[TURSO] Erro ao conectar ao Turso Cloud: {_e_turso}. Usando SQLite local.")
+
     conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL;')
-    conn.execute('PRAGMA busy_timeout=30000;')
+    try:
+        conn.execute('PRAGMA journal_mode=WAL;')
+        conn.execute('PRAGMA busy_timeout=30000;')
+    except Exception:
+        pass
     return conn
 
 def init_db():

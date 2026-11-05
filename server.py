@@ -1572,24 +1572,24 @@ def sync_meta_system_token(token=None, user_id=1):
 
 def get_order_date_condition(period, start_date='', end_date='', col='created_at'):
     if period == 'today':
-        return f"date({col}, 'localtime') = date('now', 'localtime')", []
+        return f"(date({col}, '-3 hours') = date('now', '-3 hours') OR date({col}) = date('now', '-3 hours'))", []
     elif period == 'yesterday':
-        return f"date({col}, 'localtime') = date('now', 'localtime', '-1 day')", []
+        return f"(date({col}, '-3 hours') = date('now', '-3 hours', '-1 day') OR date({col}) = date('now', '-3 hours', '-1 day'))", []
     elif period == 'last_7_days':
-        return f"{col} >= datetime('now', 'localtime', '-7 days')", []
+        return f"(datetime({col}, '-3 hours') >= datetime('now', '-3 hours', '-7 days') OR {col} >= datetime('now', '-3 hours', '-7 days'))", []
     elif period == 'last_week':
-        return f"{col} >= datetime('now', 'localtime', '-14 days') AND {col} < datetime('now', 'localtime', '-7 days')", []
+        return f"((datetime({col}, '-3 hours') >= datetime('now', '-3 hours', '-14 days') AND datetime({col}, '-3 hours') < datetime('now', '-3 hours', '-7 days')) OR ({col} >= datetime('now', '-3 hours', '-14 days') AND {col} < datetime('now', '-3 hours', '-7 days')))", []
     elif period == 'this_month':
-        return f"strftime('%Y-%m', {col}, 'localtime') = strftime('%Y-%m', 'now', 'localtime')", []
+        return f"(strftime('%Y-%m', {col}, '-3 hours') = strftime('%Y-%m', datetime('now', '-3 hours')) OR strftime('%Y-%m', {col}) = strftime('%Y-%m', datetime('now', '-3 hours')))", []
     elif period == 'last_month':
-        return f"strftime('%Y-%m', {col}, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')", []
+        return f"(strftime('%Y-%m', {col}, '-3 hours') = strftime('%Y-%m', datetime('now', '-3 hours', '-1 month')) OR strftime('%Y-%m', {col}) = strftime('%Y-%m', datetime('now', '-3 hours', '-1 month')))", []
     elif period == 'custom':
         if start_date and end_date:
-            return f"date({col}, 'localtime') >= ? AND date({col}, 'localtime') <= ?", [start_date, end_date]
+            return f"((date({col}, '-3 hours') >= ? AND date({col}, '-3 hours') <= ?) OR (date({col}) >= ? AND date({col}) <= ?))", [start_date, end_date, start_date, end_date]
         elif start_date:
-            return f"date({col}, 'localtime') >= ?", [start_date]
+            return f"(date({col}, '-3 hours') >= ? OR date({col}) >= ?)", [start_date, start_date]
         elif end_date:
-            return f"date({col}, 'localtime') <= ?", [end_date]
+            return f"(date({col}, '-3 hours') <= ? OR date({col}) <= ?)", [end_date, end_date]
     return "", []
 
 # ==================== PARSER UNIVERSAL DE WEBHOOKS ====================
@@ -2936,7 +2936,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             row_rev = cursor.execute("""
                 SELECT COALESCE(SUM(price_in_cents), 0) as total, COUNT(*) as count 
                 FROM orders 
-                WHERE user_id = ? AND status = 'paid' AND date(created_at, 'localtime') = date('now', 'localtime')
+                WHERE user_id = ? AND status = 'paid' AND (date(created_at, '-3 hours') = date('now', '-3 hours') OR date(created_at) = date('now', '-3 hours'))
             """, (user_id,)).fetchone()
             rev_today = (row_rev['total'] or 0) / 100.0
             paid_count = row_rev['count'] or 0
@@ -3283,17 +3283,28 @@ self.addEventListener('notificationclick', (e) => {
         checkout_url: checkoutHref
       }};
 
-      if (navigator.sendBeacon) {{
-        var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
-        navigator.sendBeacon(API + '/api/tracking/event', blob);
-      }} else {{
+      try {{
         fetch(API + '/api/tracking/event', {{
           method: 'POST',
           mode: 'cors',
           headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
           body: JSON.stringify(icPayload),
           keepalive: true
-        }}).catch(function(){{}});
+        }}).catch(function() {{
+          if (navigator.sendBeacon) {{
+            try {{
+              var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
+              navigator.sendBeacon(API + '/api/tracking/event', blob);
+            }} catch(e){{}}
+          }}
+        }});
+      }} catch(e) {{
+        if (navigator.sendBeacon) {{
+          try {{
+            var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
+            navigator.sendBeacon(API + '/api/tracking/event', blob);
+          }} catch(err){{}}
+        }}
       }}
 
       // Dispara o InitiateCheckout oficial no Meta Pixel da pagina se fbq estiver presente
@@ -3354,7 +3365,7 @@ self.addEventListener('notificationclick', (e) => {
 
     if (btn && btn !== document.body) {{
       var txt = (btn.innerText || btn.textContent || '').trim().toLowerCase();
-      var isCta = /comprar|adquirir|assinar|garantir|quero\\s+este|quero\\s+esse|quero\\s+o|eu\\s+quero|obter|checkout|finalizar|pagar|gerar\\s+pix|acessar|começar|escolher\\s+plano/i.test(txt);
+      var isCta = /comprar|adquirir|assinar|garantir|quero|obter|checkout|finalizar|pagar|pix|acessar|começar|escolher|pedir|levar|garanta|iniciar|plano|adicionar/i.test(txt);
       var hasCtaAttr = btn.hasAttribute('data-checkout') || btn.hasAttribute('data-plan') || (btn.id && /checkout|buy|plan|comprar/i.test(btn.id));
       var card = btn.closest ? btn.closest('.plan, .pricing, [data-plan], [class*="plan"], [class*="card"], [class*="pricing"], [class*="tier"]') : null;
 
@@ -3408,17 +3419,28 @@ self.addEventListener('notificationclick', (e) => {
         currency: (data && data.currency) || 'BRL'
       }};
 
-      if (navigator.sendBeacon) {{
-        var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
-        navigator.sendBeacon(API + '/api/tracking/event', blob);
-      }} else {{
+      try {{
         fetch(API + '/api/tracking/event', {{
           method: 'POST',
           mode: 'cors',
           headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
           body: JSON.stringify(icPayload),
           keepalive: true
-        }}).catch(function(){{}});
+        }}).catch(function() {{
+          if (navigator.sendBeacon) {{
+            try {{
+              var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
+              navigator.sendBeacon(API + '/api/tracking/event', blob);
+            }} catch(e){{}}
+          }}
+        }});
+      }} catch(e) {{
+        if (navigator.sendBeacon) {{
+          try {{
+            var blob = new Blob([JSON.stringify(icPayload)], {{ type: 'application/json' }});
+            navigator.sendBeacon(API + '/api/tracking/event', blob);
+          }} catch(err){{}}
+        }}
       }}
 
       if (window.fbq) {{
@@ -3511,27 +3533,27 @@ self.addEventListener('notificationclick', (e) => {
             end_date = params.get('end_date', [''])[0].strip()
 
             if period == 'today':
-                date_clause = "date(created_at, 'localtime') = date('now', 'localtime')"
+                date_clause = "(date(created_at, '-3 hours') = date('now', '-3 hours') OR date(created_at) = date('now', '-3 hours'))"
             elif period == 'yesterday':
-                date_clause = "date(created_at, 'localtime') = date('now', 'localtime', '-1 day')"
+                date_clause = "(date(created_at, '-3 hours') = date('now', '-3 hours', '-1 day') OR date(created_at) = date('now', '-3 hours', '-1 day'))"
             elif period == 'last_7_days':
-                date_clause = "created_at >= datetime('now', 'localtime', '-7 days')"
+                date_clause = "(datetime(created_at, '-3 hours') >= datetime('now', '-3 hours', '-7 days') OR created_at >= datetime('now', '-3 hours', '-7 days'))"
             elif period == 'last_week':
-                date_clause = "created_at >= datetime('now', 'localtime', '-14 days') AND created_at < datetime('now', 'localtime', '-7 days')"
+                date_clause = "((datetime(created_at, '-3 hours') >= datetime('now', '-3 hours', '-14 days') AND datetime(created_at, '-3 hours') < datetime('now', '-3 hours', '-7 days')) OR (created_at >= datetime('now', '-3 hours', '-14 days') AND created_at < datetime('now', '-3 hours', '-7 days')))"
             elif period == 'this_month':
-                date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')"
+                date_clause = "(strftime('%Y-%m', created_at, '-3 hours') = strftime('%Y-%m', datetime('now', '-3 hours')) OR strftime('%Y-%m', created_at) = strftime('%Y-%m', datetime('now', '-3 hours')))"
             elif period == 'last_month':
-                date_clause = "strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime', '-1 month')"
+                date_clause = "(strftime('%Y-%m', created_at, '-3 hours') = strftime('%Y-%m', datetime('now', '-3 hours', '-1 month')) OR strftime('%Y-%m', created_at) = strftime('%Y-%m', datetime('now', '-3 hours', '-1 month')))"
             elif period == 'custom':
                 if start_date and end_date:
-                    date_clause = "date(created_at, 'localtime') >= ? AND date(created_at, 'localtime') <= ?"
-                    date_params = [start_date, end_date]
+                    date_clause = "((date(created_at, '-3 hours') >= ? AND date(created_at, '-3 hours') <= ?) OR (date(created_at) >= ? AND date(created_at) <= ?))"
+                    date_params = [start_date, end_date, start_date, end_date]
                 elif start_date:
-                    date_clause = "date(created_at, 'localtime') >= ?"
-                    date_params = [start_date]
+                    date_clause = "(date(created_at, '-3 hours') >= ? OR date(created_at) >= ?)"
+                    date_params = [start_date, start_date]
                 elif end_date:
-                    date_clause = "date(created_at, 'localtime') <= ?"
-                    date_params = [end_date]
+                    date_clause = "(date(created_at, '-3 hours') <= ? OR date(created_at) <= ?)"
+                    date_params = [end_date, end_date]
 
             user_id = self._get_current_user_id()
             order_conds = ['user_id = ?']

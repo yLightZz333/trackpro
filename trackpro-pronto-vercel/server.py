@@ -2519,6 +2519,24 @@ class TrackProHandler(BaseHTTPRequestHandler):
             self._send_json({"success": True, "publicKey": VAPID_PUBLIC_KEY})
             return
 
+        # Zerar / Resetar Dados de Teste via GET
+        if path in ['/api/reset', '/api/system/reset', '/api/tracking/clear-tests']:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM orders;")
+            cursor.execute("DELETE FROM tracking_events;")
+            cursor.execute("DELETE FROM notifications;")
+            cursor.execute("DELETE FROM capi_logs;")
+            cursor.execute("DELETE FROM rule_logs;")
+            cursor.execute("DELETE FROM meta_campaign_insights;")
+            cursor.execute("DELETE FROM meta_adset_insights;")
+            cursor.execute("DELETE FROM meta_ad_insights;")
+            cursor.execute("UPDATE campaigns SET total_spent_in_cents = 0;")
+            conn.commit()
+            conn.close()
+            self._send_json({"success": True, "message": "Todos os pedidos, cliques e eventos de teste foram zerados com sucesso!"})
+            return
+
         if path == '/api/push/status':
             user_id = self._get_current_user_id() or 1
             conn = get_db()
@@ -6026,7 +6044,7 @@ self.addEventListener('notificationclick', (e) => {
             return
 
         # Zerar / Resetar Dados de Teste
-        if path in ['/api/reset', '/api/system/reset']:
+        if path in ['/api/reset', '/api/system/reset', '/api/tracking/clear-tests']:
             conn = get_db()
             cursor = conn.cursor()
             cursor.execute("DELETE FROM orders;")
@@ -6034,10 +6052,13 @@ self.addEventListener('notificationclick', (e) => {
             cursor.execute("DELETE FROM notifications;")
             cursor.execute("DELETE FROM capi_logs;")
             cursor.execute("DELETE FROM rule_logs;")
+            cursor.execute("DELETE FROM meta_campaign_insights;")
+            cursor.execute("DELETE FROM meta_adset_insights;")
+            cursor.execute("DELETE FROM meta_ad_insights;")
             cursor.execute("UPDATE campaigns SET total_spent_in_cents = 0;")
             conn.commit()
             conn.close()
-            self._send_json({"success": True, "message": "Todos os pedidos e dados de teste foram zerados com sucesso!"})
+            self._send_json({"success": True, "message": "Todos os pedidos, cliques e eventos de teste foram zerados com sucesso!"})
             return
 
         # Ingestão de Webhooks

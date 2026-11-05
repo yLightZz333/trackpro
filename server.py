@@ -2223,8 +2223,10 @@ except Exception as _e_wp:
     VAPID_INSTANCE = None
     print(f"[PUSH] pywebpush import notice: {_e_wp}")
 
-def dispatch_web_push(user_id, title, body, tag="trackpro-sale-alert", url="/", data=None):
+def dispatch_web_push(user_id, title, body, tag=None, url="/", data=None):
     """Dispara Web Push em segundo plano para celulares inscritos (chega fora do app / celular bloqueado)"""
+    if not tag or tag in ["trackpro-sale-alert", "trackpro-pix-alert"]:
+        tag = f"trackpro-{int(time.time()*1000)}"
     if not PYWEBPUSH_AVAILABLE:
         print(f"[PUSH] pywebpush indisponivel. Alerta nao enviado: {title}")
         return 0
@@ -4823,7 +4825,7 @@ self.addEventListener('notificationclick', (e) => {
                 }, 400)
                 return
 
-            dispatch_web_push(user_id=user_id, title=title, body=body_msg, tag=f"test-{test_type}")
+            dispatch_web_push(user_id=user_id, title=title, body=body_msg, tag=f"test-{test_type}-{int(time.time()*1000)}")
             dispatch_telegram_alert(user_id=user_id, text=f"🔔 <b>TESTE DE ALERTA TRACKPRO</b>\n\n{title}\n{body_msg}")
 
             self._send_json({"success": True, "message": f"Notificação push disparada para {device_count} celular(es) conectado(s)!"})

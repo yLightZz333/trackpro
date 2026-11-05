@@ -44,7 +44,7 @@ self.addEventListener('push', (event) => {
     badge: '/icon-192.png',
     vibrate: [250, 100, 250, 100, 250],
     data: data.data || { url: '/' },
-    tag: data.tag || 'trackpro-sale-alert',
+    tag: data.tag || ('trackpro-' + Date.now()),
     renotify: true,
     requireInteraction: true
   };

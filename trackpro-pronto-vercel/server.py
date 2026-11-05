@@ -3336,64 +3336,109 @@ self.addEventListener('notificationclick', (e) => {
     obs.observe(document.body || document.documentElement, {{ childList: true, subtree: true }});
   }}
 
-  var lastIcTime = 0;
+  var lastIcSentTime = 0;
+  var lastIcSentPlan = '';
+
+  function isInsidePopup(element) {{
+    if (!element) return false;
+    var el = element;
+    while (el && el !== document.body && el !== document.documentElement) {{
+      if (el.classList) {{
+        if (el.classList.contains('upgrade-modal') ||
+            el.classList.contains('modal-backdrop') ||
+            el.classList.contains('modal-decline') ||
+            el.classList.contains('modal-close') ||
+            el.classList.contains('modal-open') ||
+            el.classList.contains('popup') ||
+            el.classList.contains('modal')) {{
+          return true;
+        }}
+      }}
+      var role = el.getAttribute ? el.getAttribute('role') : null;
+      if (role === 'dialog' || role === 'alertdialog') return true;
+      var ariaModal = el.getAttribute ? el.getAttribute('aria-modal') : null;
+      if (ariaModal === 'true') return true;
+      if (el.id && /modal|popup|downsell|upgrade/i.test(el.id)) return true;
+      el = el.parentElement;
+    }}
+    return false;
+  }}
+
+  function isModalCurrentlyOpen() {{
+    return !!(
+      document.body.classList.contains('modal-open') ||
+      document.querySelector('.upgrade-modal, .modal-backdrop, [role="dialog"][aria-modal="true"]')
+    );
+  }}
+
   document.addEventListener('click', function(e) {{
     var target = e.target;
-    // 1. Verificacao de links com URLs de checkout
-    var aTarget = target;
-    while (aTarget && aTarget.tagName !== 'A' && aTarget !== document.body) {{
-      aTarget = aTarget.parentElement;
-    }}
-    if (aTarget && aTarget.tagName === 'A') {{
-      var href = aTarget.getAttribute('href');
-      if (href && isCheckoutUrl(href)) {{
-        var decorated = decorateCheckoutUrl(href);
-        aTarget.setAttribute('href', decorated);
-        sendInitiateCheckoutEvent(decorated);
-        return;
-      }}
+
+    // 1. Se clicou dentro de qualquer modal / popup / downsell -> IGNORAR TOTALMENTE
+    if (isInsidePopup(target) || isModalCurrentlyOpen()) {{
+      return;
     }}
 
-    // 2. Auto-Captura de Botoes de Compra / Checkout / Planos / CTAs (React, Lovable, WordPress, etc)
+    // 2. Verificar se o clique foi em um dos 2 cards de planos principais (.plan-card)
+    var planCard = target;
+    while (planCard && planCard !== document.body && planCard !== document.documentElement) {{
+      if (planCard.classList && (planCard.classList.contains('plan-card') || planCard.hasAttribute('data-plan'))) {{
+        break;
+      }}
+      planCard = planCard.parentElement;
+    }}
+
+    // Se NÃO for dentro de um .plan-card:
+    if (!planCard || planCard === document.body || planCard === document.documentElement) {{
+      // Suporte a links externos de checkout diretos (ex: Kiwify, Hotmart) fora de popups
+      var aTarget = target;
+      while (aTarget && aTarget.tagName !== 'A' && aTarget !== document.body) {{
+        aTarget = aTarget.parentElement;
+      }}
+      if (aTarget && aTarget.tagName === 'A') {{
+        var href = aTarget.getAttribute('href');
+        if (href && isCheckoutUrl(href)) {{
+          var now = (+new Date());
+          if (now - lastIcSentTime > 2500) {{
+            lastIcSentTime = now;
+            var decorated = decorateCheckoutUrl(href);
+            aTarget.setAttribute('href', decorated);
+            sendInitiateCheckoutEvent(decorated);
+          }}
+        }}
+      }}
+      // NENHUM OUTRO BOTAO DA PAGINA (hero, previas, faq, etc) DEVE DISPARAR IC!
+      return;
+    }}
+
+    // Se ESTÁ dentro de um .plan-card:
+    // Identificar o botão ou link dentro do card
     var btn = target;
-    while (btn && btn !== document.body) {{
-      if (btn.tagName === 'BUTTON' || btn.tagName === 'A' || btn.getAttribute('role') === 'button' || (btn.className && typeof btn.className === 'string' && /btn|button|cta|plan|pricing|checkout/i.test(btn.className))) {{
+    while (btn && btn !== planCard) {{
+      if (btn.tagName === 'BUTTON' || btn.tagName === 'A' || btn.getAttribute('role') === 'button' || (btn.className && typeof btn.className === 'string' && /btn|button|cta/i.test(btn.className))) {{
         break;
       }}
       btn = btn.parentElement;
     }}
 
-    if (btn && btn !== document.body) {{
-      var txt = (btn.innerText || btn.textContent || '').trim().toLowerCase();
-      var isCta = /comprar|adquirir|assinar|garantir|quero|obter|checkout|finalizar|pagar|pix|acessar|começar|escolher|pedir|levar|garanta|iniciar|plano|adicionar/i.test(txt);
-      var hasCtaAttr = btn.hasAttribute('data-checkout') || btn.hasAttribute('data-plan') || (btn.id && /checkout|buy|plan|comprar/i.test(btn.id));
-      var card = btn.closest ? btn.closest('.plan, .pricing, [data-plan], [class*="plan"], [class*="card"], [class*="pricing"], [class*="tier"]') : null;
+    // Dispara SOMENTE se foi clique no botão/link do card
+    if (btn && btn !== planCard) {{
+      var cardText = (planCard.innerText || planCard.textContent || '').toLowerCase();
+      var btnText = (btn.innerText || btn.textContent || '').toLowerCase();
 
-      if (isCta || hasCtaAttr || (card && txt.length < 40)) {{
-        var nowTime = (+new Date());
-        if (nowTime - lastIcTime > 1200) {{
-          lastIcTime = nowTime;
-          var planName = 'Plano';
-          var planVal = 0;
-          if (card) {{
-            var h = card.querySelector('h1, h2, h3, h4, .plan-title, [class*="title"], [class*="name"]');
-            if (h) planName = (h.innerText || h.textContent || '').trim();
-            var p = card.querySelector('[class*="price"], .price, [class*="valor"]');
-            if (p) {{
-              var priceTxt = (p.innerText || p.textContent || '').replace(/[^\\d,\\.]/g, '').replace(',', '.');
-              var parsedVal = parseFloat(priceTxt);
-              if (!isNaN(parsedVal)) planVal = parsedVal;
-            }}
-          }}
-          if (planName === 'Plano' && txt.length > 0 && txt.length < 50) {{
-            planName = (btn.innerText || btn.textContent || '').trim();
-          }}
-          sendInitiateCheckoutCustom({{
-            content_name: planName,
-            value: planVal,
-            currency: 'BRL'
-          }});
-        }}
+      var isComplete = cardText.indexOf('completo') !== -1 || cardText.indexOf('27') !== -1 || planCard.classList.contains('plan-card--featured');
+      var planName = isComplete ? 'Plano Completo' : 'Plano Básico';
+      var planValue = isComplete ? 27.90 : 10.00;
+
+      var now = (+new Date());
+      if (now - lastIcSentTime > 2500 || lastIcSentPlan !== planName) {{
+        lastIcSentTime = now;
+        lastIcSentPlan = planName;
+        sendInitiateCheckoutCustom({{
+          content_name: planName,
+          value: planValue,
+          currency: 'BRL'
+        }});
       }}
     }}
   }}, true);
@@ -3473,11 +3518,34 @@ self.addEventListener('notificationclick', (e) => {
       }};
     }},
     initiateCheckout: function(data) {{
+      // 1. Rejeita qualquer chamada vinda de popup, modal, oferta especial ou downsell
+      if (isModalCurrentlyOpen()) {{
+        return;
+      }}
+      var name = data && (data.content_name || data.name || data.plan_name || '');
+      var nameLower = String(name).toLowerCase();
+      if (nameLower.indexOf('oferta') !== -1 || nameLower.indexOf('popup') !== -1 || nameLower.indexOf('downsell') !== -1) {{
+        return;
+      }}
+      var val = data && (data.value !== undefined ? Number(data.value) : (data.priceInCents ? Number(data.priceInCents)/100 : 0));
+      if (val === 19.9 || val === 19.90) {{
+        return;
+      }}
+
+      // 2. Deduplicação: se já enviou nos últimos 2500ms para este mesmo plano, ignora duplicata
+      var now = (+new Date());
+      var planKey = nameLower.indexOf('completo') !== -1 ? 'Plano Completo' : (nameLower.indexOf('básico') !== -1 || nameLower.indexOf('basico') !== -1 ? 'Plano Básico' : name);
+      if (now - lastIcSentTime < 2500 && lastIcSentPlan === planKey) {{
+        return;
+      }}
+      lastIcSentTime = now;
+      lastIcSentPlan = planKey;
+
       sendInitiateCheckoutCustom(data);
     }},
     track: function(eventName, data) {{
       if (eventName === 'InitiateCheckout' || eventName === 'initiate_checkout') {{
-        sendInitiateCheckoutCustom(data);
+        window.trackpro.initiateCheckout(data);
       }}
     }}
   }};

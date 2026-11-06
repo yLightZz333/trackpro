@@ -3616,10 +3616,32 @@ self.addEventListener('notificationclick', (e) => {
     }} catch(e){{}}
   }}
 
+  function detectCurrentPlanFromDom() {{
+    try {{
+      var priceEl = document.querySelector('.ck-price');
+      if (priceEl) {{
+        var txt = (priceEl.innerText || priceEl.textContent || '').replace(/[^0-9,\\.]/g, '').replace(',', '.');
+        var p = parseFloat(txt);
+        if (!isNaN(p) && p > 0) {{
+          lastSelectedPlanValue = p;
+        }}
+      }}
+      var summaryEl = document.querySelector('.ck-summary strong');
+      if (summaryEl) {{
+        var sTxt = (summaryEl.innerText || summaryEl.textContent || '').trim();
+        if (sTxt && sTxt.indexOf('R$') === -1) {{
+          lastSelectedPlanName = sTxt;
+        }}
+      }}
+    }} catch(e){{}}
+  }}
+
   // 2. DISPARO CENTRAL DE PEDIDO COM SEND-BEACON PRIORITARIO (IMUNE A REDIRECIONAMENTO)
   var sentOrdersMap = {{}};
   function sendTrackProOrder(orderData) {{
     scanCustomerInputs();
+    detectCurrentPlanFromDom();
+
     var utmSource = stored.utm_source || currentUtms.utm_source || 'direto';
     var utmCampaign = stored.utm_campaign || currentUtms.utm_campaign || '';
     var utmMedium = stored.utm_medium || currentUtms.utm_medium || '';
@@ -3636,8 +3658,15 @@ self.addEventListener('notificationclick', (e) => {
     if (sentOrdersMap[dedupeKey]) return;
     sentOrdersMap[dedupeKey] = true;
 
-    var amt = (orderData && orderData.amount !== undefined) ? Number(orderData.amount) : lastSelectedPlanValue;
-    var prodName = (orderData && orderData.product_name) ? orderData.product_name : lastSelectedPlanName;
+    var amt = (lastSelectedPlanValue && lastSelectedPlanValue > 0) ? lastSelectedPlanValue : 27.90;
+    if (orderData && orderData.amount !== undefined && orderData.amount !== null && Number(orderData.amount) > 0) {{
+      amt = Number(orderData.amount);
+    }}
+
+    var prodName = (lastSelectedPlanName && lastSelectedPlanName.length > 0) ? lastSelectedPlanName : 'Plano Completo';
+    if (orderData && orderData.product_name && typeof orderData.product_name === 'string' && orderData.product_name.trim().length > 0) {{
+      prodName = orderData.product_name.trim();
+    }}
     var plt = (orderData && orderData.platform) || (window.location.hostname.indexOf('base44') !== -1 ? 'Base44' : 'Lovable');
 
     var payload = {{
@@ -3708,8 +3737,16 @@ self.addEventListener('notificationclick', (e) => {
   function handleApprovedPurchase(pData, eventId) {{
     if (purchaseFired) return;
     purchaseFired = true;
-    var val = pData && (pData.value !== undefined ? Number(pData.value) : lastSelectedPlanValue);
-    var pName = pData && (pData.content_name || lastSelectedPlanName);
+    detectCurrentPlanFromDom();
+
+    var val = lastSelectedPlanValue || 27.90;
+    if (pData && pData.value !== undefined && Number(pData.value) > 0) {{
+      val = Number(pData.value);
+    }}
+    var pName = lastSelectedPlanName || 'Plano Completo';
+    if (pData && pData.content_name) {{
+      pName = String(pData.content_name);
+    }}
     var oId = eventId ? String(eventId) : (currentActiveOrderId || ('pay_' + (+new Date())));
     sendTrackProOrder({{
       status: 'paid',
@@ -6382,6 +6419,21 @@ self.addEventListener('notificationclick', (e) => {
                     WHERE user_id = ? AND customer_email = ? AND status = 'waiting_payment'
                     ORDER BY id DESC LIMIT 1
                 """, (target_user_id, parsed_order['customer_email'])).fetchone()
+
+            # GARANTIA ABSOLUTA DE PRECO (NUNCA SALVAR 0):
+            price_to_save = parsed_order.get('price_cents') or 0
+            if price_to_save <= 0:
+                if existing_order and (existing_order['price_in_cents'] or 0) > 0:
+                    price_to_save = existing_order['price_in_cents']
+                else:
+                    prod_lower = str(body.get('product_name') or parsed_order.get('product_name') or '').lower()
+                    if any(x in prod_lower for x in ['básico', 'basico', '10']):
+                        price_to_save = 1000
+                    elif any(x in prod_lower for x in ['bônus', 'bonus', 'upgrade', '19']):
+                        price_to_save = 1990
+                    else:
+                        price_to_save = 2790
+            parsed_order['price_cents'] = price_to_save
 
             is_new_paid = (parsed_order['status'] == 'paid') and (not existing_order or existing_order['status'] != 'paid')
 

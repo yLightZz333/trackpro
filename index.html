@@ -4577,7 +4577,7 @@
           const newest = list[0];
           if (newest && newest.id > lastMaxNotifId) {
             const isPix = newest.type === 'pix_generated';
-            playTrackProSound(isPix ? 'pix' : 'kaching', 1.0);
+            playCategorySound(isPix ? 'sale_initiated' : 'sale_approved', 1.0);
             showMobileNotification(newest.title, newest.message, 'notif-' + newest.id);
             showToast(newest.title + ' ' + newest.message, 'success');
           }

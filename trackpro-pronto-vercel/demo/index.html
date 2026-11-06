@@ -8783,7 +8783,8 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       navigator.serviceWorker.register('/sw.js').catch(() => {});
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'PUSH_RECEIVED') {
-          playTrackProSound('kaching', 1.0);
+          const chosenSound = localStorage.getItem('trackpro_sound_type') || 'kaching';
+          playTrackProSound(chosenSound, 1.0);
         }
       });
     }

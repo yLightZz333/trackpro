@@ -3583,6 +3583,7 @@ self.addEventListener('notificationclick', (e) => {
   // 1. RASTREAMENTO DE PLANO SELECIONADO E DADOS DO CLIENTE
   var lastSelectedPlanName = 'Plano Completo';
   var lastSelectedPlanValue = 27.90;
+  var currentActiveOrderId = '';
   var customerData = {{ name: '', email: '', phone: '', cpf: '' }};
 
   function updateCustomerField(el) {{
@@ -3611,7 +3612,7 @@ self.addEventListener('notificationclick', (e) => {
     }} catch(e){{}}
   }}
 
-  // 2. DISPARO CENTRAL DE PEDIDO (VENDA INICIADA OU APROVADA)
+  // 2. DISPARO CENTRAL DE PEDIDO COM SEND-BEACON PRIORITARIO (IMUNE A REDIRECIONAMENTO)
   var sentOrdersMap = {{}};
   function sendTrackProOrder(orderData) {{
     scanCustomerInputs();
@@ -3624,13 +3625,16 @@ self.addEventListener('notificationclick', (e) => {
     var sck = stored.sck || currentUtms.sck || '';
 
     var st = (orderData && orderData.status) ? orderData.status : 'paid';
-    var ordId = (orderData && orderData.order_id) ? String(orderData.order_id) : ('ord_' + (+new Date()));
+    var ordId = (orderData && orderData.order_id) ? String(orderData.order_id) : (currentActiveOrderId || ('ord_' + (+new Date())));
+    if (orderData && orderData.order_id) currentActiveOrderId = String(orderData.order_id);
+
     var dedupeKey = st + '_' + ordId;
     if (sentOrdersMap[dedupeKey]) return;
     sentOrdersMap[dedupeKey] = true;
 
     var amt = (orderData && orderData.amount !== undefined) ? Number(orderData.amount) : lastSelectedPlanValue;
     var prodName = (orderData && orderData.product_name) ? orderData.product_name : lastSelectedPlanName;
+    var plt = (orderData && orderData.platform) || (window.location.hostname.indexOf('base44') !== -1 ? 'Base44' : 'Lovable');
 
     var payload = {{
       event: st === 'paid' ? 'order_approved' : 'order_created',
@@ -3642,7 +3646,7 @@ self.addEventListener('notificationclick', (e) => {
       customer_email: (orderData && orderData.customer_email) || customerData.email || '',
       customer_phone: (orderData && orderData.customer_phone) || customerData.phone || '',
       payment_method: (orderData && orderData.payment_method) || 'pix',
-      platform: (orderData && orderData.platform) || 'Lovable',
+      platform: plt,
       tracking: {{
         utm_source: utmSource,
         utm_medium: utmMedium,
@@ -3656,54 +3660,53 @@ self.addEventListener('notificationclick', (e) => {
       }}
     }};
 
+    var jsonPayload = JSON.stringify(payload);
+
+    // Prioridade 1: navigator.sendBeacon garante entrega imediata mesmo com redirect em andamento
+    try {{
+      if (navigator.sendBeacon) {{
+        var blob = new Blob([jsonPayload], {{ type: 'application/json' }});
+        navigator.sendBeacon(API + '/api/webhook/orders', blob);
+      }}
+    }} catch(e){{}}
+
+    // Prioridade 2: Fetch com keepalive redundante
     try {{
       fetch(API + '/api/webhook/orders', {{
         method: 'POST',
         headers: {{ 'Content-Type': 'application/json' }},
-        body: JSON.stringify(payload),
-        keepalive: true
-      }}).catch(function() {{
-        if (navigator.sendBeacon) {{
-          try {{
-            var blob = new Blob([JSON.stringify(payload)], {{ type: 'application/json' }});
-            navigator.sendBeacon(API + '/api/webhook/orders', blob);
-          }} catch(e){{}}
-        }}
-      }});
-    }} catch(err) {{
-      if (navigator.sendBeacon) {{
-        try {{
-          var blob = new Blob([JSON.stringify(payload)], {{ type: 'application/json' }});
-          navigator.sendBeacon(API + '/api/webhook/orders', blob);
-        }} catch(e){{}}
-      }}
-    }}
+        body: jsonPayload,
+        keepalive: true,
+        mode: 'cors'
+      }}).catch(function(){{}});
+    }} catch(err){{}}
   }}
 
-  // 3. CAPTURA AUTOMATICA DE VENDA INICIADA (QR CODE PIX GERADO)
+  // 3. CAPTURA DE VENDA INICIADA (QR CODE PIX GERADO)
   var qrInitiatedFired = false;
   function checkQrCodeRendered() {{
     if (qrInitiatedFired) return;
     var qrElement = document.querySelector('.ck-pix, img[alt="QR Code Pix"], .ck-pix-code, .ck-pix-title');
     if (qrElement) {{
       qrInitiatedFired = true;
+      if (!currentActiveOrderId) currentActiveOrderId = 'pix_' + (+new Date());
       sendTrackProOrder({{
         status: 'waiting_payment',
-        order_id: 'pix_' + (+new Date()),
+        order_id: currentActiveOrderId,
         amount: lastSelectedPlanValue,
         product_name: lastSelectedPlanName
       }});
     }}
   }}
 
-  // 4. INTERCEPTOR DO FBQ PURCHASE (VENDA APROVADA NATIVA)
+  // 4. DISPARO DE VENDA APROVADA
   var purchaseFired = false;
   function handleApprovedPurchase(pData, eventId) {{
     if (purchaseFired) return;
     purchaseFired = true;
     var val = pData && (pData.value !== undefined ? Number(pData.value) : lastSelectedPlanValue);
     var pName = pData && (pData.content_name || lastSelectedPlanName);
-    var oId = eventId ? String(eventId) : ('pay_' + (+new Date()));
+    var oId = eventId ? String(eventId) : (currentActiveOrderId || ('pay_' + (+new Date())));
     sendTrackProOrder({{
       status: 'paid',
       order_id: oId,
@@ -3712,6 +3715,38 @@ self.addEventListener('notificationclick', (e) => {
     }});
   }}
 
+  // 5. INTERCEPTOR NATIVO DE FETCH (Captura em tempo real do polling da Lovable e Base44)
+  if (window.fetch) {{
+    var rawFetch = window.fetch;
+    window.fetch = function() {{
+      var fetchArgs = arguments;
+      return rawFetch.apply(this, fetchArgs).then(function(response) {{
+        try {{
+          var respClone = response.clone();
+          respClone.text().then(function(txt) {{
+            if (!txt) return;
+            // Deteccao de ID do pedido e Pix gerado
+            if (txt.indexOf('qrCode') !== -1 || txt.indexOf('orderId') !== -1) {{
+              try {{
+                var json = JSON.parse(txt);
+                var oId = json.orderId || json.eventId || (json.data && (json.data.orderId || json.data.id));
+                if (oId) currentActiveOrderId = String(oId);
+              }} catch(e){{}}
+            }}
+            // Deteccao de Pagamento Aprovado no polling do checkout
+            if (txt.indexOf('"paid":true') !== -1 || txt.indexOf('"paid": true') !== -1 ||
+                txt.indexOf('"status":"paid"') !== -1 || txt.indexOf('"status": "paid"') !== -1 ||
+                txt.indexOf('areamembros-light.base44.app') !== -1) {{
+              handleApprovedPurchase(null, currentActiveOrderId);
+            }}
+          }}).catch(function(){{}});
+        }} catch(e){{}}
+        return response;
+      }});
+    }};
+  }}
+
+  // 6. INTERCEPTOR DO FBQ PURCHASE (VENDA APROVADA NATIVA)
   function hookFbqPurchase() {{
     if (!window.fbq || window.fbq.__tp_hooked) return;
     var origFbq = window.fbq;
@@ -3739,23 +3774,29 @@ self.addEventListener('notificationclick', (e) => {
   hookFbqPurchase();
   setInterval(hookFbqPurchase, 500);
 
-  // Observador de DOM para QR Code e Telas de Sucesso
+  // 7. OBSERVADOR DE DOM EXPANDIDO (Lovable e Base44)
+  function checkDomForStatus() {{
+    checkQrCodeRendered();
+    var pageText = (document.body ? document.body.innerText : '') || '';
+    if (document.querySelector('.ck-success') ||
+        /pagamento aprovado|compra aprovada|pagamento confirmado|bônus liberados|bonus liberados|acesso liberado/i.test(pageText)) {{
+      handleApprovedPurchase(null, currentActiveOrderId);
+    }}
+  }}
+
   if (window.MutationObserver) {{
-    var autoObserver = new MutationObserver(function() {{
-      checkQrCodeRendered();
-      var pageText = (document.body ? document.body.innerText : '') || '';
-      if (/pagamento confirmado|compra aprovada|acesso liberado|obrigado pela compra/i.test(pageText)) {{
-        handleApprovedPurchase();
-      }}
-    }});
+    var autoObserver = new MutationObserver(checkDomForStatus);
     if (document.body) {{
-      autoObserver.observe(document.body, {{ childList: true, subtree: true }});
+      autoObserver.observe(document.body, {{ childList: true, subtree: true, characterData: true }});
     }} else {{
       document.addEventListener('DOMContentLoaded', function() {{
-        autoObserver.observe(document.body, {{ childList: true, subtree: true }});
+        autoObserver.observe(document.body, {{ childList: true, subtree: true, characterData: true }});
       }});
     }}
   }}
+
+  window.addEventListener('beforeunload', checkDomForStatus);
+  window.addEventListener('pagehide', checkDomForStatus);
 
   function sendInitiateCheckoutCustom(data) {{
     try {{
@@ -4219,7 +4260,8 @@ self.addEventListener('notificationclick', (e) => {
                     "ticketMedio": ticket_medio,
                     "vendasHoje": paid_ord,
                     "vendasAprovadas": paid_ord,
-                    "vendasPendentes": pending_ord,
+                    "vendasPendentes": pending_revenue,
+                    "vendasPendentesCount": pending_ord,
                     "valorPendente": pending_revenue,
                     "pageviews": pageviews,
                     "cliques": cliques,
@@ -6327,6 +6369,13 @@ self.addEventListener('notificationclick', (e) => {
                 "SELECT id, status, price_in_cents FROM orders WHERE user_id = ? AND order_external_id = ?",
                 (target_user_id, order_ext_id)
             ).fetchone()
+
+            if not existing_order and parsed_order.get('customer_email'):
+                existing_order = cursor.execute("""
+                    SELECT id, status, price_in_cents FROM orders
+                    WHERE user_id = ? AND customer_email = ? AND status = 'waiting_payment'
+                    ORDER BY id DESC LIMIT 1
+                """, (target_user_id, parsed_order['customer_email'])).fetchone()
 
             is_new_paid = (parsed_order['status'] == 'paid') and (not existing_order or existing_order['status'] != 'paid')
 

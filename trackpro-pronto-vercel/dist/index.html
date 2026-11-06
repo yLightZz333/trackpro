@@ -5671,7 +5671,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         icon: "clock",
         color: "text-amber-400",
         bg: "from-amber-500/10 to-transparent",
-        format: (v) => (v || 0) + " Pedidos",
+        format: (v, k) => "R$ " + Number((k && k.valorPendente !== undefined) ? k.valorPendente : (v || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
         sub: "Pix & Boleto em Aberto",
         subColor: "text-amber-400"
       },
@@ -7168,7 +7168,7 @@ fetch(webhookUrl, {
         const def = METRIC_DEFS[key];
         if (!def) return;
         const widgetId = 'metric-' + key;
-        const valFormatted = def.format(kpis[key]);
+        const valFormatted = def.format(kpis[key], kpis);
 
         let card = grid.querySelector(`[data-widget-id="${widgetId}"]`);
         if (!card) {

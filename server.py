@@ -810,9 +810,12 @@ def init_db():
     try:
         active_conn = cursor.execute("SELECT id FROM facebook_connections WHERE user_id = 1 AND status = 'connected'").fetchone()
         if not active_conn and DEFAULT_META_SYSTEM_TOKEN:
-            sync_meta_system_token(DEFAULT_META_SYSTEM_TOKEN)
+            cursor.execute("""
+                INSERT OR REPLACE INTO facebook_connections (id, user_id, meta_user_id, meta_user_name, access_token, status)
+                VALUES (1, 1, 'system_user', 'Meta Ads', ?, 'connected')
+            """, (DEFAULT_META_SYSTEM_TOKEN,))
     except Exception as e:
-        print(f"[TrackPro Startup] Aviso ao sincronizar Meta: {e}")
+        print(f"[TrackPro Startup] Aviso ao inicializar Meta: {e}")
 
     conn.commit()
     conn.close()
@@ -2531,7 +2534,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
             cursor.execute("DELETE FROM meta_campaign_insights;")
             cursor.execute("DELETE FROM meta_adset_insights;")
             cursor.execute("DELETE FROM meta_ad_insights;")
-            cursor.execute("UPDATE campaigns SET total_spent_in_cents = 0;")
+            cursor.execute("DELETE FROM campaigns;")
             conn.commit()
             conn.close()
             self._send_json({"success": True, "message": "Todos os pedidos, cliques e eventos de teste foram zerados com sucesso!"})
@@ -3335,27 +3338,30 @@ self.addEventListener('notificationclick', (e) => {
   if (!stored.fbp) stored.fbp = fbp;
   if (fbc && !stored.fbc) stored.fbc = fbc;
 
-  try {{
-    fetch(API + '/api/tracking/event', {{
-      method: 'POST',
-      mode: 'cors',
-      headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
-      body: JSON.stringify({{
-        event_type: 'pageview',
-        utm_source: stored.utm_source,
-        utm_medium: stored.utm_medium,
-        utm_campaign: stored.utm_campaign,
-        utm_content: stored.utm_content,
-        utm_term: stored.utm_term,
-        src: stored.src,
-        sck: stored.sck,
-        fbc: stored.fbc,
-        fbp: stored.fbp,
-        page_url: window.location.href,
-        referrer: document.referrer
-      }})
-    }}).catch(function(){{}});
-  }} catch(e){{}}
+  // RASTREAMENTO CONDICIONAL ESTRITO: So dispara pageview se a URL atual contiver UTMs ou fbclid
+  if (hasUtm) {{
+    try {{
+      fetch(API + '/api/tracking/event', {{
+        method: 'POST',
+        mode: 'cors',
+        headers: {{ 'Content-Type': 'application/json', 'x-api-token': TOKEN }},
+        body: JSON.stringify({{
+          event_type: 'pageview',
+          utm_source: currentUtms.utm_source || stored.utm_source,
+          utm_medium: currentUtms.utm_medium || stored.utm_medium,
+          utm_campaign: currentUtms.utm_campaign || stored.utm_campaign,
+          utm_content: currentUtms.utm_content || stored.utm_content,
+          utm_term: currentUtms.utm_term || stored.utm_term,
+          src: currentUtms.src || stored.src,
+          sck: currentUtms.sck || stored.sck,
+          fbc: currentUtms.fbc || stored.fbc,
+          fbp: stored.fbp,
+          page_url: window.location.href,
+          referrer: document.referrer
+        }})
+      }}).catch(function(){{}});
+    }} catch(e){{}}
+  }}
 
   var checkouts = [
     'kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com',
@@ -3392,6 +3398,9 @@ self.addEventListener('notificationclick', (e) => {
   }}
 
   function sendInitiateCheckoutEvent(checkoutHref) {{
+    if (!hasUtm && !stored.utm_source && !stored.fbc) {{
+      return; // Ignora cliques de navegacao direta sem UTM
+    }}
     try {{
       var icPayload = {{
         event_type: 'initiate_checkout',
@@ -6056,7 +6065,7 @@ self.addEventListener('notificationclick', (e) => {
             cursor.execute("DELETE FROM meta_campaign_insights;")
             cursor.execute("DELETE FROM meta_adset_insights;")
             cursor.execute("DELETE FROM meta_ad_insights;")
-            cursor.execute("UPDATE campaigns SET total_spent_in_cents = 0;")
+            cursor.execute("DELETE FROM campaigns;")
             conn.commit()
             conn.close()
             self._send_json({"success": True, "message": "Todos os pedidos, cliques e eventos de teste foram zerados com sucesso!"})
@@ -6203,6 +6212,13 @@ self.addEventListener('notificationclick', (e) => {
 
         # Pixel Tracking Event
         if path == '/api/tracking/event':
+            utm_source = body.get('utm_source')
+            fbc = body.get('fbc')
+            utm_campaign = body.get('utm_campaign')
+            if not utm_source and not fbc and not utm_campaign:
+                self._send_json({"success": True, "ignored": "direct_traffic_without_utm"})
+                return
+
             conn = get_db()
             cursor = conn.cursor()
             cursor.execute("""
@@ -6211,7 +6227,7 @@ self.addEventListener('notificationclick', (e) => {
             """, (
                 1,
                 body.get('event_type', 'pageview'),
-                body.get('utm_source'),
+                utm_source,
                 body.get('utm_medium'),
                 body.get('utm_campaign'),
                 body.get('utm_content'),

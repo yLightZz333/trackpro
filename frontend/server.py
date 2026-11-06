@@ -3366,7 +3366,8 @@ self.addEventListener('notificationclick', (e) => {
   var checkouts = [
     'kiwify.com.br', 'hotmart.com', 'greenn.com.br', 'cakto.com.br', 'wiapy.com',
     'eduzz.com', 'braip.com', 'monetizze.com.br', 'perfectpay.com.br', 'ticto.com.br',
-    'kirvano.com', 'doppus.com', 'lastlink.com', 'pepper.com.br', 'payfast', 'checkout', 'pay.'
+    'kirvano.com', 'doppus.com', 'lastlink.com', 'pepper.com.br', 'payfast', 'checkout', 'pay.',
+    'base44.app', 'areamembros-light.base44.app'
   ];
 
   function isCheckoutUrl(url) {{
@@ -3563,6 +3564,8 @@ self.addEventListener('notificationclick', (e) => {
       var isComplete = cardText.indexOf('completo') !== -1 || cardText.indexOf('27') !== -1 || planCard.classList.contains('plan-card--featured');
       var planName = isComplete ? 'Plano Completo' : 'Plano Básico';
       var planValue = isComplete ? 27.90 : 10.00;
+      lastSelectedPlanName = planName;
+      lastSelectedPlanValue = planValue;
 
       var now = (+new Date());
       if (now - lastIcSentTime > 2500 || lastIcSentPlan !== planName) {{
@@ -3576,6 +3579,183 @@ self.addEventListener('notificationclick', (e) => {
       }}
     }}
   }}, true);
+
+  // 1. RASTREAMENTO DE PLANO SELECIONADO E DADOS DO CLIENTE
+  var lastSelectedPlanName = 'Plano Completo';
+  var lastSelectedPlanValue = 27.90;
+  var customerData = {{ name: '', email: '', phone: '', cpf: '' }};
+
+  function updateCustomerField(el) {{
+    if (!el || !el.value) return;
+    var val = (el.value || '').trim();
+    var n = (el.name || el.id || el.placeholder || (el.getAttribute ? el.getAttribute('aria-label') : '') || '').toLowerCase();
+    var t = (el.type || '').toLowerCase();
+    if (t === 'email' || n.indexOf('email') !== -1) {{
+      customerData.email = val;
+    }} else if (t === 'tel' || n.indexOf('phone') !== -1 || n.indexOf('tel') !== -1 || n.indexOf('cel') !== -1) {{
+      customerData.phone = val;
+    }} else if (n.indexOf('cpf') !== -1) {{
+      customerData.cpf = val;
+    }} else if (n.indexOf('nome') !== -1 || n.indexOf('name') !== -1) {{
+      customerData.name = val;
+    }}
+  }}
+
+  document.addEventListener('input', function(e) {{ updateCustomerField(e.target); }}, true);
+  document.addEventListener('change', function(e) {{ updateCustomerField(e.target); }}, true);
+
+  function scanCustomerInputs() {{
+    try {{
+      var inputs = document.querySelectorAll('input');
+      inputs.forEach(updateCustomerField);
+    }} catch(e){{}}
+  }}
+
+  // 2. DISPARO CENTRAL DE PEDIDO (VENDA INICIADA OU APROVADA)
+  var sentOrdersMap = {{}};
+  function sendTrackProOrder(orderData) {{
+    scanCustomerInputs();
+    var utmSource = stored.utm_source || currentUtms.utm_source || 'direto';
+    var utmCampaign = stored.utm_campaign || currentUtms.utm_campaign || '';
+    var utmMedium = stored.utm_medium || currentUtms.utm_medium || '';
+    var utmContent = stored.utm_content || currentUtms.utm_content || '';
+    var utmTerm = stored.utm_term || currentUtms.utm_term || '';
+    var src = stored.src || currentUtms.src || '';
+    var sck = stored.sck || currentUtms.sck || '';
+
+    var st = (orderData && orderData.status) ? orderData.status : 'paid';
+    var ordId = (orderData && orderData.order_id) ? String(orderData.order_id) : ('ord_' + (+new Date()));
+    var dedupeKey = st + '_' + ordId;
+    if (sentOrdersMap[dedupeKey]) return;
+    sentOrdersMap[dedupeKey] = true;
+
+    var amt = (orderData && orderData.amount !== undefined) ? Number(orderData.amount) : lastSelectedPlanValue;
+    var prodName = (orderData && orderData.product_name) ? orderData.product_name : lastSelectedPlanName;
+
+    var payload = {{
+      event: st === 'paid' ? 'order_approved' : 'order_created',
+      status: st,
+      order_id: ordId,
+      amount: amt,
+      product_name: prodName,
+      customer_name: (orderData && orderData.customer_name) || customerData.name || 'Cliente',
+      customer_email: (orderData && orderData.customer_email) || customerData.email || '',
+      customer_phone: (orderData && orderData.customer_phone) || customerData.phone || '',
+      payment_method: (orderData && orderData.payment_method) || 'pix',
+      platform: (orderData && orderData.platform) || 'Lovable',
+      tracking: {{
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign,
+        utm_content: utmContent,
+        utm_term: utmTerm,
+        src: src,
+        sck: sck,
+        fbc: stored.fbc || fbc,
+        fbp: stored.fbp || fbp
+      }}
+    }};
+
+    try {{
+      fetch(API + '/api/webhook/orders', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify(payload),
+        keepalive: true
+      }}).catch(function() {{
+        if (navigator.sendBeacon) {{
+          try {{
+            var blob = new Blob([JSON.stringify(payload)], {{ type: 'application/json' }});
+            navigator.sendBeacon(API + '/api/webhook/orders', blob);
+          }} catch(e){{}}
+        }}
+      }});
+    }} catch(err) {{
+      if (navigator.sendBeacon) {{
+        try {{
+          var blob = new Blob([JSON.stringify(payload)], {{ type: 'application/json' }});
+          navigator.sendBeacon(API + '/api/webhook/orders', blob);
+        }} catch(e){{}}
+      }}
+    }}
+  }}
+
+  // 3. CAPTURA AUTOMATICA DE VENDA INICIADA (QR CODE PIX GERADO)
+  var qrInitiatedFired = false;
+  function checkQrCodeRendered() {{
+    if (qrInitiatedFired) return;
+    var qrElement = document.querySelector('.ck-pix, img[alt="QR Code Pix"], .ck-pix-code, .ck-pix-title');
+    if (qrElement) {{
+      qrInitiatedFired = true;
+      sendTrackProOrder({{
+        status: 'waiting_payment',
+        order_id: 'pix_' + (+new Date()),
+        amount: lastSelectedPlanValue,
+        product_name: lastSelectedPlanName
+      }});
+    }}
+  }}
+
+  // 4. INTERCEPTOR DO FBQ PURCHASE (VENDA APROVADA NATIVA)
+  var purchaseFired = false;
+  function handleApprovedPurchase(pData, eventId) {{
+    if (purchaseFired) return;
+    purchaseFired = true;
+    var val = pData && (pData.value !== undefined ? Number(pData.value) : lastSelectedPlanValue);
+    var pName = pData && (pData.content_name || lastSelectedPlanName);
+    var oId = eventId ? String(eventId) : ('pay_' + (+new Date()));
+    sendTrackProOrder({{
+      status: 'paid',
+      order_id: oId,
+      amount: val,
+      product_name: pName
+    }});
+  }}
+
+  function hookFbqPurchase() {{
+    if (!window.fbq || window.fbq.__tp_hooked) return;
+    var origFbq = window.fbq;
+    var newFbq = function() {{
+      var args = Array.prototype.slice.call(arguments);
+      try {{
+        if (args[0] === 'track' && args[1] === 'Purchase') {{
+          var pData = args[2] || {{}};
+          var pMeta = args[3] || {{}};
+          var eventId = pMeta.eventID || pMeta.eventId;
+          handleApprovedPurchase(pData, eventId);
+        }}
+      }} catch(e){{}}
+      return origFbq.apply(this, args);
+    }};
+    for (var prop in origFbq) {{
+      if (origFbq.hasOwnProperty(prop)) {{
+        newFbq[prop] = origFbq[prop];
+      }}
+    }}
+    newFbq.__tp_hooked = true;
+    window.fbq = newFbq;
+  }}
+
+  hookFbqPurchase();
+  setInterval(hookFbqPurchase, 500);
+
+  // Observador de DOM para QR Code e Telas de Sucesso
+  if (window.MutationObserver) {{
+    var autoObserver = new MutationObserver(function() {{
+      checkQrCodeRendered();
+      var pageText = (document.body ? document.body.innerText : '') || '';
+      if (/pagamento confirmado|compra aprovada|acesso liberado|obrigado pela compra/i.test(pageText)) {{
+        handleApprovedPurchase();
+      }}
+    }});
+    if (document.body) {{
+      autoObserver.observe(document.body, {{ childList: true, subtree: true }});
+    }} else {{
+      document.addEventListener('DOMContentLoaded', function() {{
+        autoObserver.observe(document.body, {{ childList: true, subtree: true }});
+      }});
+    }}
+  }}
 
   function sendInitiateCheckoutCustom(data) {{
     try {{
@@ -3677,9 +3857,33 @@ self.addEventListener('notificationclick', (e) => {
 
       sendInitiateCheckoutCustom(data);
     }},
+    orderInitiated: function(data) {{
+      sendTrackProOrder({{
+        status: 'waiting_payment',
+        order_id: data && data.order_id,
+        amount: data && data.amount,
+        product_name: data && data.product_name,
+        customer_name: data && data.customer_name,
+        customer_email: data && data.customer_email,
+        customer_phone: data && data.customer_phone
+      }});
+    }},
+    purchase: function(data) {{
+      sendTrackProOrder({{
+        status: 'paid',
+        order_id: data && data.order_id,
+        amount: data && data.amount,
+        product_name: data && data.product_name,
+        customer_name: data && data.customer_name,
+        customer_email: data && data.customer_email,
+        customer_phone: data && data.customer_phone
+      }});
+    }},
     track: function(eventName, data) {{
       if (eventName === 'InitiateCheckout' || eventName === 'initiate_checkout') {{
         window.trackpro.initiateCheckout(data);
+      }} else if (eventName === 'Purchase' || eventName === 'purchase') {{
+        window.trackpro.purchase(data);
       }}
     }}
   }};
@@ -6117,45 +6321,91 @@ self.addEventListener('notificationclick', (e) => {
                 target_user_id = 1
 
             tr = parsed_order.get('tracking', {})
-            cursor.execute("""
-                INSERT INTO orders (
-                    user_id, order_external_id, platform, payment_method, status, customer_name,
-                    customer_email, customer_phone, customer_ip, price_in_cents,
-                    utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-                    src, sck, fbc, fbp
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (target_user_id,
-                parsed_order['order_id'],
-                parsed_order['platform'],
-                parsed_order.get('payment_method', 'pix'),
-                parsed_order['status'],
-                parsed_order['customer_name'],
-                parsed_order['customer_email'],
-                parsed_order.get('customer_phone'),
-                self.client_address[0],
-                parsed_order['price_cents'],
-                tr.get('utm_source'),
-                tr.get('utm_medium'),
-                tr.get('utm_campaign'),
-                tr.get('utm_content'),
-                tr.get('utm_term'),
-                tr.get('src'),
-                tr.get('sck'),
-                parsed_order.get('fbc'),
-                parsed_order.get('fbp')
-            ))
-            new_order_id = cursor.lastrowid
+            order_ext_id = parsed_order['order_id']
+
+            existing_order = cursor.execute(
+                "SELECT id, status, price_in_cents FROM orders WHERE user_id = ? AND order_external_id = ?",
+                (target_user_id, order_ext_id)
+            ).fetchone()
+
+            is_new_paid = (parsed_order['status'] == 'paid') and (not existing_order or existing_order['status'] != 'paid')
+
+            if existing_order:
+                cursor.execute("""
+                    UPDATE orders SET
+                        status = ?, price_in_cents = ?, payment_method = ?,
+                        customer_name = COALESCE(NULLIF(?, ''), customer_name),
+                        customer_email = COALESCE(NULLIF(?, ''), customer_email),
+                        customer_phone = COALESCE(NULLIF(?, ''), customer_phone),
+                        utm_source = COALESCE(NULLIF(?, ''), utm_source),
+                        utm_medium = COALESCE(NULLIF(?, ''), utm_medium),
+                        utm_campaign = COALESCE(NULLIF(?, ''), utm_campaign),
+                        utm_content = COALESCE(NULLIF(?, ''), utm_content),
+                        utm_term = COALESCE(NULLIF(?, ''), utm_term),
+                        src = COALESCE(NULLIF(?, ''), src),
+                        sck = COALESCE(NULLIF(?, ''), sck),
+                        fbc = COALESCE(NULLIF(?, ''), fbc),
+                        fbp = COALESCE(NULLIF(?, ''), fbp)
+                    WHERE id = ?
+                """, (
+                    parsed_order['status'],
+                    parsed_order['price_cents'],
+                    parsed_order.get('payment_method', 'pix'),
+                    parsed_order.get('customer_name'),
+                    parsed_order.get('customer_email'),
+                    parsed_order.get('customer_phone'),
+                    tr.get('utm_source'),
+                    tr.get('utm_medium'),
+                    tr.get('utm_campaign'),
+                    tr.get('utm_content'),
+                    tr.get('utm_term'),
+                    tr.get('src'),
+                    tr.get('sck'),
+                    parsed_order.get('fbc'),
+                    parsed_order.get('fbp'),
+                    existing_order['id']
+                ))
+                new_order_id = existing_order['id']
+            else:
+                cursor.execute("""
+                    INSERT INTO orders (
+                        user_id, order_external_id, platform, payment_method, status, customer_name,
+                        customer_email, customer_phone, customer_ip, price_in_cents,
+                        utm_source, utm_medium, utm_campaign, utm_content, utm_term,
+                        src, sck, fbc, fbp
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (target_user_id,
+                    order_ext_id,
+                    parsed_order['platform'],
+                    parsed_order.get('payment_method', 'pix'),
+                    parsed_order['status'],
+                    parsed_order['customer_name'],
+                    parsed_order['customer_email'],
+                    parsed_order.get('customer_phone'),
+                    self.client_address[0],
+                    parsed_order['price_cents'],
+                    tr.get('utm_source'),
+                    tr.get('utm_medium'),
+                    tr.get('utm_campaign'),
+                    tr.get('utm_content'),
+                    tr.get('utm_term'),
+                    tr.get('src'),
+                    tr.get('sck'),
+                    parsed_order.get('fbc'),
+                    parsed_order.get('fbp')
+                ))
+                new_order_id = cursor.lastrowid
 
             # Inserir notificação correspondente para alerta em tempo real e som no celular
             try:
-                notif_user_id = 1
+                notif_user_id = target_user_id
                 pr_cents = parsed_order.get('price_cents', 0)
                 pr_reais = pr_cents / 100.0
                 c_name = parsed_order.get('customer_name', 'Cliente')
                 plt = parsed_order.get('platform', 'Gateway')
                 mth = parsed_order.get('payment_method', 'cartao')
 
-                if parsed_order['status'] == 'paid':
+                if is_new_paid:
                     sale_title = "Venda aprovada!"
                     sale_msg = f"Valor: R$ {pr_reais:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     cursor.execute("""
@@ -6192,8 +6442,8 @@ self.addEventListener('notificationclick', (e) => {
 
             # Disparo Meta CAPI
             capi_result = None
-            if parsed_order['status'] == 'paid':
-                capi_result = send_meta_capi(1, parsed_order)
+            if is_new_paid:
+                capi_result = send_meta_capi(target_user_id, parsed_order)
                 # Avalia regras de automação logo após a venda
                 try:
                     evaluate_automated_rules()

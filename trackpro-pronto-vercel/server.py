@@ -687,26 +687,6 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO financial_settings (user_id) VALUES (1)");
     cursor.execute("INSERT OR REPLACE INTO meta_settings (user_id, pixel_id, access_token, test_event_code, active) VALUES (1, '', '', '', 1)")
 
-    # Seed de proteção de dados (garante que teste de validação e métricas nunca fiquem zerados)
-    try:
-        ord_check = cursor.execute("SELECT id FROM orders WHERE order_external_id = 'pix_1793935720410'").fetchone()
-        if not ord_check:
-            cursor.execute('''
-                INSERT OR IGNORE INTO orders (
-                    user_id, order_external_id, platform, payment_method, status,
-                    customer_name, customer_email, price_in_cents,
-                    utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-                    created_at
-                ) VALUES (
-                    1, 'pix_1793935720410', 'Lovable', 'pix', 'paid',
-                    'teste a', 'a@gmail.com', 1000,
-                    'facebook', 'cpc', 'teste_validacao', 'ad01', '-',
-                    '2026-11-06 03:28:26'
-                )
-            ''')
-    except Exception:
-        pass
-
     dash = cursor.execute("SELECT id FROM custom_dashboards WHERE name = 'Geral'").fetchone()
 
     if not dash:
@@ -1813,8 +1793,8 @@ def parse_webhook_payload(headers, body):
             p_low = prod_title.lower()
             if any(x in p_low for x in ['básico', 'basico', '10']):
                 price_cents = 1000
-            elif any(x in p_low for x in ['bônus', 'bonus', 'upgrade', 'oferta', '19']):
-                price_cents = 1990
+            elif any(x in p_low for x in ['bônus', 'bonus', 'upgrade', 'oferta', '9']):
+                price_cents = 990
             else:
                 price_cents = 2790
 
@@ -6635,8 +6615,8 @@ self.addEventListener('notificationclick', (e) => {
                     prod_lower = str(body.get('product_name') or parsed_order.get('product_name') or '').lower()
                     if any(x in prod_lower for x in ['básico', 'basico', '10']):
                         price_to_save = 1000
-                    elif any(x in prod_lower for x in ['bônus', 'bonus', 'upgrade', '19']):
-                        price_to_save = 1990
+                    elif any(x in prod_lower for x in ['bônus', 'bonus', 'upgrade', '9']):
+                        price_to_save = 990
                     else:
                         price_to_save = 2790
             parsed_order['price_cents'] = price_to_save

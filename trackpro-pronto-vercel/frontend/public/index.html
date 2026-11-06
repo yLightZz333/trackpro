@@ -4172,11 +4172,7 @@
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
         if (isIOS && !isStandalone) {
-          alert('📱 No iPhone (iOS), para receber notificações com o celular bloqueado:
-
-1. Toque no botão de Compartilhar do Safari (quadrado com seta)
-2. Toque em "Adicionar à Tela de Início"
-3. Abra o app pelo ícone criado na tela inicial e ative os alertas aqui!');
+          alert('📱 No iPhone (iOS), para receber notificações com o celular bloqueado:\n\n1. Toque no botão de Compartilhar do Safari (quadrado com seta)\n2. Toque em "Adicionar à Tela de Início"\n3. Abra o app pelo ícone criado na tela inicial e ative os alertas aqui!');
           return;
         }
         showToast('Notificações push não suportadas neste navegador.', 'error');

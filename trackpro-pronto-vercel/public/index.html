@@ -5769,8 +5769,18 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         icon: "credit-card",
         color: "text-blue-400",
         bg: "from-blue-500/10 to-transparent",
-        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-        sub: "Sincronizado Facebook Ads",
+        format: (v, k) => {
+          const num = Number(v || 0);
+          const isUSD = (k && k.ad_account_currency === 'USD') || (k && k.currency_symbol === '$');
+          if (isUSD) {
+            const formattedUSD = "$ " + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const rate = (k && k.usd_rate) || 5.75;
+            const brl = (num * rate).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return formattedUSD + ` (~R$ ${brl})`;
+          }
+          return "R$ " + num.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        },
+        sub: "Sincronizado Facebook Ads (USD)",
         subColor: "text-blue-400"
       },
       roas: {
@@ -5843,7 +5853,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         icon: "target",
         color: "text-rose-400",
         bg: "from-rose-500/10 to-transparent",
-        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        format: (v, k) => {
+          const isUSD = (k && k.ad_account_currency === 'USD') || (k && k.currency_symbol === '$');
+          const sym = isUSD ? '$ ' : 'R$ ';
+          return sym + Number(v || 0).toLocaleString(isUSD ? 'en-US' : 'pt-BR', { minimumFractionDigits: 2 });
+        },
         sub: "Custo por Venda Aprovada",
         subColor: "text-rose-400"
       },
@@ -5908,7 +5922,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         icon: "tag",
         color: "text-slate-300",
         bg: "from-slate-500/10 to-transparent",
-        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        format: (v, k) => {
+          const isUSD = (k && k.ad_account_currency === 'USD') || (k && k.currency_symbol === '$');
+          const sym = isUSD ? '$ ' : 'R$ ';
+          return sym + Number(v || 0).toLocaleString(isUSD ? 'en-US' : 'pt-BR', { minimumFractionDigits: 2 });
+        },
         sub: "Custo Médio por Clique",
         subColor: "text-slate-400"
       },
@@ -5917,7 +5935,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         icon: "layers",
         color: "text-slate-300",
         bg: "from-slate-500/10 to-transparent",
-        format: (v) => "R$ " + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        format: (v, k) => {
+          const isUSD = (k && k.ad_account_currency === 'USD') || (k && k.currency_symbol === '$');
+          const sym = isUSD ? '$ ' : 'R$ ';
+          return sym + Number(v || 0).toLocaleString(isUSD ? 'en-US' : 'pt-BR', { minimumFractionDigits: 2 });
+        },
         sub: "Custo por Mil Impressões",
         subColor: "text-slate-400"
       },
@@ -7030,17 +7052,20 @@ fetch(webhookUrl, {
       if (Array.isArray(order) && order.length > 0) {
         const effectiveOrder = [...order];
         const visible = (userVisibleMetrics && userVisibleMetrics.length > 0) ? userVisibleMetrics : DEFAULT_VISIBLE_METRICS;
-        // Assegura que todas as métricas ativas apareçam antes do funil por padrão se não estiverem no array order
+        // Assegura que todas as métricas ativas apareçam
         visible.forEach(m => {
           const mId = 'metric-' + m;
           if (!effectiveOrder.includes(mId)) {
-            const fIdx = effectiveOrder.indexOf('widget-funnel');
-            if (fIdx !== -1) effectiveOrder.splice(fIdx, 0, mId);
-            else effectiveOrder.unshift(mId);
+            effectiveOrder.push(mId);
           }
         });
 
-        effectiveOrder.forEach(wId => {
+        // FORÇA: Todas as métricas sempre ficam no TOPO antes de qualquer widget de funil ou gráfico!
+        const metricIds = effectiveOrder.filter(id => typeof id === 'string' && id.startsWith('metric-'));
+        const nonMetricIds = effectiveOrder.filter(id => typeof id === 'string' && !id.startsWith('metric-'));
+        const finalOrder = [...metricIds, ...nonMetricIds];
+
+        finalOrder.forEach(wId => {
           const el = grid.querySelector(`[data-widget-id="${wId}"]`);
           if (el && dropzone) {
             grid.insertBefore(el, dropzone);
@@ -7930,14 +7955,16 @@ fetch(webhookUrl, {
                 </div>
               </td>`;
           } else if (col === 'budget') {
+            const curSym = (c.currency_symbol) || (lastCachedKpis && lastCachedKpis.currency_symbol) || (lastCachedKpis && lastCachedKpis.ad_account_currency === 'USD' ? '$' : 'R$');
             rowHtml += `
               <td class="py-3 px-4 font-mono text-brand-400">
                 <button onclick="editCampaignBudget(${c.id}, ${c.daily_budget || 0})" class="hover:underline flex items-center gap-1">
-                  R$ ${Number(c.daily_budget || 0).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
+                  ${curSym} ${Number(c.daily_budget || 0).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
                 </button>
               </td>`;
           } else if (col === 'spent') {
-            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(c.spent || 0).toFixed(2)}</td>`;
+            const curSym = (c.currency_symbol) || (lastCachedKpis && lastCachedKpis.currency_symbol) || (lastCachedKpis && lastCachedKpis.ad_account_currency === 'USD' ? '$' : 'R$');
+            rowHtml += `<td class="py-3 px-4 font-mono text-slate-300">${curSym} ${Number(c.spent || 0).toFixed(2)}</td>`;
           } else if (col === 'sales') {
             rowHtml += `<td class="py-3 px-4 font-bold text-white">${c.sales || 0}</td>`;
           } else if (col === 'initiate_checkouts') {
@@ -8004,13 +8031,13 @@ function renderAdsetsTable(adsets) {
             <td class="py-3 px-4 text-slate-400 font-medium">${a.campaign_name || '-'}</td>
             <td class="py-3 px-4 font-mono text-brand-400">
               <button onclick="editAdsetBudget(${a.id}, ${dailyBudget})" class="hover:underline flex items-center gap-1">
-                R$ ${Number(dailyBudget).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
+                ${(lastCachedKpis && lastCachedKpis.currency_symbol) || '$'} ${Number(dailyBudget).toFixed(2)}/dia <i data-lucide="edit-2" class="w-3 h-3 text-slate-500"></i>
               </button>
             </td>
-            <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(a.spent || 0).toFixed(2)}</td>
+            <td class="py-3 px-4 font-mono text-slate-300">${(lastCachedKpis && lastCachedKpis.currency_symbol) || '$'} ${Number(a.spent || 0).toFixed(2)}</td>
             <td class="py-3 px-4 font-bold text-white">${a.sales || 0}</td>
             <td class="py-3 px-4 font-extrabold ${Number(a.roas || 0) >= 2.0 ? 'text-emerald-400' : 'text-slate-300'}">${Number(a.roas || 0).toFixed(2)}x</td>
-            <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(a.cpa || 0).toFixed(2)}</td>
+            <td class="py-3 px-4 font-mono text-slate-300">${(lastCachedKpis && lastCachedKpis.currency_symbol) || '$'} ${Number(a.cpa || 0).toFixed(2)}</td>
             <td class="py-3 px-4 text-right">
               <button onclick="duplicateAdSet(${a.id})" class="px-2.5 py-1 bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 rounded-lg text-xs font-semibold flex items-center gap-1 inline-flex">
                 <i data-lucide="copy" class="w-3 h-3"></i> Duplicar
@@ -8053,10 +8080,10 @@ function renderAdsetsTable(adsets) {
             </td>
             <td class="py-3 px-4 text-slate-400 font-medium">${ad.adset_name || '-'}</td>
             <td class="py-3 px-4 text-slate-400 font-medium">${ad.campaign_name || '-'}</td>
-            <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(ad.spent || 0).toFixed(2)}</td>
+            <td class="py-3 px-4 font-mono text-slate-300">${(lastCachedKpis && lastCachedKpis.currency_symbol) || '$'} ${Number(ad.spent || 0).toFixed(2)}</td>
             <td class="py-3 px-4 font-bold text-white">${ad.sales || 0}</td>
             <td class="py-3 px-4 font-extrabold ${Number(ad.roas || 0) >= 2.0 ? 'text-emerald-400' : 'text-slate-300'}">${Number(ad.roas || 0).toFixed(2)}x</td>
-            <td class="py-3 px-4 font-mono text-slate-300">R$ ${Number(ad.cpa || 0).toFixed(2)}</td>
+            <td class="py-3 px-4 font-mono text-slate-300">${(lastCachedKpis && lastCachedKpis.currency_symbol) || '$'} ${Number(ad.cpa || 0).toFixed(2)}</td>
             <td class="py-3 px-4 text-right">
               <button onclick="duplicateAd(${ad.id})" class="px-2.5 py-1 bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 rounded-lg text-xs font-semibold flex items-center gap-1 inline-flex">
                 <i data-lucide="copy" class="w-3 h-3"></i> Duplicar

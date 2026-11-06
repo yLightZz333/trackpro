@@ -593,6 +593,7 @@ def init_db():
         frequency REAL DEFAULT 0,
         conversions INTEGER DEFAULT 0,
         cost_per_conversion_cents INTEGER DEFAULT 0,
+        landing_page_views INTEGER DEFAULT 0,
         date_start TEXT,
         date_stop TEXT,
         synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -774,6 +775,12 @@ def init_db():
         ('ads', 'ctr', 'REAL DEFAULT 0.0'),
         ('meta_campaign_insights', 'initiate_checkouts', 'INTEGER DEFAULT 0'),
         ('meta_campaign_insights', 'cost_per_ic_cents', 'INTEGER DEFAULT 0'),
+        ('meta_campaign_insights', 'landing_page_views', 'INTEGER DEFAULT 0'),
+        ('meta_adset_insights', 'landing_page_views', 'INTEGER DEFAULT 0'),
+        ('meta_ad_insights', 'landing_page_views', 'INTEGER DEFAULT 0'),
+        ('campaigns', 'landing_page_views', 'INTEGER DEFAULT 0'),
+        ('ad_sets', 'landing_page_views', 'INTEGER DEFAULT 0'),
+        ('ads', 'landing_page_views', 'INTEGER DEFAULT 0'),
         ('notification_settings', 'sound_sale_approved', "TEXT DEFAULT 'kaching'"),
         ('notification_settings', 'sound_sale_initiated', "TEXT DEFAULT 'pix'"),
         ('notification_settings', 'sound_scheduled_summary', "TEXT DEFAULT 'bell'"),
@@ -1177,27 +1184,47 @@ def calculate_financial_metrics(user_id, period='today', start_date='', end_date
 def parse_meta_actions(actions):
     purchases = 0
     ic = 0
+    lpv = 0
     if not isinstance(actions, list):
-        return purchases, ic
+        return purchases, ic, lpv
     for act in actions:
         if act.get('action_type') == 'purchase':
-            purchases = int(act.get('value', 0))
+            try:
+                purchases = int(act.get('value', 0))
+            except Exception:
+                purchases = 0
             break
     if purchases == 0:
         for act in actions:
             if act.get('action_type') in ['omni_purchase', 'offsite_conversion.fb_pixel_purchase']:
-                purchases = max(purchases, int(act.get('value', 0)))
+                try:
+                    purchases = max(purchases, int(act.get('value', 0)))
+                except Exception:
+                    pass
 
     for act in actions:
         if act.get('action_type') == 'initiate_checkout':
-            ic = int(act.get('value', 0))
+            try:
+                ic = int(act.get('value', 0))
+            except Exception:
+                ic = 0
             break
     if ic == 0:
         for act in actions:
             if act.get('action_type') in ['omni_initiated_checkout', 'offsite_conversion.fb_pixel_initiate_checkout', 'onsite_web_initiate_checkout']:
-                ic = max(ic, int(act.get('value', 0)))
+                try:
+                    ic = max(ic, int(act.get('value', 0)))
+                except Exception:
+                    pass
 
-    return purchases, ic
+    for act in actions:
+        if act.get('action_type') in ['landing_page_view', 'omni_landing_page_view']:
+            try:
+                lpv = max(lpv, int(act.get('value', 0)))
+            except Exception:
+                pass
+
+    return purchases, ic, lpv
 
 def duplicate_meta_item(level, external_id, token):
     if not token or not external_id:
@@ -1309,7 +1336,7 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                 cpm_cents = int(float(ins.get('cpm') or 0.0) * 100)
                 d_start = ins.get('date_start')
                 d_stop = ins.get('date_stop')
-                purchases, ic = parse_meta_actions(ins.get('actions', []))
+                purchases, ic, lpv = parse_meta_actions(ins.get('actions', []))
                 cpa_cents = int(spend_cents / purchases) if purchases > 0 else 0
                 cost_per_ic_cents = int(spend_cents / ic) if ic > 0 else 0
 
@@ -1317,8 +1344,8 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                     INSERT INTO meta_campaign_insights (
                         user_id, ad_account_id, campaign_id, campaign_name, impressions, reach, clicks,
                         spend_cents, ctr, cpc_cents, cpm_cents, conversions, cost_per_conversion_cents,
-                        initiate_checkouts, cost_per_ic_cents, date_start, date_stop, synced_at
-                    ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        initiate_checkouts, cost_per_ic_cents, landing_page_views, date_start, date_stop, synced_at
+                    ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(ad_account_id, campaign_id, date_start, date_stop) DO UPDATE SET
                         impressions = excluded.impressions,
                         reach = excluded.reach,
@@ -1331,8 +1358,9 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                         cost_per_conversion_cents = excluded.cost_per_conversion_cents,
                         initiate_checkouts = excluded.initiate_checkouts,
                         cost_per_ic_cents = excluded.cost_per_ic_cents,
+                        landing_page_views = excluded.landing_page_views,
                         synced_at = CURRENT_TIMESTAMP
-                """, (acc_id, c_id_ext, c_name_ins, impr, reach, clk, spend_cents, ctr, cpc_cents, cpm_cents, purchases, cpa_cents, ic, cost_per_ic_cents, d_start, d_stop))
+                """, (acc_id, c_id_ext, c_name_ins, impr, reach, clk, spend_cents, ctr, cpc_cents, cpm_cents, purchases, cpa_cents, ic, cost_per_ic_cents, lpv, d_start, d_stop))
 
             for ins in adset_insights:
                 aid_ext = str(ins.get('adset_id'))
@@ -1347,7 +1375,7 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                 cpm_cents = int(float(ins.get('cpm') or 0.0) * 100)
                 d_start = ins.get('date_start')
                 d_stop = ins.get('date_stop')
-                purchases, ic = parse_meta_actions(ins.get('actions', []))
+                purchases, ic, lpv = parse_meta_actions(ins.get('actions', []))
                 cpa_cents = int(spend_cents / purchases) if purchases > 0 else 0
                 cost_per_ic_cents = int(spend_cents / ic) if ic > 0 else 0
 
@@ -1355,8 +1383,8 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                     INSERT INTO meta_adset_insights (
                         user_id, ad_account_id, campaign_id, adset_id, adset_name, impressions, reach, clicks,
                         spend_cents, ctr, cpc_cents, cpm_cents, conversions, initiate_checkouts,
-                        cost_per_ic_cents, cpa_cents, date_start, date_stop, synced_at
-                    ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        cost_per_ic_cents, cpa_cents, landing_page_views, date_start, date_stop, synced_at
+                    ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(ad_account_id, adset_id, date_start, date_stop) DO UPDATE SET
                         impressions = excluded.impressions,
                         reach = excluded.reach,
@@ -1369,8 +1397,9 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                         initiate_checkouts = excluded.initiate_checkouts,
                         cost_per_ic_cents = excluded.cost_per_ic_cents,
                         cpa_cents = excluded.cpa_cents,
+                        landing_page_views = excluded.landing_page_views,
                         synced_at = CURRENT_TIMESTAMP
-                """, (acc_id, cid_ext, aid_ext, aname_ins, impr, reach, clk, spend_cents, ctr, cpc_cents, cpm_cents, purchases, ic, cost_per_ic_cents, cpa_cents, d_start, d_stop))
+                """, (acc_id, cid_ext, aid_ext, aname_ins, impr, reach, clk, spend_cents, ctr, cpc_cents, cpm_cents, purchases, ic, cost_per_ic_cents, cpa_cents, lpv, d_start, d_stop))
 
             for ins in ad_insights:
                 adid_ext = str(ins.get('ad_id'))
@@ -1386,7 +1415,7 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                 cpm_cents = int(float(ins.get('cpm') or 0.0) * 100)
                 d_start = ins.get('date_start')
                 d_stop = ins.get('date_stop')
-                purchases, ic = parse_meta_actions(ins.get('actions', []))
+                purchases, ic, lpv = parse_meta_actions(ins.get('actions', []))
                 cpa_cents = int(spend_cents / purchases) if purchases > 0 else 0
                 cost_per_ic_cents = int(spend_cents / ic) if ic > 0 else 0
 
@@ -1394,8 +1423,8 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                     INSERT INTO meta_ad_insights (
                         user_id, ad_account_id, campaign_id, adset_id, ad_id, ad_name, impressions, reach, clicks,
                         spend_cents, ctr, cpc_cents, cpm_cents, conversions, initiate_checkouts,
-                        cost_per_ic_cents, cpa_cents, date_start, date_stop, synced_at
-                    ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        cost_per_ic_cents, cpa_cents, landing_page_views, date_start, date_stop, synced_at
+                    ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(ad_account_id, ad_id, date_start, date_stop) DO UPDATE SET
                         impressions = excluded.impressions,
                         reach = excluded.reach,
@@ -1408,8 +1437,9 @@ def sync_meta_campaigns_internal(user_id=1, period='all', start_date='', end_dat
                         initiate_checkouts = excluded.initiate_checkouts,
                         cost_per_ic_cents = excluded.cost_per_ic_cents,
                         cpa_cents = excluded.cpa_cents,
+                        landing_page_views = excluded.landing_page_views,
                         synced_at = CURRENT_TIMESTAMP
-                """, (acc_id, cid_ext, aid_ext, adid_ext, adname_ins, impr, reach, clk, spend_cents, ctr, cpc_cents, cpm_cents, purchases, ic, cost_per_ic_cents, cpa_cents, d_start, d_stop))
+                """, (acc_id, cid_ext, aid_ext, adid_ext, adname_ins, impr, reach, clk, spend_cents, ctr, cpc_cents, cpm_cents, purchases, ic, cost_per_ic_cents, cpa_cents, lpv, d_start, d_stop))
 
             conn.commit()
 
@@ -4204,6 +4234,15 @@ self.addEventListener('notificationclick', (e) => {
                 row_spent = cursor.execute(f"SELECT COALESCE(SUM(spend_cents), 0) as total FROM meta_campaign_insights WHERE {' AND '.join(ins_w)}", ins_p).fetchone()
                 tot_spent = (row_spent['total'] or 0) / 100.0
 
+            # Moeda da BM ativa (USD ou BRL) e taxa de câmbio
+            acc_curr_row = cursor.execute('''
+                SELECT currency FROM facebook_ad_accounts 
+                WHERE (account_id = ? OR ? = 'all' OR account_id = '1723742765720476') AND user_id = ? AND status = 'ACTIVE'
+                ORDER BY is_selected DESC, is_default DESC, id DESC LIMIT 1
+            ''', (ad_account_filter, ad_account_filter, user_id)).fetchone()
+            ad_currency = (acc_curr_row['currency'] if acc_curr_row and acc_curr_row['currency'] else 'USD')
+            usd_rate = 5.75
+
             # 4. Taxas e Impostos Parametrizados (Configurações Financeiras)
             fin = cursor.execute('SELECT * FROM financial_settings WHERE user_id = ?', (user_id,)).fetchone()
             gw_pct = (fin['gateway_tax_percent'] if fin else 8.9) / 100.0
@@ -4216,10 +4255,14 @@ self.addEventListener('notificationclick', (e) => {
             gateway_fees = round(tot_revenue * gw_pct + (paid_ord * gw_fix), 2)
             net_revenue = max(0.0, round(tot_revenue - gateway_fees - taxes, 2))
             prod_costs = round(tot_revenue * cost_pct, 2)
-            real_profit = round(net_revenue - tot_spent - prod_costs, 2)
+
+            # Conversão precisa de moeda: se os gastos de anúncio estão em dólar (USD), converter para BRL
+            # para comparar faturamento (BRL) e gastos (USD -> BRL) no Lucro Real e no ROAS
+            tot_spent_brl = round(tot_spent * usd_rate, 2) if ad_currency == 'USD' else round(tot_spent, 2)
+            real_profit = round(net_revenue - tot_spent_brl - prod_costs, 2)
             
-            roi = round((real_profit / tot_spent * 100.0), 1) if tot_spent > 0 else 0
-            roas = round(tot_revenue / tot_spent, 2) if tot_spent > 0 else 0
+            roi = round((real_profit / tot_spent_brl * 100.0), 1) if tot_spent_brl > 0 else 0
+            roas = round(tot_revenue / tot_spent_brl, 2) if tot_spent_brl > 0 else 0
             cpa = round(tot_spent / paid_ord, 2) if paid_ord > 0 else 0
             ticket_medio = round(tot_revenue / paid_ord, 2) if paid_ord > 0 else 0
 
@@ -4248,15 +4291,19 @@ self.addEventListener('notificationclick', (e) => {
                 if ad_account_filter and ad_account_filter != 'all':
                     ins_w.append("ad_account_id = ?")
                     ins_p.append(ad_account_filter)
-                meta_stats = cursor.execute(f"SELECT COALESCE(SUM(impressions), 0), COALESCE(SUM(clicks), 0), COALESCE(SUM(initiate_checkouts), 0) FROM meta_campaign_insights WHERE {' AND '.join(ins_w)}", ins_p).fetchone()
+                meta_stats = cursor.execute(f"SELECT COALESCE(SUM(impressions), 0), COALESCE(SUM(clicks), 0), COALESCE(SUM(initiate_checkouts), 0), COALESCE(SUM(landing_page_views), 0) FROM meta_campaign_insights WHERE {' AND '.join(ins_w)}", ins_p).fetchone()
                 cliques = max(pageviews, meta_stats[1] if meta_stats else 0)
                 impressoes = max(meta_stats[0] if meta_stats else 0, cliques * 25 if cliques > 0 else 0)
                 initiate_checkout = max(initiate_checkout, meta_stats[2] if meta_stats else 0)
+                meta_lpv = meta_stats[3] if meta_stats else 0
+                pageviews = max(pageviews, meta_lpv)
             else:
-                meta_stats = cursor.execute("SELECT COALESCE(SUM(impressions), 0), COALESCE(SUM(clicks), 0), COALESCE(SUM(initiate_checkouts), 0) FROM meta_campaign_insights").fetchone()
+                meta_stats = cursor.execute("SELECT COALESCE(SUM(impressions), 0), COALESCE(SUM(clicks), 0), COALESCE(SUM(initiate_checkouts), 0), COALESCE(SUM(landing_page_views), 0) FROM meta_campaign_insights").fetchone()
                 cliques = max(pageviews, (meta_stats[1] if meta_stats else 0) or int(tot_spent * 1.8))
                 impressoes = max(meta_stats[0] if meta_stats else 0, (cliques * 25 if cliques > 0 else 0) or int(tot_spent * 80))
                 initiate_checkout = max(initiate_checkout, meta_stats[2] if meta_stats else 0)
+                meta_lpv = meta_stats[3] if meta_stats else 0
+                pageviews = max(pageviews, meta_lpv)
 
             ctr = round((cliques / impressoes * 100.0), 2) if impressoes > 0 else 0
             cpc = round(tot_spent / cliques, 2) if cliques > 0 else 0
@@ -4396,7 +4443,11 @@ self.addEventListener('notificationclick', (e) => {
                     "aliquotaImposto": round(inv_pct * 100, 1),
                     "taxasGateway": gateway_fees,
                     "custoProdutos": prod_costs,
-                    "gastoAds": tot_spent,
+                    "gastoAds": round(tot_spent, 2),
+                    "gastoAdsBrl": tot_spent_brl,
+                    "ad_account_currency": ad_currency,
+                    "currency_symbol": "$" if ad_currency == "USD" else "R$",
+                    "usd_rate": usd_rate,
                     "roi": roi,
                     "roas": roas,
                     "cpa": cpa,
@@ -4420,6 +4471,9 @@ self.addEventListener('notificationclick', (e) => {
                     "ltv": ltv,
                     "churnRate": churn_rate
                 },
+                "currency": ad_currency,
+                "currency_symbol": "$" if ad_currency == "USD" else "R$",
+                "usd_rate": usd_rate,
                 "allTimeRevenue": all_time_revenue,
                 "allTimeOrders": all_time_orders,
                 "funnel": funnel_data,
@@ -4585,8 +4639,23 @@ self.addEventListener('notificationclick', (e) => {
                     "adsets": [dict(a) for a in adsets]
                 })
 
+            acc_row = cursor.execute('''
+                SELECT currency FROM facebook_ad_accounts 
+                WHERE (account_id = ? OR ? = 'all' OR account_id = '1723742765720476') AND user_id = ? AND status = 'ACTIVE'
+                ORDER BY is_selected DESC, is_default DESC, id DESC LIMIT 1
+            ''', (ad_account_id, ad_account_id, user_id)).fetchone()
+            curr = acc_row['currency'] if acc_row and acc_row['currency'] else 'USD'
+            curr_sym = '$' if curr == 'USD' else 'R$'
+
             conn.close()
-            self._send_json({"campaigns": campaigns, "period": period, "start_date": s_range, "end_date": e_range})
+            self._send_json({
+                "campaigns": campaigns, 
+                "period": period, 
+                "start_date": s_range, 
+                "end_date": e_range,
+                "currency": curr,
+                "currency_symbol": curr_sym
+            })
             return
 
         # Meta OAuth Status Check
@@ -6829,6 +6898,7 @@ def _start_continuous_meta_sync():
         while True:
             try:
                 sync_meta_system_token(DEFAULT_META_SYSTEM_TOKEN, user_id=1)
+                sync_meta_campaigns_internal(user_id=1, period='today')
                 sync_meta_campaigns_internal(user_id=1, period='all')
             except Exception as e:
                 print(f"[Meta Sync Auto] Erro: {e}")

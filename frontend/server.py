@@ -4774,6 +4774,7 @@ self.addEventListener('notificationclick', (e) => {
 
         # Pixels Meta (Multi-Pixel)
         if path == '/api/pixels':
+            user_id = self._get_current_user_id() or 1
             conn = get_db()
             cursor = conn.cursor()
             rows = cursor.execute('SELECT * FROM meta_pixels WHERE user_id = ? ORDER BY id DESC', (user_id,)).fetchall()

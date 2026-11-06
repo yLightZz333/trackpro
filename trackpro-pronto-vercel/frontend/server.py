@@ -6821,6 +6821,26 @@ def run_server(port=3001):
     except KeyboardInterrupt:
         server.server_close()
 
+
+# Thread de sincronização contínua com Meta Ads (mantém métricas sempre alinhadas com o Facebook)
+def _start_continuous_meta_sync():
+    def _run():
+        time.sleep(3)
+        while True:
+            try:
+                sync_meta_system_token(DEFAULT_META_SYSTEM_TOKEN, user_id=1)
+                sync_meta_campaigns_internal(user_id=1, period='all')
+            except Exception as e:
+                print(f"[Meta Sync Auto] Erro: {e}")
+            time.sleep(600)
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+
+try:
+    _start_continuous_meta_sync()
+except Exception:
+    pass
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3001))
     if len(sys.argv) > 1:

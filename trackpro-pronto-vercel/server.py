@@ -3214,7 +3214,7 @@ class TrackProHandler(BaseHTTPRequestHandler):
                 return
 
         # PWA Service Worker (Serve arquivo sw.js com suporte completo a Web Push e Notificações)
-        if path == '/sw.js':
+        if path in ['/sw.js', '/service-worker.js']:
             sw_file = os.path.join(os.path.dirname(__file__), 'sw.js')
             sw_code = ''
             if os.path.exists(sw_file):

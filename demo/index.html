@@ -4244,7 +4244,17 @@
         }
 
         showToast('⏳ Conectando notificações no seu celular...', 'info');
-        const reg = await navigator.serviceWorker.ready;
+
+        let reg = null;
+        try {
+          reg = await navigator.serviceWorker.getRegistration();
+          if (!reg) {
+            reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          }
+          await navigator.serviceWorker.ready;
+        } catch(e_sw) {
+          reg = await navigator.serviceWorker.ready;
+        }
 
         const keyRes = await fetch('/api/push/vapid-public-key');
         const keyData = await keyRes.json();
@@ -4253,17 +4263,32 @@
           return;
         }
 
-        try {
-          const oldSub = await reg.pushManager.getSubscription();
-          if (oldSub) {
-            await oldSub.unsubscribe();
-          }
-        } catch (e_old) {}
+        const appServerKey = urlBase64ToUint8Array(keyData.publicKey.trim());
 
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
-        });
+        let sub = null;
+        try {
+          sub = await reg.pushManager.getSubscription();
+        } catch(e_sub_get) {}
+
+        if (!sub) {
+          try {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: appServerKey
+            });
+          } catch(err1) {
+            console.warn('Tentativa 1 de subscribe falhou:', err1);
+            try {
+              const old = await reg.pushManager.getSubscription();
+              if (old) await old.unsubscribe();
+            } catch(e_unsub) {}
+            
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: appServerKey
+            });
+          }
+        }
 
         const subJson = sub.toJSON();
         const res = await fetch('/api/push/subscribe', {
@@ -4282,7 +4307,12 @@
         }
       } catch (err) {
         console.error('Erro ao subscrever Web Push:', err);
-        showToast('Erro ao ativar notificações: ' + err.message, 'error');
+        const msg = err.message || '';
+        if (msg.includes('push service error') || msg.includes('Registration failed')) {
+          showToast('Falha no serviço Push do Google. Dica: toque no cadeado do navegador > Permissões > Redefinir permissões e recarregue a página.', 'error', 6000);
+        } else {
+          showToast('Erro ao ativar notificações: ' + msg, 'error');
+        }
       }
     }
 

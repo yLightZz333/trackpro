@@ -5424,8 +5424,9 @@ self.addEventListener('notificationclick', (e) => {
             if device_count == 0:
                 self._send_json({
                     "success": False,
+                    "deviceCount": 0,
                     "error": "Nenhum celular conectado ainda! Abra o TrackPro no celular e toque em 'Ativar Alertas no Celular' primeiro."
-                }, 400)
+                }, 200)
                 return
 
             dispatch_web_push(user_id=user_id, title=title, body=body_msg, tag=f"test-{test_type}-{int(time.time()*1000)}")

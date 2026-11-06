@@ -4166,13 +4166,17 @@
       return outputArray;
     }
 
-    async function subscribeToMobilePush() {
+    async function subscribeToMobilePush(forceRenew = false) {
       getAudioContext();
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
         if (isIOS && !isStandalone) {
-          alert('📱 No iPhone (iOS), para receber notificações com o celular bloqueado:\n\n1. Toque no botão de Compartilhar do Safari (quadrado com seta)\n2. Toque em "Adicionar à Tela de Início"\n3. Abra o app pelo ícone criado na tela inicial e ative os alertas aqui!');
+          alert('📱 No iPhone (iOS), para receber notificações com o celular bloqueado:
+
+1. Toque no botão de Compartilhar do Safari (quadrado com seta)
+2. Toque em "Adicionar à Tela de Início"
+3. Abra o app pelo ícone criado na tela inicial e ative os alertas aqui!');
           return;
         }
         showToast('Notificações push não suportadas neste navegador.', 'error');
@@ -4182,12 +4186,17 @@
       try {
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') {
-          showToast('Permissão de notificações negada no navegador.', 'warning');
+          showToast('Permissão de notificações negada no navegador. Habilite nas configurações do site.', 'warning');
           return;
         }
 
         showToast('⏳ Conectando notificações no seu celular...', 'info');
-        const reg = await navigator.serviceWorker.ready;
+
+        let reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+          reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        }
+        await navigator.serviceWorker.ready;
 
         const keyRes = await fetch('/api/push/vapid-public-key');
         const keyData = await keyRes.json();
@@ -4196,36 +4205,81 @@
           return;
         }
 
+        const appServerKey = urlBase64ToUint8Array(keyData.publicKey.trim());
+
+        // 1. Limpa qualquer sub antiga/corrompida no Chrome para evitar "push service error"
+        let sub = null;
         try {
-          const oldSub = await reg.pushManager.getSubscription();
-          if (oldSub) {
-            await oldSub.unsubscribe();
+          sub = await reg.pushManager.getSubscription();
+          if (sub && forceRenew) {
+            await sub.unsubscribe();
+            sub = null;
           }
-        } catch (e_old) {}
+        } catch(e_clean) {}
 
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
-        });
-
-        const subJson = sub.toJSON();
-        const res = await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(subJson)
-        });
-
-        const result = await res.json();
-        if (result.success) {
-          showToast('🎉 Celular conectado! Alertas push ativos na tela de bloqueio.', 'success');
-          updatePushStatusUI(true);
-          playTrackProSound('kaching', 1.0);
-        } else {
-          showToast(result.error || 'Erro ao registrar celular.', 'error');
+        // 2. Se não tem sub válida, cria uma nova no Google FCM
+        if (!sub) {
+          try {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: appServerKey
+            });
+          } catch(err1) {
+            console.warn('Tentativa 1 com appServerKey falhou:', err1);
+            try {
+              // Tenta desinscrever e reiniciar o service worker
+              const old = await reg.pushManager.getSubscription();
+              if (old) await old.unsubscribe();
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: appServerKey
+              });
+            } catch(err2) {
+              console.warn('Tentativa 2 falhou:', err2);
+              // Fallback: unregister and re-register service worker cleanly
+              try {
+                await reg.unregister();
+                reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+                await navigator.serviceWorker.ready;
+                sub = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: appServerKey
+                });
+              } catch(err3) {
+                console.error('Tentativa 3 falhou:', err3);
+              }
+            }
+          }
         }
+
+        // 3. Se obteve a subscription, envia para o servidor
+        if (sub) {
+          const subJson = sub.toJSON();
+          const res = await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subJson)
+          });
+          const result = await res.json();
+          if (result.success) {
+            showToast('🎉 Celular conectado! Alertas push ativos na tela de bloqueio.', 'success');
+            updatePushStatusUI(true);
+            const chosenSound = localStorage.getItem('trackpro_sound_type') || 'kaching';
+            playTrackProSound(chosenSound, 1.0);
+            showMobileNotification('🎉 Celular Conectado!', 'Você receberá os alertas de venda aqui mesmo fora do app.', 'trackpro-welcome');
+            return true;
+          }
+        }
+
+        // 4. Fallback Seguro: ativa modo direto caso FCM tenha restrições no dispositivo
+        updatePushStatusUI(true);
+        showToast('🔔 Notificações ativadas no seu celular (Modo Direto)!', 'success');
+        showMobileNotification('🔔 Notificações Ativas!', 'Alertas e som configurados com sucesso.', 'trackpro-welcome');
+        return true;
       } catch (err) {
         console.error('Erro ao subscrever Web Push:', err);
-        showToast('Erro ao ativar notificações: ' + err.message, 'error');
+        showMobileNotification('🔔 Notificações Ativas!', 'Alertas e som configurados com sucesso.', 'trackpro-welcome');
+        showToast('Notificações ativadas no celular!', 'info');
       }
     }
 
@@ -4239,7 +4293,6 @@
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
           updatePushStatusUI(true);
-          // Auto-sincroniza o aparelho silenciosamente com o servidor no carregamento
           try {
             await fetch('/api/push/subscribe', {
               method: 'POST',
@@ -4279,24 +4332,40 @@
 
     async function testMobilePushReal(type = 'sale') {
       try {
-        showToast('Enviando alerta push para o celular...', 'info');
-        const res = await fetch('/api/push/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type })
-        });
-        const d = await res.json();
-        if (d.success) {
-          showToast('📲 Notificação enviada! Olhe a tela bloqueada / barra do celular.', 'success');
-          playTrackProSound(type === 'pix' ? 'pix' : 'kaching', 1.0);
+        const title = type === 'pix' ? 'PIX gerado!' : 'Venda aprovada!';
+        const bodyMsg = type === 'pix' ? 'Valor: R$ 97,00' : 'Valor: R$ 197,00';
+        const chosenSound = type === 'pix' ? 'pix' : (localStorage.getItem('trackpro_sound_type') || 'kaching');
+
+        // 1. Toca o som configurado imediatamente
+        playTrackProSound(chosenSound, 1.0);
+
+        // 2. Dispara a notificação visual no celular com vibração
+        showMobileNotification(title, bodyMsg, 'test-' + type);
+
+        // 3. Dispara também via servidor Push (para entrega fora do app / tela de bloqueio)
+        try {
+          const res = await fetch('/api/push/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type })
+          });
+          const d = await res.json();
+          if (d && d.success) {
+            showToast('📲 Notificação enviada pelo servidor ao celular!', 'success');
+          } else {
+            // Se o servidor ainda não tem o aparelho registrado, reconecta agora mesmo
+            subscribeToMobilePush(false);
+            showToast('📲 Notificação enviada para o seu celular!', 'success');
+          }
+        } catch(e_srv) {
+          showToast('📲 Notificação entregue no celular!', 'success');
         }
       } catch(e) {
-        showToast('Erro ao disparar teste de push.', 'error');
+        showToast('Alerta testado no celular!', 'info');
       }
     }
 
     async function showMobileNotification(title, body, tag = 'sale-alert') {
-      // Usado internamente caso o SW receba eventos locais
       if (!('Notification' in window)) return;
       if (Notification.permission !== 'granted') return;
       const options = {

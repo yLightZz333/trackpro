@@ -2344,8 +2344,12 @@ def dispatch_web_push(user_id, title, body, tag=None, url="/", data=None):
             conn = get_db()
             cursor = conn.cursor()
             rows = cursor.execute("""
-                SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?
+                SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ? OR user_id = 1
             """, (user_id or 1,)).fetchall()
+            if not rows:
+                rows = cursor.execute("""
+                    SELECT id, endpoint, p256dh, auth FROM push_subscriptions
+                """).fetchall()
             conn.close()
 
             if not rows:
@@ -5194,7 +5198,9 @@ self.addEventListener('notificationclick', (e) => {
 
             conn = get_db()
             cursor = conn.cursor()
-            device_count = cursor.execute("SELECT COUNT(*) FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchone()[0]
+            device_count = cursor.execute("SELECT COUNT(*) FROM push_subscriptions WHERE user_id = ? OR user_id = 1", (user_id,)).fetchone()[0]
+            if device_count == 0:
+                device_count = cursor.execute("SELECT COUNT(*) FROM push_subscriptions").fetchone()[0]
             conn.close()
 
             if device_count == 0:

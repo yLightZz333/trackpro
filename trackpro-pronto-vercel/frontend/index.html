@@ -4237,7 +4237,19 @@
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
-        updatePushStatusUI(!!sub);
+        if (sub) {
+          updatePushStatusUI(true);
+          // Auto-sincroniza o aparelho silenciosamente com o servidor no carregamento
+          try {
+            await fetch('/api/push/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(sub.toJSON())
+            });
+          } catch(e_sync) {}
+        } else {
+          updatePushStatusUI(false);
+        }
       } catch(e) {
         updatePushStatusUI(false);
       }
@@ -4452,11 +4464,31 @@
     // ==================== CENTRAL DE NOTIFICAÇÕES & FEED ====================
     let cachedNotifications = [];
 
+    let lastMaxNotifId = 0;
+    let notifsInitialSync = false;
+
     async function loadNotifications() {
       try {
         const res = await fetch('/api/notifications');
         const data = await res.json();
-        cachedNotifications = data.notifications || [];
+        const list = data.notifications || [];
+
+        // Detecta nova notificacao e toca o som ao vivo no aparelho
+        if (notifsInitialSync && list.length > 0) {
+          const newest = list[0];
+          if (newest && newest.id > lastMaxNotifId) {
+            const isPix = newest.type === 'pix_generated';
+            playTrackProSound(isPix ? 'pix' : 'kaching', 1.0);
+            showMobileNotification(newest.title, newest.message, 'notif-' + newest.id);
+            showToast(newest.title + ' ' + newest.message, 'success');
+          }
+        }
+        if (list.length > 0) {
+          lastMaxNotifId = Math.max(...list.map(n => n.id || 0));
+        }
+        notifsInitialSync = true;
+
+        cachedNotifications = list;
         updateNotificationBadges(data.unread_count || 0);
         renderNotificationDropdownList(cachedNotifications);
         renderFullNotificationsTable(cachedNotifications);
@@ -8770,7 +8802,7 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       loadNotifications();
       renderSummaryHoursChips();
       setInterval(checkScheduledSummaries, 30000);
-      setInterval(loadNotifications, 45000);
+      setInterval(loadNotifications, 8000);
       updateSoundUI();
       initWebhooksAndScript();
       loadDashboardsList();

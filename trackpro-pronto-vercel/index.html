@@ -4332,7 +4332,19 @@
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
-        updatePushStatusUI(!!sub);
+        if (sub) {
+          updatePushStatusUI(true);
+          // Auto-sincroniza o aparelho silenciosamente com o servidor no carregamento
+          try {
+            await fetch('/api/push/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(sub.toJSON())
+            });
+          } catch(e_sync) {}
+        } else {
+          updatePushStatusUI(false);
+        }
       } catch(e) {
         updatePushStatusUI(false);
       }
@@ -4362,7 +4374,7 @@
 
     async function testMobilePushReal(type = 'sale') {
       try {
-        showToast('Enviando alerta push para o celular...', 'info');
+        showToast('Disparando alerta push do servidor...', 'info');
         const res = await fetch('/api/push/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -4370,20 +4382,12 @@
         });
         const d = await res.json();
         if (d.success) {
-          showToast('📲 Notificação enviada! Olhe a tela bloqueada / barra do celular.', 'success');
+          showToast('📲 Notificação entregue pelo servidor ao celular!', 'success');
           playTrackProSound(type === 'pix' ? 'pix' : 'kaching', 1.0);
         } else {
-          // Fallback imediato: se o celular ainda não completou a inscrição no FCM do Google,
-          // dispara o alerta nativo diretamente pelo Service Worker local no aparelho!
-          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            const t = type === 'pix' ? 'PIX gerado!' : 'Venda aprovada!';
-            const b = type === 'pix' ? 'Valor: R$ 97,00' : 'Valor: R$ 197,00';
-            showMobileNotification(t, b, 'test-local-' + Date.now());
-            playTrackProSound(type === 'pix' ? 'pix' : 'kaching', 1.0);
-            showToast('📲 Notificação exibida na barra do seu celular!', 'success');
-          } else {
-            showToast(d.error || 'Nenhum celular conectado.', 'warning');
-          }
+          showToast(d.error || 'Nenhum celular cadastrado no servidor! Toque em "Ativar Alertas no Celular".', 'warning', 6000);
+          // Tenta conectar agora mesmo
+          subscribeToMobilePush();
         }
       } catch(e) {
         showToast('Erro ao disparar teste de push.', 'error');
@@ -4559,11 +4563,31 @@
     // ==================== CENTRAL DE NOTIFICAÇÕES & FEED ====================
     let cachedNotifications = [];
 
+    let lastMaxNotifId = 0;
+    let notifsInitialSync = false;
+
     async function loadNotifications() {
       try {
         const res = await fetch('/api/notifications');
         const data = await res.json();
-        cachedNotifications = data.notifications || [];
+        const list = data.notifications || [];
+
+        // Detecta nova notificacao e toca o som ao vivo no aparelho
+        if (notifsInitialSync && list.length > 0) {
+          const newest = list[0];
+          if (newest && newest.id > lastMaxNotifId) {
+            const isPix = newest.type === 'pix_generated';
+            playTrackProSound(isPix ? 'pix' : 'kaching', 1.0);
+            showMobileNotification(newest.title, newest.message, 'notif-' + newest.id);
+            showToast(newest.title + ' ' + newest.message, 'success');
+          }
+        }
+        if (list.length > 0) {
+          lastMaxNotifId = Math.max(...list.map(n => n.id || 0));
+        }
+        notifsInitialSync = true;
+
+        cachedNotifications = list;
         updateNotificationBadges(data.unread_count || 0);
         renderNotificationDropdownList(cachedNotifications);
         renderFullNotificationsTable(cachedNotifications);
@@ -8926,7 +8950,7 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
       loadNotifications();
       renderSummaryHoursChips();
       setInterval(checkScheduledSummaries, 30000);
-      setInterval(loadNotifications, 45000);
+      setInterval(loadNotifications, 8000);
       updateSoundUI();
       initWebhooksAndScript();
       loadDashboardsList();

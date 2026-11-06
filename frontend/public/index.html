@@ -997,6 +997,9 @@
             <p class="text-xs text-slate-400">Navegue entre Campanhas, Conjuntos e Anúncios. Selecione itens para ações em lote.</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="copyUtmParamsQuick(this)" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm" title="Copiar parâmetros de URL do Facebook Ads para colar no anúncio">
+              <i data-lucide="copy" class="w-3.5 h-3.5 text-blue-400"></i> Copiar UTMs Meta Ads
+            </button>
             <button onclick="openModal('modal-customize-dashboard', 'columns')" class="px-3 py-2 bg-dark-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
               <i data-lucide="columns" class="w-3.5 h-3.5 text-brand-400"></i> Personalizar Colunas
             </button>
@@ -1534,6 +1537,60 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- CARD DE PARÂMETROS UTM DO FACEBOOK ADS -->
+          <div class="col-span-1 md:col-span-2 bg-gradient-to-r from-blue-950/40 via-dark-900 to-indigo-950/30 border border-blue-500/40 rounded-2xl p-5 space-y-4 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 text-blue-400 flex items-center justify-center font-bold">
+                  <i data-lucide="facebook" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-base text-white">Parâmetros de URL do Facebook Ads (UTMs)</h3>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">Obrigatório p/ Anúncios</span>
+                  </div>
+                  <p class="text-xs text-slate-300">Cole este texto no campo <strong>"Parâmetros de URL"</strong> no nível de anúncio no Meta Ads Manager para rastrear cada campanha, conjunto e criativo.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <i data-lucide="copy" class="w-3.5 h-3.5 text-blue-400"></i> Parâmetros Dinâmicos Meta Ads:
+                  </label>
+                  <span class="text-[11px] text-slate-400">Copie e cole direto no Meta Ads</span>
+                </div>
+                <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-xl border border-slate-800">
+                  <input type="text" readonly id="fb-utm-params-input"
+                    value="utm_source=facebook&utm_medium={{placement}}&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}&src={{campaign.name}}|{{adset.name}}|{{ad.name}}&sck={{ad.name}}"
+                    class="bg-transparent text-xs text-blue-300 font-mono w-full focus:outline-none select-all">
+                  <button type="button" onclick="copyUtmString('fb-utm-params-input', this)"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md flex-shrink-0">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parâmetros
+                  </button>
+                </div>
+              </div>
+
+              <!-- Gerador de URL Completa -->
+              <div class="pt-2 border-t border-slate-800/80">
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Ou gere seu Link Completo da Página com as UTMs anexadas:</label>
+                <div class="flex flex-col sm:flex-row items-center gap-2">
+                  <input type="text" id="fb-generator-base-url"
+                    value="https://atlas-wifi.vercel.app/"
+                    placeholder="https://suapagina.com"
+                    oninput="updateFullGeneratedUrl()"
+                    class="bg-dark-950 text-xs text-slate-200 px-3 py-2 rounded-xl border border-slate-800 w-full focus:outline-none focus:border-blue-500">
+                  <button type="button" onclick="copyFullGeneratedUrl(this)"
+                    class="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all flex-shrink-0">
+                    <i data-lucide="link" class="w-3.5 h-3.5 text-blue-400"></i> Copiar Link Completo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- WEBHOOK & SCRIPT UNIVERSAL (QUALQUER PLATAFORMA / CHECKOUT PRÓPRIO) -->
           <div class="col-span-1 md:col-span-2 bg-gradient-to-r from-purple-900/20 via-dark-900 to-dark-900 border border-purple-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -8580,6 +8637,55 @@ async function submitNewPixel() {
         btn.innerHTML = originalHtml;
         if (window.lucide) lucide.createIcons();
       }, 1500);
+    }
+
+    // ==================== COPIAR UTMS FACEBOOK ADS ====================
+    function copyUtmString(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-300"></i> Copiado!';
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        if (window.lucide) lucide.createIcons();
+      }, 2000);
+    }
+
+    function copyUtmParamsQuick(btn) {
+      const utms = "utm_source=facebook&utm_medium={{placement}}&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}&src={{campaign.name}}|{{adset.name}}|{{ad.name}}&sck={{ad.name}}";
+      navigator.clipboard.writeText(utms);
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-300"></i> UTMs Copiadas!';
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        if (window.lucide) lucide.createIcons();
+      }, 2000);
+    }
+
+    function updateFullGeneratedUrl() {
+      const baseEl = document.getElementById('fb-generator-base-url');
+      const utmEl = document.getElementById('fb-utm-params-input');
+      const base = baseEl ? baseEl.value.trim() : 'https://atlas-wifi.vercel.app/';
+      const utms = utmEl ? utmEl.value.trim() : 'utm_source=facebook&utm_medium={{placement}}&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}&src={{campaign.name}}|{{adset.name}}|{{ad.name}}&sck={{ad.name}}';
+      if (!base) return utms;
+      const sep = base.includes('?') ? '&' : '?';
+      return base + sep + utms;
+    }
+
+    function copyFullGeneratedUrl(btn) {
+      const full = updateFullGeneratedUrl();
+      navigator.clipboard.writeText(full);
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-300"></i> Link Copiado!';
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        if (window.lucide) lucide.createIcons();
+      }, 2000);
     }
 
     // ==================== ABAS DO WEBHOOK UNIVERSAL ====================

@@ -4277,16 +4277,24 @@
               applicationServerKey: appServerKey
             });
           } catch(err1) {
-            console.warn('Tentativa 1 de subscribe falhou:', err1);
+            console.warn('Tentativa 1 (Uint8Array) falhou:', err1);
             try {
-              const old = await reg.pushManager.getSubscription();
-              if (old) await old.unsubscribe();
-            } catch(e_unsub) {}
-            
-            sub = await reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: appServerKey
-            });
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: keyData.publicKey.trim()
+              });
+            } catch(err2) {
+              console.warn('Tentativa 2 (string) falhou:', err2);
+              try {
+                const old = await reg.pushManager.getSubscription();
+                if (old) await old.unsubscribe();
+              } catch(e_unsub) {}
+              
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: appServerKey
+              });
+            }
           }
         }
 
@@ -4364,6 +4372,18 @@
         if (d.success) {
           showToast('📲 Notificação enviada! Olhe a tela bloqueada / barra do celular.', 'success');
           playTrackProSound(type === 'pix' ? 'pix' : 'kaching', 1.0);
+        } else {
+          // Fallback imediato: se o celular ainda não completou a inscrição no FCM do Google,
+          // dispara o alerta nativo diretamente pelo Service Worker local no aparelho!
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const t = type === 'pix' ? 'PIX gerado!' : 'Venda aprovada!';
+            const b = type === 'pix' ? 'Valor: R$ 97,00' : 'Valor: R$ 197,00';
+            showMobileNotification(t, b, 'test-local-' + Date.now());
+            playTrackProSound(type === 'pix' ? 'pix' : 'kaching', 1.0);
+            showToast('📲 Notificação exibida na barra do seu celular!', 'success');
+          } else {
+            showToast(d.error || 'Nenhum celular conectado.', 'warning');
+          }
         }
       } catch(e) {
         showToast('Erro ao disparar teste de push.', 'error');

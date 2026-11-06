@@ -6010,6 +6010,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
     ];
 
     let userVisibleMetrics = JSON.parse(localStorage.getItem('trackpro_visible_metrics') || 'null') || [...DEFAULT_VISIBLE_METRICS];
+    if (!Array.isArray(userVisibleMetrics) || userVisibleMetrics.length === 0) {
+      userVisibleMetrics = [...DEFAULT_VISIBLE_METRICS];
+      localStorage.setItem('trackpro_visible_metrics', JSON.stringify(userVisibleMetrics));
+    }
     let userVisibleColumns = JSON.parse(localStorage.getItem('trackpro_visible_columns') || 'null');
     if (!userVisibleColumns || !userVisibleColumns.includes('initiate_checkouts')) {
       userVisibleColumns = [...DEFAULT_VISIBLE_COLUMNS];
@@ -6682,9 +6686,18 @@ fetch(webhookUrl, {
 
     const DEFAULT_DASHBOARD_ORDER = [
       'metric-faturamento',
+      'metric-faturamentoLiquido',
       'metric-lucroReal',
       'metric-gastoAds',
+      'metric-impostos',
       'metric-roas',
+      'metric-roi',
+      'metric-vendasAprovadas',
+      'metric-cpa',
+      'metric-ticketMedio',
+      'metric-connectRate',
+      'metric-initiateCheckout',
+      'metric-vendasPendentes',
       'widget-funnel',
       'widget-chart-hourly',
       'widget-chart-sources',
@@ -6694,8 +6707,26 @@ fetch(webhookUrl, {
 
     try {
       const savedOrder = localStorage.getItem('trackpro_dashboard_order');
-      if (savedOrder) dashboardWidgetsOrder = JSON.parse(savedOrder);
-      else dashboardWidgetsOrder = [...DEFAULT_DASHBOARD_ORDER];
+      if (savedOrder) {
+        let parsed = JSON.parse(savedOrder);
+        // Sanitiza layout: se o array não contém os cards de métricas ou começa com widget-funnel
+        // (bug que empurrava as métricas para baixo ou as ocultava), restaura os cards de métricas no topo!
+        const hasMetrics = Array.isArray(parsed) && parsed.some(id => typeof id === 'string' && id.startsWith('metric-'));
+        const funnelIdx = Array.isArray(parsed) ? parsed.indexOf('widget-funnel') : -1;
+        if (!hasMetrics || funnelIdx === 0) {
+          const metricIds = DEFAULT_VISIBLE_METRICS.map(m => 'metric-' + m);
+          const nonMetricIds = Array.isArray(parsed) ? parsed.filter(id => !id.startsWith('metric-')) : [];
+          if (nonMetricIds.length === 0) {
+            nonMetricIds.push('widget-funnel', 'widget-chart-hourly', 'widget-chart-sources', 'widget-chart-methods', 'widget-table-orders');
+          }
+          dashboardWidgetsOrder = [...metricIds, ...nonMetricIds];
+          localStorage.setItem('trackpro_dashboard_order', JSON.stringify(dashboardWidgetsOrder));
+        } else {
+          dashboardWidgetsOrder = parsed;
+        }
+      } else {
+        dashboardWidgetsOrder = [...DEFAULT_DASHBOARD_ORDER];
+      }
 
       const savedSettings = localStorage.getItem('trackpro_widget_settings');
       if (savedSettings) {
@@ -7001,7 +7032,19 @@ fetch(webhookUrl, {
 
       // Reordena os elementos no DOM conforme a ordem salva
       if (Array.isArray(order) && order.length > 0) {
-        order.forEach(wId => {
+        const effectiveOrder = [...order];
+        const visible = (userVisibleMetrics && userVisibleMetrics.length > 0) ? userVisibleMetrics : DEFAULT_VISIBLE_METRICS;
+        // Assegura que todas as métricas ativas apareçam antes do funil por padrão se não estiverem no array order
+        visible.forEach(m => {
+          const mId = 'metric-' + m;
+          if (!effectiveOrder.includes(mId)) {
+            const fIdx = effectiveOrder.indexOf('widget-funnel');
+            if (fIdx !== -1) effectiveOrder.splice(fIdx, 0, mId);
+            else effectiveOrder.unshift(mId);
+          }
+        });
+
+        effectiveOrder.forEach(wId => {
           const el = grid.querySelector(`[data-widget-id="${wId}"]`);
           if (el && dropzone) {
             grid.insertBefore(el, dropzone);
@@ -7369,8 +7412,14 @@ fetch(webhookUrl, {
             </button>
           `;
 
-          if (dropzone) grid.insertBefore(card, dropzone);
-          else grid.appendChild(card);
+          const funnelEl = document.getElementById('widget-funnel');
+          if (funnelEl) {
+            grid.insertBefore(card, funnelEl);
+          } else if (dropzone) {
+            grid.insertBefore(card, dropzone);
+          } else {
+            grid.appendChild(card);
+          }
         } else {
           // Atualiza apenas os valores
           const elVal = document.getElementById('kpi-val-' + key);
@@ -8985,11 +9034,19 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
 
       // Carrega preferências salvas no backend
       fetch('/api/user/preferences').then(r => r.json()).then(p => {
-        if (p.visible_metrics && p.visible_metrics.length > 0) {
+        if (p.visible_metrics && Array.isArray(p.visible_metrics) && p.visible_metrics.length > 0) {
           userVisibleMetrics = p.visible_metrics;
         }
-        if (p.visible_columns && p.visible_columns.length > 0) {
+        if (p.visible_columns && Array.isArray(p.visible_columns) && p.visible_columns.length > 0) {
           userVisibleColumns = p.visible_columns;
+        }
+        if (p.dashboard_order && Array.isArray(p.dashboard_order) && p.dashboard_order.length > 0) {
+          if (p.dashboard_order.some(id => typeof id === 'string' && id.startsWith('metric-'))) {
+            dashboardWidgetsOrder = p.dashboard_order;
+          }
+        }
+        if (p.widget_settings && typeof p.widget_settings === 'object') {
+          dashboardWidgetSettings = p.widget_settings;
         }
         refreshData();
       }).catch(() => {
@@ -9003,6 +9060,7 @@ Mantenha os scripts no topo da tag <head> para que as UTMs sejam capturadas imed
     // Inicialização ao carregar
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      renderDynamicKpiCards({});
       checkAuthSession();
     });
   

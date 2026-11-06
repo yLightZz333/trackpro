@@ -645,7 +645,9 @@ def init_db():
     extra_migs = [
         ('ad_sets', 'user_id', 'INTEGER DEFAULT 1'),
         ('ads', 'user_id', 'INTEGER DEFAULT 1'),
-        ('users', 'company', 'TEXT')
+        ('users', 'company', 'TEXT'),
+        ('user_preferences', 'dashboard_order', 'TEXT'),
+        ('user_preferences', 'widget_settings', 'TEXT')
     ]
     for tbl, col, coltype in extra_migs:
         try:
@@ -5205,15 +5207,18 @@ self.addEventListener('notificationclick', (e) => {
         if path == '/api/user/preferences':
             conn = get_db()
             cursor = conn.cursor()
+            user_id = self._get_current_user_id() or 1
             pref = cursor.execute('SELECT * FROM user_preferences WHERE user_id = ?', (user_id,)).fetchone()
             conn.close()
             if pref:
                 self._send_json({
                     "visible_metrics": json.loads(pref['visible_metrics']) if pref['visible_metrics'] else None,
-                    "visible_columns": json.loads(pref['visible_columns']) if pref['visible_columns'] else None
+                    "visible_columns": json.loads(pref['visible_columns']) if pref['visible_columns'] else None,
+                    "dashboard_order": json.loads(pref['dashboard_order']) if ('dashboard_order' in pref.keys() and pref['dashboard_order']) else None,
+                    "widget_settings": json.loads(pref['widget_settings']) if ('widget_settings' in pref.keys() and pref['widget_settings']) else None
                 })
             else:
-                self._send_json({"visible_metrics": None, "visible_columns": None})
+                self._send_json({"visible_metrics": None, "visible_columns": None, "dashboard_order": None, "widget_settings": None})
             return
 
         if path == '/api/meta/settings':
@@ -5805,20 +5810,35 @@ self.addEventListener('notificationclick', (e) => {
 
         # Preferências do Usuário (Métricas e Colunas Visíveis) - Salvar
         if path == '/api/user/preferences':
+            user_id = self._get_current_user_id() or 1
             visible_metrics = body.get('visible_metrics')
             visible_columns = body.get('visible_columns')
+            dashboard_order = body.get('dashboard_order')
+            widget_settings = body.get('widget_settings')
             vm_json = json.dumps(visible_metrics) if visible_metrics is not None else None
             vc_json = json.dumps(visible_columns) if visible_columns is not None else None
+            do_json = json.dumps(dashboard_order) if dashboard_order is not None else None
+            ws_json = json.dumps(widget_settings) if widget_settings is not None else None
             conn = get_db()
             cursor = conn.cursor()
+            try:
+                cursor.execute("ALTER TABLE user_preferences ADD COLUMN dashboard_order TEXT")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE user_preferences ADD COLUMN widget_settings TEXT")
+            except Exception:
+                pass
             cursor.execute("""
-                INSERT INTO user_preferences (user_id, visible_metrics, visible_columns, updated_at)
-                VALUES (1, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO user_preferences (user_id, visible_metrics, visible_columns, dashboard_order, widget_settings, updated_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(user_id) DO UPDATE SET
                     visible_metrics = COALESCE(excluded.visible_metrics, user_preferences.visible_metrics),
                     visible_columns = COALESCE(excluded.visible_columns, user_preferences.visible_columns),
+                    dashboard_order = COALESCE(excluded.dashboard_order, user_preferences.dashboard_order),
+                    widget_settings = COALESCE(excluded.widget_settings, user_preferences.widget_settings),
                     updated_at = CURRENT_TIMESTAMP
-            """, (vm_json, vc_json))
+            """, (user_id, vm_json, vc_json, do_json, ws_json))
             conn.commit()
             conn.close()
             self._send_json({"success": True, "message": "Preferências salvas com sucesso!"})

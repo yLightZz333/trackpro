@@ -1962,21 +1962,21 @@ def parse_webhook_payload(headers, body):
             'sck': dt.get('sck')
         }
 
-    # Pagar.me v5 Webhook & Postback Nativo
-    elif 'pagar.me' in str(headers).lower() or 'pagarme' in str(headers).lower() or ('data' in body and ('charges' in body.get('data', {}) or 'order.paid' in str(body.get('type') or body.get('event', '')) or 'charge.paid' in str(body.get('type') or body.get('event', '')))):
-        platform = 'Pagar.me'
+    # Stone & Pagar.me v5 Webhook & Postback Nativo
+    elif 'stone' in str(headers).lower() or 'pagar.me' in str(headers).lower() or 'pagarme' in str(headers).lower() or ('data' in body and ('charges' in body.get('data', {}) or 'order.paid' in str(body.get('type') or body.get('event', '') or body.get('event_type', '')) or 'charge.paid' in str(body.get('type') or body.get('event', '') or body.get('event_type', '')))):
+        platform = 'Stone' if 'stone' in str(headers).lower() else 'Pagar.me'
         dt = body.get('data', {})
-        order_id = dt.get('code') or dt.get('id') or body.get('id')
-        ev = str(body.get('type') or body.get('event') or dt.get('status', '')).lower()
-        if 'paid' in ev or 'approved' in ev or 'captured' in ev:
+        order_id = dt.get('code') or dt.get('id') or body.get('id') or body.get('event_id')
+        ev = str(body.get('type') or body.get('event') or body.get('event_type') or dt.get('status', '')).lower()
+        if any(x in ev for x in ['paid', 'approved', 'captured', 'received', 'pago', 'aprovado', 'concluido']):
             status = 'paid'
-        elif 'refund' in ev or 'chargeback' in ev:
+        elif any(x in ev for x in ['refund', 'chargeback', 'estorno', 'cancel']):
             status = 'refunded'
         else:
             status = 'waiting_payment'
 
-        cust = dt.get('customer', {})
-        customer_name = cust.get('name') or cust.get('full_name', 'Comprador Pagar.me')
+        cust = dt.get('customer', {}) or body.get('customer', {}) or body.get('payer', {})
+        customer_name = cust.get('name') or cust.get('full_name') or cust.get('payer_name', 'Comprador Stone')
         customer_email = cust.get('email', '')
         
         phones = cust.get('phones', {})
@@ -4427,7 +4427,7 @@ self.addEventListener('notificationclick', (e) => {
             prod_rows = cursor.execute("SELECT id, name FROM products WHERE user_id = ?", (user_id,)).fetchall()
             filter_options = {
                 "ad_accounts": [{"id": r['account_id'], "name": r['name']} for r in acc_rows],
-                "platforms": ["Lovable", "Base44", "Kiwify", "Hotmart", "Greenn", "Cakto", "Wiapy"],
+                "platforms": ["Lovable", "Base44", "Kiwify", "Hotmart", "Greenn", "Cakto", "Wiapy", "Stone", "Pagar.me"],
                 "products": [{"id": str(p['id']), "name": p['name']} for p in prod_rows],
                 "sources": ["facebook", "instagram", "google", "tiktok", "direto"]
             }
@@ -6619,6 +6619,7 @@ self.addEventListener('notificationclick', (e) => {
             '/api/webhook/greenn',
             '/api/webhook/cakto',
             '/api/webhook/wiapy',
+            '/api/webhook/stone',
             '/api/webhook/pagarme',
             '/api/webhook/pagar.me',
             '/api/webhook/base44',
@@ -6638,6 +6639,7 @@ self.addEventListener('notificationclick', (e) => {
             elif 'wiapy' in p_lower: parsed_order['platform'] = 'Wiapy'
             elif 'base44' in p_lower: parsed_order['platform'] = 'Base44'
             elif 'lovable' in p_lower: parsed_order['platform'] = 'Lovable'
+            elif 'stone' in p_lower: parsed_order['platform'] = 'Stone'
             elif 'pagarme' in p_lower or 'pagar.me' in p_lower: parsed_order['platform'] = 'Pagar.me'
             elif 'universal' in p_lower or 'custom' in p_lower:
                 parsed_order['platform'] = body.get('platform') or 'Universal'

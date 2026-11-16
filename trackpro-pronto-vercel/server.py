@@ -4292,30 +4292,60 @@ self.addEventListener('notificationclick', (e) => {
                     ins_w.append("ad_account_id = ?")
                     ins_p.append(ad_account_filter)
                 meta_stats = cursor.execute(f"SELECT COALESCE(SUM(impressions), 0), COALESCE(SUM(clicks), 0), COALESCE(SUM(initiate_checkouts), 0), COALESCE(SUM(landing_page_views), 0) FROM meta_campaign_insights WHERE {' AND '.join(ins_w)}", ins_p).fetchone()
-                cliques = max(pageviews, meta_stats[1] if meta_stats else 0)
-                impressoes = max(meta_stats[0] if meta_stats else 0, cliques * 25 if cliques > 0 else 0)
-                initiate_checkout = max(initiate_checkout, meta_stats[2] if meta_stats else 0)
-                meta_lpv = meta_stats[3] if meta_stats else 0
-                pageviews = max(pageviews, meta_lpv)
             else:
                 meta_stats = cursor.execute("SELECT COALESCE(SUM(impressions), 0), COALESCE(SUM(clicks), 0), COALESCE(SUM(initiate_checkouts), 0), COALESCE(SUM(landing_page_views), 0) FROM meta_campaign_insights").fetchone()
-                cliques = max(pageviews, (meta_stats[1] if meta_stats else 0) or int(tot_spent * 1.8))
-                impressoes = max(meta_stats[0] if meta_stats else 0, (cliques * 25 if cliques > 0 else 0) or int(tot_spent * 80))
-                initiate_checkout = max(initiate_checkout, meta_stats[2] if meta_stats else 0)
-                meta_lpv = meta_stats[3] if meta_stats else 0
-                pageviews = max(pageviews, meta_lpv)
+
+            meta_impr = meta_stats[0] if meta_stats else 0
+            meta_clk = meta_stats[1] if meta_stats else 0
+            meta_ic = meta_stats[2] if meta_stats else 0
+            meta_lpv = meta_stats[3] if meta_stats else 0
+
+            # O Funil de Conversão (Meta ads) reflete estritamente os dados reais do Meta Ads:
+            # Nunca sobrepõe cliques e impressões com tráfego direto do site!
+            if meta_impr > 0 or meta_clk > 0 or tot_spent > 0:
+                cliques = meta_clk
+                impressoes = meta_impr
+                pageviews = meta_lpv if meta_lpv > 0 else min(cliques, pageviews)
+                initiate_checkout = meta_ic
+            else:
+                cliques = 0
+                impressoes = 0
+                pageviews = 0
+                initiate_checkout = 0
+
+            # Busca pedidos atribuídos especificamente ao Meta Ads (para o Funil e ROAS/CPA de anúncios)
+            meta_ord_where = []
+            meta_ord_p = []
+            if date_clause:
+                meta_ord_where.append(date_clause)
+                meta_ord_p.extend(date_params)
+            meta_ord_where.append("(utm_source LIKE '%fb%' OR utm_source LIKE '%face%' OR utm_source LIKE '%insta%' OR utm_medium LIKE '%cpc%' OR fbc IS NOT NULL OR utm_campaign IN (SELECT name FROM campaigns WHERE user_id = ?) OR utm_campaign IN (SELECT external_campaign_id FROM campaigns WHERE user_id = ?))")
+            meta_ord_p.extend([user_id, user_id])
+            meta_ord_sql = " WHERE " + " AND ".join(meta_ord_where)
+
+            row_m_paid = cursor.execute(f"SELECT COUNT(*) as count, COALESCE(SUM(price_in_cents), 0) as total FROM orders {meta_ord_sql} AND status = 'paid'", meta_ord_p).fetchone()
+            row_m_pend = cursor.execute(f"SELECT COUNT(*) as count FROM orders {meta_ord_sql} AND status = 'waiting_payment'", meta_ord_p).fetchone()
+
+            meta_paid_ord = row_m_paid['count'] or 0 if row_m_paid else 0
+            meta_paid_rev = (row_m_paid['total'] or 0) / 100.0 if row_m_paid else 0.0
+            meta_pend_ord = row_m_pend['count'] or 0 if row_m_pend else 0
+
+            # Vendas do Funil Meta Ads: exclusivamente vindas de anúncios
+            vendas_iniciadas = meta_paid_ord + meta_pend_ord
+            vendas_aprovadas = meta_paid_ord
+
+            # Métricas de eficiência de anúncios (CPA e ROAS)
+            # Se não houve vendas nos anúncios, CPA e ROAS são 0 (evita que vendas de tráfego direto distorçam os anúncios)
+            cpa = round(tot_spent / meta_paid_ord, 2) if meta_paid_ord > 0 else 0.0
+            roas = round(meta_paid_rev / tot_spent_brl, 2) if (tot_spent_brl > 0 and meta_paid_rev > 0) else 0.0
 
             ctr = round((cliques / impressoes * 100.0), 2) if impressoes > 0 else 0
             cpc = round(tot_spent / cliques, 2) if cliques > 0 else 0
             cpm = round((tot_spent / impressoes * 1000.0), 2) if impressoes > 0 else 0
             connect_rate = round(min(100.0, (pageviews / cliques * 100.0)), 1) if cliques > 0 else 100.0
             taxa_ic = round((initiate_checkout / pageviews * 100.0), 1) if pageviews > 0 else (round(initiate_checkout / cliques * 100.0, 1) if cliques > 0 else 0)
-            taxa_checkout = round((paid_ord / initiate_checkout * 100.0), 1) if initiate_checkout > 0 else 0
-            taxa_geral = round((paid_ord / cliques * 100.0), 2) if cliques > 0 else 0
-
-            # Estágios do Funil Contínuo
-            vendas_iniciadas = paid_ord + pending_ord
-            vendas_aprovadas = paid_ord
+            taxa_checkout = round((vendas_aprovadas / initiate_checkout * 100.0), 1) if initiate_checkout > 0 else 0
+            taxa_geral = round((vendas_aprovadas / cliques * 100.0), 2) if cliques > 0 else 0
 
             pct_clicks = 100.0 if cliques > 0 else 0.0
             pct_pv = round((pageviews / cliques * 100.0), 1) if cliques > 0 else 0.0
